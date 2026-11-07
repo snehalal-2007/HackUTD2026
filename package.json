@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev:db": "spacetime start",
     "publish:local": "bash scripts/publish.sh local",
@@ -16,6 +18,7 @@
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "@vercel/config": "^0.14.1",
     "typescript": "~7.0.2"
   }
 }
