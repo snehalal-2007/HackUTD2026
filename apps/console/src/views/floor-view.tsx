@@ -42,11 +42,6 @@ export function FloorView() {
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6">
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">{HALL_NAME}, rack inlet temperature.</p>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="warning" size="sm">Preview</Badge>
-            <span>Sample readings. Live updates from the shared database arrive with Phase 2.</span>
-          </div>
           <div className="flex flex-wrap items-center gap-3">
             <ul className="flex flex-wrap items-center gap-2 text-xs" aria-label="Temperature bands">
               <li className="text-muted-foreground">Normal under {INLET_WARN_C}°C</li>
