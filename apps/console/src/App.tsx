@@ -3,9 +3,10 @@ import { AgentChat } from '@/components/agent/agent-chat'
 import { AppShell } from '@/components/shell/app-shell'
 import type { ViewId } from '@/components/shell/nav'
 import { AlertsView } from '@/views/alerts-view'
+import { FloorView } from '@/views/floor-view'
 import { OperatorsView } from '@/views/operators-view'
 
-const VIEWS: ViewId[] = ['agent', 'alerts', 'operators']
+const VIEWS: ViewId[] = ['floor', 'agent', 'alerts', 'operators']
 const KEY = 'mesa:view'
 
 function initialView(): ViewId {
@@ -31,6 +32,7 @@ export default function App() {
 
   return (
     <AppShell view={view} onNavigate={navigate}>
+      {view === 'floor' && <FloorView />}
       {view === 'agent' && <AgentChat />}
       {view === 'alerts' && <AlertsView />}
       {view === 'operators' && <OperatorsView />}

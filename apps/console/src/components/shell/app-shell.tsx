@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/reui/badge'
 import { BrandMark } from './brand-mark'
+import { ShiftClock } from './shift-clock'
+import { ThemeToggle } from './theme-toggle'
 import { VIEW_TITLES, type ViewId } from './nav'
 
 interface Item {
@@ -43,11 +45,11 @@ interface Item {
 
 // Icons are static JSX so the shadcn CLI can rewrite them if the icon library changes.
 const WORK: Item[] = [
-  { id: 'agent', label: 'Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
   { id: 'queue', label: 'My Queue', icon: <InboxIcon aria-hidden="true" /> },
+  { id: 'floor', label: 'Floor', view: 'floor', icon: <LayoutGridIcon aria-hidden="true" /> },
+  { id: 'agent', label: 'AI Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
   { id: 'alerts', label: 'Alerts', view: 'alerts', icon: <SirenIcon aria-hidden="true" /> },
   { id: 'handoff', label: 'Shift Handoff', icon: <ArrowLeftRightIcon aria-hidden="true" /> },
-  { id: 'floor', label: 'Floor', icon: <LayoutGridIcon aria-hidden="true" /> },
 ]
 
 const SYSTEM: Item[] = [
@@ -156,7 +158,10 @@ function ShellBody({
               <SidebarMenuButton size="lg" tooltip="MESA" onClick={() => onNavigate('agent')}>
                 <BrandMark />
                 <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
-                  <span className="truncate text-sm font-semibold">MESA</span>
+                  <span className="truncate font-brand leading-none">
+                    <span className="text-[25px]" /* capital M at 25px stands level with lowercase "esa" at 30px */>M</span>
+                    <span className="text-[30px]">esa</span>
+                  </span>
                   <span className="truncate text-xs text-sidebar-foreground/70">No alert left unowned</span>
                 </span>
               </SidebarMenuButton>
@@ -179,7 +184,9 @@ function ShellBody({
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
           <SidebarTrigger />
           <h1 className="truncate text-sm font-medium">{VIEW_TITLES[view]}</h1>
-          <Badge className="ml-auto" variant={conn.isActive ? 'success' : conn.connectionError ? 'destructive' : 'warning'}>
+          <div className="ml-auto"><ShiftClock /></div>
+          <ThemeToggle />
+          <Badge variant={conn.isActive ? 'success' : conn.connectionError ? 'destructive' : 'warning'}>
             <ActivityIcon aria-hidden="true" />
             {conn.isActive ? 'Live' : conn.connectionError ? 'Offline' : 'Connecting'}
           </Badge>

@@ -20,6 +20,9 @@ importers:
       '@fontsource-variable/geist':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/jaro':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@mesa/bindings':
         specifier: workspace:*
         version: link:../../packages/bindings
@@ -450,6 +453,9 @@ packages:
 
   '@fontsource-variable/geist@5.3.0':
     resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
+
+  '@fontsource/jaro@5.3.0':
+    resolution: {integrity: sha512-ytCnPjGzjfEOlk/NVoKG0MG8bkE+6tY36HPTTTe5ySv3UWW1M4kvelV/II5CeTXJhp6C0a3ZlQAbRcyKYUYxOg==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3210,6 +3216,8 @@ snapshots:
   '@floating-ui/utils@0.2.12': {}
 
   '@fontsource-variable/geist@5.3.0': {}
+
+  '@fontsource/jaro@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
