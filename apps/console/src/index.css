@@ -164,6 +164,10 @@
     --primary: #f0e6c0;
     --primary-foreground: #1c1c1c;
     --ring: #f0e6c0;
+    --sidebar: #181818;
+    --sidebar-primary: #f0e6c0;
+    --sidebar-primary-foreground: #1c1c1c;
+    --sidebar-ring: #f0e6c0;
 }
 :root {
     --primary: #2b2a26;
