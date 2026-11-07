@@ -34,6 +34,8 @@ pnpm dev:sim           # terminal 3: telemetry simulator
 
 Open the console in two windows to see both update together.
 
+The production database is `hackutd2026-0nef9` on Maincloud. Point a client at it with `wss://maincloud.spacetimedb.com` and that database name (see `.env.example`).
+
 Predictor:
 
 ```bash

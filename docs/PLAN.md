@@ -27,8 +27,8 @@ Rule for the whole night: a missed gate cuts scope; it never borrows time from t
 One environment variable switches every client between local and Maincloud:
 
 ```
-SPACETIME_URI=ws://localhost:3000        # or https://maincloud.spacetimedb.com
-SPACETIME_DB=mesa
+SPACETIME_URI=ws://localhost:3000        # or wss://maincloud.spacetimedb.com
+SPACETIME_DB=mesa                        # or hackutd2026-0nef9 (production)
 ```
 
 ---
@@ -42,7 +42,7 @@ SPACETIME_DB=mesa
 | **Console owner** (full-stack 1) | `apps/console/` |
 | **Agent and deploy owner** (full-stack 2) | `services/agent/`, Vercel, Railway, CI |
 | **Security owner** | `security/`, `module/src/honeypot/`, role checks, hash-chained event log |
-| **Release manager** (holder of Spacetime credits) | The only person who publishes to the Maincloud `mesa` database, from `main`, at each gate |
+| **Release manager** (holder of Spacetime credits) | The only person who publishes to the Maincloud `hackutd2026-0nef9` database, from `main`, at each gate |
 
 ---
 
@@ -134,13 +134,13 @@ Gate times are proposals; adjust at kickoff.
 - [x] Vite + React + Tailwind v4 + shadcn init in `apps/console`; add the ReUI registry
 - [x] Install SpacetimeDB agent skills into `.claude/skills/`; write `CLAUDE.md` and `AGENTS.md`
 - [x] `scripts/generate-bindings.sh`, `.env.example`, CI workflow, CODEOWNERS
-- [ ] README skeleton; first commit and push to `main`
+- [x] README skeleton; first commit and push to `main`
 - [ ] Repo owner: make the repo public, protect `main`, turn on secret scanning and push protection
 
 ### Phase 1: Contract. Module owner
 - [ ] Tables and reducer **signatures** from section 4, with stub bodies
 - [ ] Seed the hall in `init`
-- [ ] Release manager creates `mesa` on Maincloud and publishes the empty module
+- [x] Release manager creates `hackutd2026-0nef9` on Maincloud and publishes the placeholder module
 - [ ] Generate and commit bindings
 
 **Gate 1 (about 4:00 pm): contract frozen.** Everyone builds on these bindings.
@@ -190,10 +190,10 @@ Gate times are proposals; adjust at kickoff.
 
 | Item | Owner role | Where the secret lives |
 |---|---|---|
-| Maincloud `mesa` database | Release manager | n/a (`spacetime login`) |
+| Maincloud `hackutd2026-0nef9` database (created, placeholder module published) | Release manager | n/a (`spacetime login`) |
 | Anthropic API key | Agent and deploy owner | Railway env (agent) |
 | Railway project: simulator, agent, predictor, decoy-web | Agent and deploy owner | Railway env |
-| Vercel project for `apps/console` | Agent and deploy owner | Vercel env (`VITE_SPACETIME_URI`, `VITE_SPACETIME_DB`) |
+| Vercel project for `apps/console` | Agent and deploy owner | Vercel env (`VITE_SPACETIME_URI=wss://maincloud.spacetimedb.com`, `VITE_SPACETIME_DB=hackutd2026-0nef9`) |
 | ElevenLabs key (optional) | Agent and deploy owner | Railway env |
 | Public repo, branch protection, secret scanning | Repo owner | GitHub settings |
 | Local tools: `spacetime`, `railway`, `uv`, current Vercel CLI | Everyone | n/a |
