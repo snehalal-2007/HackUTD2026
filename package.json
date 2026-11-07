@@ -1,0 +1,21 @@
+{
+  "name": "mesa",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:db": "spacetime start",
+    "publish:local": "bash scripts/publish.sh local",
+    "publish:prod": "bash scripts/publish.sh maincloud",
+    "generate": "bash scripts/generate-bindings.sh",
+    "dev:console": "pnpm --filter @mesa/console dev",
+    "dev:sim": "pnpm --filter @mesa/simulator dev",
+    "dev:agent": "pnpm --filter @mesa/agent dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "~7.0.2"
+  }
+}

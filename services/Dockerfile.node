@@ -1,0 +1,13 @@
+# Shared image for the Node services. Build from the repo root:
+#   docker build -f services/Dockerfile.node --build-arg SERVICE=simulator -t mesa-simulator .
+FROM node:24-slim
+ARG SERVICE
+ENV SERVICE=${SERVICE}
+RUN corepack enable
+WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages ./packages
+COPY services/${SERVICE} ./services/${SERVICE}
+RUN pnpm install --frozen-lockfile --filter "@mesa/${SERVICE}..."
+WORKDIR /repo/services/${SERVICE}
+CMD ["pnpm", "start"]

@@ -1,0 +1,6 @@
+packages:
+  - module
+  - packages/*
+  - apps/*
+  - services/simulator
+  - services/agent

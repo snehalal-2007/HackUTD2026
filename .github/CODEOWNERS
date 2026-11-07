@@ -1,0 +1,12 @@
+# Replace each placeholder with the GitHub handle of the person in that role.
+# The shared contract (module + bindings) and security code need their owner's review.
+
+# /module/                @module-owner
+# /packages/bindings/     @module-owner
+# /services/simulator/    @simulator-owner
+# /services/predictor/    @simulator-owner
+# /apps/console/          @console-owner
+# /services/agent/        @agent-deploy-owner
+# /.github/               @agent-deploy-owner
+# /security/              @security-owner
+# /module/src/honeypot/   @security-owner

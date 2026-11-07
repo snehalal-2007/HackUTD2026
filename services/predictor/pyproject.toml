@@ -1,0 +1,21 @@
+[project]
+name = "mesa-predictor"
+version = "0.1.0"
+description = "Time-to-breach prediction for MESA alerts"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.120",
+  "uvicorn[standard]>=0.38",
+]
+
+[project.optional-dependencies]
+ml = ["scikit-learn>=1.7", "xgboost>=3.1"]
+
+[dependency-groups]
+dev = ["pytest>=8.4", "httpx>=0.28", "ruff>=0.14"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
