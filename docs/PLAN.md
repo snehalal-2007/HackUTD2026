@@ -174,6 +174,7 @@ Gate times are proposals; adjust at kickoff.
 - [ ] Role checks in every reducer; agent restricted to `attach_insight` and `attach_brief`
 - [ ] Hash-chained `event_log` with a Verify button
 - [ ] Honeypot: decoy reducers, `threat_event` → critical alert, quarantine
+- [ ] Outcomes panel (Should): mean time to acknowledge, escalations, handoff completeness and warning lead time, computed live from `event_log` (see [nmc2-workshop-notes.md](nmc2-workshop-notes.md))
 - [ ] In priority order if time allows: XGBoost, presence avatars, keyboard shortcuts, cascade awareness, voice escalation
 
 **Gate 5 (about 9:00 am): feature freeze.** Only fixes and polish after this.
