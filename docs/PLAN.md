@@ -174,6 +174,7 @@ Gate times are proposals; adjust at kickoff.
 - [ ] Role checks in every reducer; agent restricted to `attach_insight` and `attach_brief`
 - [ ] Hash-chained `event_log` with a Verify button
 - [ ] Honeypot: decoy reducers, `threat_event` → critical alert, quarantine
+- [ ] Outcomes panel (Should): mean time to acknowledge, escalations, handoff completeness and warning lead time, computed live from `event_log` (see [nmc2-workshop-notes.md](nmc2-workshop-notes.md))
 - [ ] In priority order if time allows: XGBoost, presence avatars, keyboard shortcuts, cascade awareness, voice escalation
 
 **Gate 5 (about 9:00 am): feature freeze.** Only fixes and polish after this.
@@ -213,6 +214,6 @@ Only `.env.example` is committed. The repo is public.
 
 - [x] Logo mark: four-point sparkle with flanking spikes, cream `#F0E6C0` on `#1C1C1C` (`docs/brand/mesa-mark.svg`). Drawn as our own SVG in the style of the reference, not traced. Used for the favicon and console header in Phase 0
 - [ ] Confirm with Spacetime mentors: TS module on Maincloud is fine for the main track; can more than one person publish; can CI publish with a token; how far the credits stretch overnight
-- [ ] Ask at the NMC² workshop which signals operators watch most, and use their wording
+- [ ] Ask NMC² which signals operators watch most. The workshop did not cover it; its other takeaways and pitch wording are in [nmc2-workshop-notes.md](nmc2-workshop-notes.md)
 - [ ] Decide who presents to which judging panel
 - [ ] What MESA stands for
