@@ -1,3 +1,5 @@
+import { assertAllowed } from './honeypot/guard';
+export * from './honeypot/decoys';
 import { t, SenderError } from 'spacetimedb/server';
 import spacetimedb from './schema';
 

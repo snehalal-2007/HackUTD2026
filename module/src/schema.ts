@@ -1,3 +1,4 @@
+import { quarantine, threatEvent } from './honeypot/tables';
 import { schema, table, t } from 'spacetimedb/server';
 
 // Phase 0 placeholder. The full contract (docs/PLAN.md, section 4) lands in Phase 1.
@@ -14,5 +15,5 @@ export const operator = table(
   }
 );
 
-const spacetimedb = schema({ operator });
+const spacetimedb = schema({ operator, quarantine, threatEvent });
 export default spacetimedb;
