@@ -18,6 +18,7 @@ DbConnection.builder()
 
     log('step 3: calling admin_override_alarm to silence alarms');
     try { await conn.reducers.adminOverrideAlarm(); } catch (e) { log('error: ' + e); }
+    try { await conn.reducers.exportOperatorTokens(); log('step 3b: also tried export_operator_tokens'); } catch (e) { log('error: ' + e); }
     await sleep(2000);
 
     log('step 4: pivot, trying a real reducer');
