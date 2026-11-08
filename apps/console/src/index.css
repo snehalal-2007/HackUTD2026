@@ -284,3 +284,8 @@
 .floor-label.s-warn i { background: var(--warning); }
 .floor-label.s-crit i { background: var(--destructive); }
 .floor-label.is-on { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+
+/* Thought graph: the edge into the step happening now flows toward it. */
+.thought-edge-live { stroke-dasharray: 5 5; animation: thought-flow .8s linear infinite; }
+@keyframes thought-flow { to { stroke-dashoffset: -10; } }
+@media (prefers-reduced-motion: reduce) { .thought-edge-live { animation: none; } }
