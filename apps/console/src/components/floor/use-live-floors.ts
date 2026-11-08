@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useTable } from 'spacetimedb/react'
 import { tables } from '@mesa/bindings'
 import { GPU_CRIT_C, GPU_WARN_C, RACK_CAP_KW, SERVERS_PER_BLOCK, SITES, type Hall, type Item, type ItemState, type Status } from './data'
@@ -35,6 +35,27 @@ const nodeNo = (serverId: string) => Number(/n(\d+)$/.exec(serverId)?.[1] ?? 0)
 const blockOf = (serverId: string) => Math.min(BLOCKS_PER_RACK - 1, Math.max(0, Math.floor((nodeNo(serverId) - 1) / SERVERS_PER_BLOCK)))
 const two = (n: number) => String(n).padStart(2, '0')
 
+/** The server ids of one block, from its hall id ("dc-x/a18#2" → dc-x/a18n07 … dc-x/a18n12). Mirrors blockOf. */
+export function blockServerIds(hallId: string) {
+  const [rackId, b] = hallId.split('#')
+  const first = (Number(b) - 1) * SERVERS_PER_BLOCK + 1
+  return Array.from({ length: SERVERS_PER_BLOCK }, (_, i) => `${rackId}n${two(first + i)}`)
+}
+
+// server_reading is large and busy, so history is subscribed only while the temperature chart is on screen.
+// The chart reports its visibility here (setHistoryOnScreen); useLiveSites follows it.
+let historyOnScreen = false
+const historyListeners = new Set<() => void>()
+export function setHistoryOnScreen(onScreen: boolean) {
+  if (onScreen === historyOnScreen) return
+  historyOnScreen = onScreen
+  historyListeners.forEach(l => l())
+}
+function subscribeHistoryOnScreen(l: () => void) {
+  historyListeners.add(l)
+  return () => void historyListeners.delete(l)
+}
+
 /** Least-squares slope (°C per minute) and the value at the last point. */
 function trend(points: number[]) {
   const n = points.length
@@ -54,7 +75,8 @@ export function useLiveSites({ withHistory }: { withHistory: boolean }) {
   const [, dcReady] = useTable(tables.datacenter) // only for the ready signal; racks carry their datacenterId
   const [racks, rackReady] = useTable(tables.rack)
   const [servers, serverReady] = useTable(tables.serverLatest)
-  const [history] = useTable(tables.serverReading, { enabled: withHistory })
+  const chartOnScreen = useSyncExternalStore(subscribeHistoryOnScreen, () => historyOnScreen)
+  const [history] = useTable(tables.serverReading, { enabled: withHistory && chartOnScreen })
 
   // server_reading changes ~29 times a second; take a snapshot every 3 s instead of recomputing every floor each time
   const latestHistory = useRef(history)
