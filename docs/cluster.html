@@ -41,7 +41,7 @@ h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .row-head span { font-size: 13px; color: var(--muted-ink); }
 
 /* 3D stage */
-.stage { position: relative; height: 470px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
+.stage { position: relative; height: 600px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .stage canvas.grabbing { cursor: grabbing; }
 .labels { position: absolute; inset: 0; pointer-events: none; }
@@ -553,7 +553,7 @@ function tick(now) {
     el.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * hgt}px) translate(-50%, -100%)`
     el.style.zIndex = String(Math.round((1 - v.z) * 1e4))
   })
-  SITES.forEach((s, si) => { v.set(SITE_POS[si][0], 0, SITE_POS[si][1] + 9.6).project(camera); s.labelEl.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * hgt + 8}px) translate(-50%, 0)` })
+  SITES.forEach((s, si) => { v.set(SITE_POS[si][0], 0, SITE_POS[si][1] + 9).project(camera); s.labelEl.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * hgt + 2}px) translate(-50%, 0)` })
 }
 requestAnimationFrame(tick)
 

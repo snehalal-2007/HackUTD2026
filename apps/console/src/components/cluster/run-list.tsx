@@ -1,7 +1,35 @@
 import { ArrowRightIcon, CircleCheckIcon, CircleXIcon, HandIcon, LoaderIcon, TriangleAlertIcon } from 'lucide-react'
 import { Badge } from '@/components/reui/badge'
+import { PLACE, rowLetters } from '@/components/floor/names'
 import { ago } from '@/lib/snapshot'
 import { cabOf, type RunVM } from './use-cluster'
+
+/** A rack as operators know it: its row of blocks ("A1–A3") and where it is ("Spartanburg · Floor 1"). */
+export function placeOf(rackId: string, rows: Map<string, string>) {
+  const p = PLACE.get(rackId.split('/')[0])
+  const row = rows.get(rackId)
+  return { blocks: row ? `${row}1–${row}3` : cabOf(rackId), where: p ? `${p.siteName} · Floor ${p.floor}` : rackId.split('/')[0] }
+}
+
+/** One short sentence on what the run did, in plain words (the service is named before it). The full detail stays on hover. */
+function summary(r: RunVM, now: number) {
+  switch (r.action) {
+    case 'live_migrate':
+      return r.status === 'succeeded'
+        ? 'Moved with its traffic in one step: no second copy, no downtime.'
+        : r.status === 'running' ? 'Moving to a cooler rack.' : `Couldn’t move: ${r.detail}`
+    case 'throttle_in_place':
+      return r.status === 'running'
+        ? `Power capped in place to cool the rack${r.decideMs ? `; decides in ${countdown(r.decideMs, now)}` : ''}.`
+        : r.status === 'succeeded' ? `Capping power in place was enough: the rack cooled without moving anything.` : `Capping power wasn’t enough, so services move next.`
+    case 'patch_in_place':
+      return `Updating to ${r.version}, one instance at a time while the rest keep serving (${Math.min(r.step, r.steps)} of ${r.steps}).`
+    case 'failover_to_site':
+      return `Failover to another site: ${r.detail}`
+    default:
+      return r.detail
+  }
+}
 
 const ACTION: Record<string, string> = {
   throttle_in_place: 'Throttle in place',
@@ -25,7 +53,8 @@ function countdown(ms: number, now: number) {
 }
 
 /** Remediation runs, newest first. Cooling numbers are modeled and labeled "simulated effect". */
-export function RunList({ runs, now }: { runs: RunVM[]; now: number }) {
+export function RunList({ runs, now, rackIds }: { runs: RunVM[]; now: number; rackIds: string[] }) {
+  const rows = rowLetters(rackIds)
   if (runs.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -48,25 +77,30 @@ export function RunList({ runs, now }: { runs: RunVM[]; now: number }) {
               <span className="text-xs text-muted-foreground tabular-nums">#{r.id}</span>
               <span className="ml-auto text-xs text-muted-foreground tabular-nums">{ago(r.startedMs, now)}</span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+            {r.from && r.to ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                {[r.from, r.to].map((rack, k) => {
+                  const p = placeOf(rack, rows)
+                  return (
+                    <div key={rack} className={k === 1 ? 'order-3 min-w-0 text-right' : 'min-w-0'}>
+                      <div className="text-[11px] text-muted-foreground">{k === 0 ? 'From' : 'To'}</div>
+                      <div className="truncate text-lg leading-tight font-semibold tabular-nums">{p.blocks}</div>
+                      <div className="truncate text-xs text-muted-foreground">{p.where}</div>
+                    </div>
+                  )
+                })}
+                <ArrowRightIcon className="order-2 size-5 text-foreground" aria-label="to" />
+              </div>
+            ) : r.from ? (
+              <div className="rounded-md bg-muted/60 px-3 py-2">
+                <div className="text-lg leading-tight font-semibold tabular-nums">{placeOf(r.from, rows).blocks}</div>
+                <div className="text-xs text-muted-foreground">{placeOf(r.from, rows).where}</div>
+              </div>
+            ) : null}
+            <p className="text-sm" title={r.detail}>
               <span className="font-medium">{r.instance || r.service}</span>
-              {r.from && <span className="text-muted-foreground">{cabOf(r.from)}</span>}
-              {r.to && (
-                <>
-                  <ArrowRightIcon className="size-3 text-muted-foreground" aria-label="to" />
-                  <span className="text-muted-foreground">{cabOf(r.to)}</span>
-                </>
-              )}
-              {r.status === 'running' && r.action === 'throttle_in_place' && r.decideMs && (
-                <span className="text-muted-foreground tabular-nums">· decides in {countdown(r.decideMs, now)}</span>
-              )}
-              {r.action === 'patch_in_place' && (
-                <span className="text-muted-foreground tabular-nums">
-                  · {r.version} · {Math.min(r.step, r.steps)} of {r.steps} done
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">{r.detail}</p>
+              <span className="text-muted-foreground"> · {summary(r, now)}</span>
+            </p>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span>{r.automatic ? 'Automatic' : 'By an operator'}{r.incidentId ? ` · incident #${r.incidentId}` : ''}</span>
               {r.simulatedEffectC !== 0 && (

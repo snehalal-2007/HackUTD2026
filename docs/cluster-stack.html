@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MESA · Cluster stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jaro&family=Lexend:wght@300..700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* Second Cluster prototype: a fixed front view. Each site is a column of floors stacked by height (Spartanburg 3,
+   North Carolina 3, Dallas 2, as in the console's data); every floor is a glass box with its 6 open blocks and their
+   6 bars. Move services between any blocks (click then click, or drag). Sample data, console theme. */
+:root {
+  --bg: #ebe8e2; --card: #ffffff; --ink: #18181b; --muted: #f4f2ee; --muted-ink: #6b6862; --border: #e2ded6;
+  --ok: #2f9e6b; --warn: #e59a1a; --crit: #e5484d; --accent: #3b6ff5; --radius: 12px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: 'Lexend', system-ui, sans-serif; font-size: 14.5px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* shell */
+.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); height: 100vh; }
+.side { display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; }
+.brand { display: flex; align-items: center; gap: 8px; padding: 6px 10px 18px; }
+.brand svg { width: 28px; height: 28px; }
+.brand b { font-family: 'Jaro', sans-serif; font-weight: 400; font-size: 30px; line-height: 1; }
+.group { margin: 10px 10px 4px; font-size: 12.5px; color: var(--muted-ink); }
+.nav { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; border-radius: 9px; background: none; text-align: left; font-size: 14.5px; }
+.nav:hover { background: rgba(255,255,255,.55); }
+.nav.on { background: var(--card); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.nav .ico { width: 16px; height: 16px; border-radius: 4px; border: 1.6px solid currentColor; opacity: .75; }
+.main { min-width: 0; overflow-y: auto; }
+.top { display: flex; align-items: center; gap: 10px; padding: 14px 18px 0; font-weight: 600; font-size: 15px; }
+.page { display: flex; flex-direction: column; gap: 14px; max-width: 1320px; margin: 0 auto; padding: 14px 18px 40px; }
+.caption { font-size: 12.5px; color: var(--muted-ink); }
+h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
+.card { background: var(--card); border-radius: var(--radius); padding: 18px; }
+.row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.row-head span { font-size: 13px; color: var(--muted-ink); }
+
+/* 3D stage */
+.stage { position: relative; height: 680px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.stage canvas.grabbing { cursor: grabbing; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 600; white-space: nowrap; transform: translate(-50%, -100%); } /* the Floor page's block label */
+.tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.tag.s-warn i { background: var(--warn); } .tag.s-crit i { background: var(--crit); }
+.tag.target { border-color: var(--accent); color: var(--accent); }
+.site-tag { position: absolute; left: 0; top: 0; transform: translate(-50%, 0); padding: 3px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--border); white-space: nowrap; }
+.site-tag small { font-weight: 400; opacity: .7; margin-left: 4px; }
+.overlay { position: absolute; z-index: 2; }
+.floors { display: inline-flex; padding: 2px; gap: 2px; border-radius: 999px; background: var(--muted); vertical-align: middle; }
+.floors button { border: 0; background: transparent; padding: 2px 10px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 500; color: var(--muted-ink); cursor: pointer; }
+.floors button:hover { color: var(--ink); }
+.floors button.on { background: var(--ink); color: #fff; }
+.site-tag { pointer-events: auto; display: flex; align-items: center; gap: 8px; }
+.site-tag .floors { background: transparent; padding: 0; }
+.site-tag .floors::before { content: 'Floor'; align-self: center; padding: 0 4px 0 8px; font-size: 12px; color: var(--muted-ink); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--border); font-size: 12.5px; }
+.legend { top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.92); border: 1px solid var(--border); font-size: 12.5px; }
+.legend div { display: flex; align-items: center; gap: 7px; }
+.sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.tools { bottom: 12px; right: 12px; display: flex; gap: 6px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); font-size: 13px; font-weight: 500; }
+.btn:hover { background: var(--muted); }
+.btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn.dark:hover { background: #2a2a2e; }
+.hint { bottom: 12px; left: 12px; max-width: min(520px, calc(100% - 300px)); padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,.95); border: 1px solid var(--border); font-size: 13.5px; line-height: 1.4; }
+.hint b { font-weight: 600; }
+.tip { position: absolute; z-index: 3; pointer-events: none; padding: 6px 10px; border-radius: 8px; background: var(--ink); color: #fff; font-size: 12.5px; white-space: nowrap; transform: translate(12px, 12px); display: none; }
+
+/* totals */
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius); background: var(--card); }
+.tile span:first-child { font-size: 12.5px; color: var(--muted-ink); }
+.tile b { font-size: 22px; font-weight: 600; }
+.tile small { font-size: 11.5px; color: var(--muted-ink); }
+.tile.bump b { animation: bump .5s ease; }
+@keyframes bump { 40% { transform: scale(1.12); color: var(--accent); } }
+
+/* three site tables */
+.sites { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted-ink); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tr.target td { background: #eef3ff; cursor: pointer; }
+tr.target td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+tr.source td { background: var(--muted); }
+.blk { font-weight: 700; font-size: 15px; }
+.st { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; white-space: nowrap; }
+.st i { width: 8px; height: 8px; border-radius: 50%; }
+.svc { display: inline-flex; align-items: center; gap: 5px; margin: 2px 4px 2px 0; padding: 2px 8px 2px 4px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 12px; }
+.svc:hover { border-color: var(--ink); }
+.svc.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.svc .sw { width: 10px; height: 10px; border-radius: 50%; }
+.free { color: var(--muted-ink); font-size: 12px; white-space: nowrap; }
+
+/* runs */
+.runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.runs li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+.runs li:last-child { border-bottom: 0; }
+.runs .ok { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(47,158,107,.14); color: var(--ok); font-size: 12px; flex: none; }
+.runs .when { margin-left: auto; color: var(--muted-ink); font-size: 12.5px; white-space: nowrap; }
+.runs .new { animation: rise .45s cubic-bezier(.23,1,.32,1); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.empty { color: var(--muted-ink); font-size: 13.5px; }
+
+/* toast, same as the console's notifications */
+.toasts { position: fixed; right: 20px; bottom: 20px; z-index: 10; display: flex; flex-direction: column; gap: 10px; }
+.toast { width: 340px; padding: 11px 14px; border-radius: var(--radius); border: 1px solid #dcd9d2; border-bottom: 3px solid var(--ok); background: #f9f8f5; box-shadow: 0 8px 24px rgba(24,24,27,.08); animation: rise .35s cubic-bezier(.23,1,.32,1); }
+.toast.bad { border-bottom-color: var(--warn); }
+.toast small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ok); margin-bottom: 2px; }
+.toast.bad small { color: #b7791f; }
+.toast b { font-size: 14px; font-weight: 600; }
+.toast p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted-ink); }
+
+@media (max-width: 1100px) { .sites { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 760px) { .app { grid-template-columns: 1fr; } .side { display: none; } .hint { max-width: calc(100% - 24px); bottom: 60px; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+
+/* stacked view */
+.fly-tag { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; padding: 3px 8px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.fly-tag i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; vertical-align: -0.5px; }
+.stage canvas { cursor: default; } /* fixed view: nothing to turn */
+.tag { font-size: 11.5px; padding: 3px 8px; gap: 5px; }
+.tag i { width: 7px; height: 7px; }
+.floor-tag { position: absolute; left: 0; top: 0; transform-origin: 0 0; font-size: 12px; font-weight: 600; color: var(--muted-ink); white-space: nowrap; }
+.site-name { position: absolute; left: 0; top: 0; transform-origin: 0 0; font-size: 15px; font-weight: 600; white-space: nowrap; }
+.site-name small { display: block; text-align: center; font-size: 12px; font-weight: 400; color: var(--muted-ink); }
+.floor-row th { background: var(--muted); color: var(--ink); font-weight: 600; font-size: 12px; border-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Primary">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M36 4 Q30 46 4 50 Q30 54 36 96Z"/><path d="M64 4 Q70 46 96 50 Q70 54 64 96Z"/><path d="M50 4 Q53 46 64.4 50 Q53 54 50 96 Q47 54 35.6 50 Q47 46 50 4Z"/></svg>
+      <b>Mesa</b>
+    </div>
+    <div class="group">Operations</div>
+    <button class="nav"><span class="ico"></span>My Queue</button>
+    <button class="nav"><span class="ico"></span>Floor</button>
+    <button class="nav on" aria-current="page"><span class="ico"></span>Cluster</button>
+    <button class="nav"><span class="ico"></span>Alerts</button>
+    <button class="nav"><span class="ico"></span>AI Agent</button>
+    <button class="nav"><span class="ico"></span>Shift Handoff</button>
+    <div class="group">System</div>
+    <button class="nav"><span class="ico"></span>Log</button>
+    <button class="nav"><span class="ico"></span>Security</button>
+    <button class="nav"><span class="ico"></span>Operators</button>
+  </aside>
+
+  <main class="main">
+    <div class="top">Cluster</div>
+    <div class="page">
+
+      <section aria-labelledby="h3d">
+        <div class="row-head"><h2 id="h3d">Live placement</h2><span>Every site, floor by floor · drag a coloured bar onto any block to move that service, on another floor or another site</span></div>
+        <div class="stage" id="stage">
+          <div class="labels" id="labels"></div>
+          <div class="overlay" style="top:12px;left:12px"><span class="chip tabular" id="count"></span></div>
+          <div class="overlay legend" id="legend" aria-label="Services"></div>
+          <div class="overlay hint" id="hint" role="status"></div>
+          <div class="overlay tools">
+            <button class="btn dark" id="drain">Drain hot blocks</button>
+          </div>
+          <div class="tip" id="tip"></div>
+        </div>
+      </section>
+
+      <ul class="tiles" id="tiles" aria-label="Remediation totals" style="list-style:none;margin:0;padding:0"></ul>
+
+      <section aria-labelledby="hsites">
+        <div class="row-head" style="margin-bottom:10px"><h2 id="hsites">Services per block</h2><span>Click a service, then a highlighted row, to move it</span></div>
+        <div class="sites" id="sites"></div>
+      </section>
+
+      <section class="card" aria-labelledby="hruns">
+        <div class="row-head"><h2 id="hruns">Remediation runs</h2><span id="runcount"></span></div>
+        <ul class="runs" id="runs"></ul>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+// ── sample data, shaped like the console's: each floor is one telemetry data center, 2 racks = 2 rows of 3 blocks ──
+// Spartanburg and North Carolina have 3 floors, Dallas 2 (apps/console/src/components/floor/data.ts): 8 floors, 48 blocks.
+// A block is 6 servers, drawn as its 6 bars. A coloured bar runs a service; a dark bar is free.
+const SITES = [
+  { id: 'spt', name: 'Spartanburg', floors: [['A', 'B'], ['C', 'D'], ['E', 'F']] },
+  { id: 'nc', name: 'North Carolina', floors: [['G', 'H'], ['I', 'J'], ['K', 'L']] },
+  { id: 'dal', name: 'Dallas', floors: [['M', 'N'], ['O', 'P']] },
+]
+const SERVICES = [
+  { name: 'api-gateway', color: '#5b6cf0' },
+  { name: 'auth', color: '#14b8a6' },
+  { name: 'billing', color: '#a855f7' },
+  { name: 'search', color: '#f472b6' },
+  { name: 'ml-infer', color: '#0ea5e9' },
+  { name: 'storage', color: '#8b7355' },
+  { name: 'cache', color: '#84cc16' },
+  { name: 'queue', color: '#64748b' },
+]
+const SLOTS = 6 // servers (bars) per block
+const TEMPS = { A1: 56.8, A2: 51.2, B2: 49.4, C2: 55.6, D3: 50.9, H1: 50.6, J1: 56.1, K2: 51.4, M1: 46.7, O2: 55.2, P1: 50.3 }
+const tempOf = tag => TEMPS[tag] ?? 42 + ((tag.charCodeAt(0) * 7 + Number(tag[1]) * 13) % 70) / 10 // 42–49 °C, the same every visit
+const status = t => (t >= 55 ? 'crit' : t >= 50 ? 'warn' : 'ok')
+const WORD = { ok: 'Nominal', warn: 'Warm', crit: 'Hot' }
+const COLOR = { ok: '#2f9e6b', warn: '#e59a1a', crit: '#e5484d' }
+
+const blocks = [] // { tag, site, floor (0-based), idx (0–5 on its floor), temp, status, slots: (instanceId|null)[6] }
+SITES.forEach((s, si) => s.floors.forEach((rows, fi) => rows.forEach((r, ri) => [1, 2, 3].forEach((n, ci) => {
+  const tag = r + n, t = tempOf(tag)
+  blocks.push({ tag, site: si, floor: fi, idx: ri * 3 + ci, temp: t, status: status(t), slots: Array(SLOTS).fill(null) })
+}))))
+const instances = {} // id → { id, svc, block }
+SERVICES.forEach((svc, s) => {
+  for (let r = 0; r < 12; r++) {
+    const b = blocks[(s * 5 + r * 4) % blocks.length] // spreads each service over 12 blocks, never two copies in one block
+    const id = `${svc.name}-${r + 1}`
+    instances[id] = { id, svc: s, block: b.tag }
+    b.slots[b.slots.indexOf(null)] = id
+  }
+})
+const blockOf = tag => blocks.find(b => b.tag === tag)
+const siteName = b => `${SITES[b.site].name} · Floor ${b.floor + 1}`
+const totals = { moved: 0, dupes: 0, downtime: 0, active: 0 }
+const runs = []
+
+// a valid move: another block, not hot, a free server, and no copy of the same service already there
+function canMove(id, tag) {
+  const inst = instances[id], b = blockOf(tag)
+  if (!inst || !b || inst.block === tag || b.status === 'crit') return false
+  if (!b.slots.includes(null)) return false
+  return !b.slots.some(x => x && instances[x].svc === inst.svc)
+}
+const targetsFor = id => new Set(blocks.filter(b => canMove(id, b.tag)).map(b => b.tag))
+
+// ── 3D: a fixed front view. Sites are columns, floors stack up inside each column as glass boxes ──
+const P = { plate: '#dedbd4', block: '#ffffff', free: '#2b2b2e', accent: '#3b6ff5', glass: '#ffffff', edge: '#222222' }
+const HH = 2.2 // block height, as on the Floor page
+const BAR_Y = 0.66 // a bar's resting height in its block
+const TOP = 1.5 // where data leaves and lands, just above the bars
+const FLOOR_H = 10 // floor to floor: room for the blocks, their labels and clear air between the boxes
+const GLASS_H = 3.4 // a floor's glass box: just taller than its blocks
+const PLATE = { w: 17, d: 15.2 } // a floor's footprint: 3 × 2 blocks with a margin
+const SITE_X = [-23, 3, 28]
+const SITE_Y = [-9, 0, 0] // per-column lift: Spartanburg sits a little lower // the three columns
+const HALL_POS = Array.from({ length: 6 }, (_, i) => [-5.2 + 5.2 * (i % 3), i < 3 ? -3.7 : 3.7])
+const RACK_X = r => -1.55 + r * 0.62
+
+const stage = document.getElementById('stage'), labelsEl = document.getElementById('labels'), tip = document.getElementById('tip')
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+renderer.setClearColor(0x000000, 0)
+stage.prepend(renderer.domElement)
+const scene = new THREE.Scene()
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 800) // orthographic: every floor the same size, nothing distorts
+scene.add(new THREE.HemisphereLight('#ffffff', '#c8c3b8', 0.8))
+const sun = new THREE.DirectionalLight('#ffffff', 0.7)
+sun.position.set(-20, 40, 18)
+scene.add(sun)
+
+const edgeMat = new THREE.LineBasicMaterial({ color: P.edge, transparent: true, opacity: 0.16 })
+const glassEdge = new THREE.LineBasicMaterial({ color: P.edge, transparent: true, opacity: 0.3 })
+const lam = (c, extra) => new THREE.MeshLambertMaterial(Object.assign({ color: c }, extra))
+function box(w, h, d, m, x, y, z, parent, edges = edgeMat) {
+  const g = new THREE.BoxGeometry(w, h, d), mesh = new THREE.Mesh(g, m)
+  mesh.position.set(x, y, z)
+  parent.add(mesh)
+  if (edges) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edges))
+  return mesh
+}
+
+const world = new THREE.Group(); scene.add(world)
+const H = {} // tag → { g, label, shell, shellMat, bars: Mesh[6] }
+const barMeshes = [], shells = [], floorLabels = [], siteLabels = []
+
+SITES.forEach((s, si) => {
+  s.floors.forEach((_, fi) => {
+    const f = new THREE.Group(); f.position.set(SITE_X[si], SITE_Y[si] + fi * FLOOR_H, 0); world.add(f)
+    box(PLATE.w, 0.3, PLATE.d, lam(P.plate), 0, 0, 0, f) // the floor slab
+    s.floorGroups = s.floorGroups || []; s.floorGroups.push(f)
+    const el = document.createElement('div'); el.className = 'floor-tag'; el.textContent = `F${fi + 1}`
+    labelsEl.append(el); floorLabels.push({ el, si, fi })
+  })
+  const el = document.createElement('div'); el.className = 'site-name'
+  el.textContent = s.name
+  labelsEl.append(el); siteLabels.push({ el, si })
+})
+
+blocks.forEach(b => {
+  const [x, z] = HALL_POS[b.idx]
+  const g = new THREE.Group(); g.position.set(x, 0.15, z)
+  SITES[b.site].floorGroups[b.floor].add(g)
+  const shellMat = lam(P.block, { transparent: true, opacity: 0.1, depthWrite: false })
+  const shell = box(4.3, HH, 5, shellMat, 0, HH / 2, 0, g)
+  shell.visible = false // no glass on the blocks; the hidden box still catches clicks and drops (r128 raycasts hidden meshes)
+  shell.userData.tag = b.tag; shells.push(shell)
+  const bars = []
+  for (let r = 0; r < SLOTS; r++) { // the 6 bars: one per server
+    const m = box(0.34, 1.3, 3.7, lam(P.free, { emissive: new THREE.Color(P.accent), emissiveIntensity: 0 }), RACK_X(r), BAR_Y, 0, g, null)
+    m.userData = { tag: b.tag, slot: r }
+    bars.push(m); barMeshes.push(m)
+  }
+  const band = new THREE.Mesh(new THREE.BoxGeometry(4.42, 0.14, 5.12), new THREE.MeshBasicMaterial({ color: COLOR[b.status] }))
+  band.position.y = 0.08; g.add(band) // the status rim, as on the Floor page
+  const label = document.createElement('div')
+  label.className = `tag s-${b.status}`
+  label.innerHTML = `<i></i>${b.tag}`
+  labelsEl.append(label)
+  H[b.tag] = { g, label, shell, shellMat, bars }
+})
+scene.updateMatrixWorld(true)
+
+const incoming = new Set() // "tag:slot" bars whose service is still in flight: they stay dark until it lands
+const leaving = new Set() // "tag:slot" bars a service just left: grey until it lands at the other end
+const LEAVING = '#b4b1aa'
+function colorBars() {
+  blocks.forEach(b => b.slots.forEach((id, r) => {
+    H[b.tag].bars[r].material.color.set(id && !incoming.has(`${b.tag}:${r}`) ? SERVICES[instances[id].svc].color : leaving.has(`${b.tag}:${r}`) ? LEAVING : P.free)
+  }))
+}
+colorBars()
+const barWorld = (tag, slot, y = BAR_Y) => { const p = new THREE.Vector3(RACK_X(slot), y, 0); return H[tag].g.localToWorld(p) }
+
+// ── the fixed camera: one front-three-quarter view that frames every site and floor ──
+const VIEW_DIR = new THREE.Vector3(0.42, 0.5, 1).normalize() // low and from the front-right, so stacked floors read apart
+const TALLEST = Math.max(...SITES.map(s => s.floors.length))
+const TARGET = new THREE.Vector3(0, ((TALLEST - 1) * FLOOR_H) / 2 + 1, 0)
+function frame() {
+  const w = stage.clientWidth, h = stage.clientHeight
+  renderer.setSize(w, h, false)
+  camera.position.copy(TARGET).addScaledVector(VIEW_DIR, 200); camera.lookAt(TARGET); camera.updateMatrixWorld()
+  const inv = camera.matrixWorldInverse, p = new THREE.Vector3()
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
+  SITES.forEach((s, si) => [SITE_Y[si], SITE_Y[si] + (s.floors.length - 1) * FLOOR_H + GLASS_H + 1.5].forEach(y => [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
+    p.set(SITE_X[si] + sx * PLATE.w / 2, y, sz * PLATE.d / 2).applyMatrix4(inv)
+    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y)
+  }))))
+  y0 -= 3.5 // room for the site names under the columns
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
+  let hw = (x1 - x0) / 2 * 1.04, hh = (y1 - y0) / 2 * 1.06
+  if (hw / hh > w / h) hh = hw / (w / h); else hw = hh * (w / h)
+  Object.assign(camera, { left: cx - hw, right: cx + hw, top: cy + hh, bottom: cy - hh })
+  camera.updateProjectionMatrix()
+}
+new ResizeObserver(frame).observe(stage); frame()
+
+// ── selection, drag and move ──
+let selected = null, hoverBlock = null, pending = null, dragging = null, ghost = null
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hitPt = new THREE.Vector3()
+const dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(VIEW_DIR, TARGET) // faces the camera, so the dragged piece follows the pointer
+function cast(e) {
+  const r = renderer.domElement.getBoundingClientRect()
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+  ray.setFromCamera(ndc, camera)
+}
+const hitBar = () => { const o = ray.intersectObjects(barMeshes, false)[0]?.object; return o ? o.userData : null }
+const hitBlock = () => hitBar()?.tag ?? ray.intersectObjects(shells, false)[0]?.object.userData.tag ?? null
+const barId = d => (d ? blockOf(d.tag).slots[d.slot] : null)
+
+function select(id) {
+  selected = id && selected !== id ? id : null
+  paint(); renderTables(); hint()
+}
+function paint() { // light up the free bars it can go to
+  const t = selected ? targetsFor(selected) : new Set()
+  blocks.forEach(b => {
+    const on = t.has(b.tag)
+    H[b.tag].on = on
+    H[b.tag].label.classList.toggle('target', on)
+    b.slots.forEach((id, r) => { if (!id || !on) H[b.tag].bars[r].material.emissiveIntensity = 0 })
+  })
+}
+
+const packetGeo = new THREE.BoxGeometry(0.34, 0.5, 0.9)
+function packet(id) { // the data in flight: a short glowing piece of the bar, in the service colour
+  const m = new THREE.Mesh(packetGeo, new THREE.MeshBasicMaterial({ color: SERVICES[instances[id].svc].color, depthTest: false }))
+  m.renderOrder = 11 // above the trail and every block, so it is never hidden mid-flight
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(packetGeo), new THREE.LineBasicMaterial({ color: '#18181b', transparent: true, opacity: 0.4 })))
+  world.add(m); return m
+}
+
+const canvas = renderer.domElement
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId)
+  cast(e)
+  const id = barId(hitBar())
+  pending = id ? { id, x: e.clientX, y: e.clientY } : { id: null }
+})
+canvas.addEventListener('pointermove', e => {
+  cast(e)
+  if (pending?.id && !dragging && Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > 6) { // start dragging a service
+    dragging = pending.id
+    if (selected !== dragging) { selected = dragging; paint(); renderTables(); hint() }
+    const inst = instances[dragging], b = blockOf(inst.block)
+    ghost = packet(dragging); ghost.position.copy(barWorld(inst.block, b.slots.indexOf(dragging), TOP))
+    canvas.classList.add('grabbing')
+  }
+  if (dragging) {
+    if (ray.ray.intersectPlane(dragPlane, hitPt)) ghost.position.lerp(hitPt, 0.6)
+    setHover(hitBlock()); tip.style.display = 'none'
+    return
+  }
+  const bar = hitBar(), id = barId(bar), tag = hitBlock()
+  setHover(selected ? tag : null)
+  if (id) showTip(e, `<b>${id}</b> · server ${bar.slot + 1} of ${bar.tag} (${siteName(blockOf(bar.tag))})`)
+  else if (tag) { const b = blockOf(tag); showTip(e, `<b>${tag}</b> · ${siteName(b)} · ${WORD[b.status]} ${b.temp.toFixed(1)} °C · ${b.slots.filter(x => !x).length} of ${SLOTS} free${selected ? (canMove(selected, tag) ? ' · <b>click to move here</b>' : ' · can’t take it') : ''}`) }
+  else tip.style.display = 'none'
+  canvas.style.cursor = id || (selected && tag && canMove(selected, tag)) ? 'pointer' : ''
+})
+canvas.addEventListener('pointerup', e => {
+  cast(e)
+  canvas.classList.remove('grabbing')
+  if (dragging) {
+    const bar = hitBar(), tag = hitBlock(), id = dragging, from = ghost.position.clone()
+    world.remove(ghost); ghost = null
+    dragging = null; pending = null
+    if (tag && canMove(id, tag)) move(id, tag, bar && bar.tag === tag && !blockOf(tag).slots[bar.slot] ? bar.slot : undefined, from)
+    else if (tag && tag !== instances[id].block) refuse(id, tag)
+    setHover(null)
+    return
+  }
+  if (pending?.id) { select(pending.id); pending = null; return }
+  pending = null
+  const bar = hitBar(), tag = hitBlock()
+  if (selected && tag && canMove(selected, tag)) move(selected, tag, bar && !barId(bar) ? bar.slot : undefined)
+  else if (selected && tag && tag !== instances[selected].block) refuse(selected, tag)
+  else select(null)
+})
+canvas.addEventListener('pointerleave', () => { tip.style.display = 'none' })
+addEventListener('keydown', e => { if (e.key === 'Escape' && selected) select(null) })
+
+function setHover(tag) { if (hoverBlock !== tag) { hoverBlock = tag; paint() } }
+function showTip(e, html) {
+  const r = stage.getBoundingClientRect()
+  tip.innerHTML = html; tip.style.display = 'block'
+  tip.style.left = `${e.clientX - r.left}px`; tip.style.top = `${e.clientY - r.top}px`
+}
+
+// moving, as on the console's Cluster page: the packet rides an arc while a line in the service's colour draws itself
+// behind it; the bar it left stays grey, the target bar lights up when it lands, a ring pulses there,
+// then the line and ring fade out
+const flights = [] // { id, mesh, curve, trail, ring, label, left, t, landed, done }
+const SEGS = 64 // trail segments: drawn progressively, 36 indices each (6 radial sides)
+const FLY_S = 1.4, FADE_MS = 1400
+function move(id, tag, slot, fromPos, quiet) {
+  const inst = instances[id], from = blockOf(inst.block), to = blockOf(tag)
+  const src = from.slots.indexOf(id)
+  if (slot === undefined || to.slots[slot]) slot = to.slots.indexOf(null)
+  const start = fromPos ?? barWorld(from.tag, src, TOP)
+  from.slots[src] = null
+  to.slots[slot] = id
+  inst.block = tag
+  incoming.add(`${tag}:${slot}`)
+  totals.moved++; totals.dupes++; totals.active++
+  const mesh = packet(id), end = barWorld(tag, slot, TOP), color = SERVICES[inst.svc].color
+  mesh.position.copy(start)
+  const c = start.clone().lerp(end, 0.5)
+  c.addScaledVector(VIEW_DIR, 6 + start.distanceTo(end) * 0.35).y += 2.5 + start.distanceTo(end) * 0.16 // bow toward the viewer and up, so it reads as an arc that never goes behind a block
+  const curve = new THREE.QuadraticBezierCurve3(start.clone(), c, end)
+  const trail = new THREE.Mesh(new THREE.TubeGeometry(curve, SEGS, 0.09, 6, false), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false }))
+  trail.geometry.setDrawRange(0, 0)
+  trail.renderOrder = 10 // drawn over the blocks: nothing can hide the move
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.6, 2, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }))
+  ring.rotation.x = -Math.PI / 2
+  ring.position.copy(H[tag].g.getWorldPosition(new THREE.Vector3())).y += 0.25
+  ring.renderOrder = 10
+  world.add(trail, ring)
+  leaving.add(`${from.tag}:${src}`) // the server it left stays grey until the service lands
+  const label = document.createElement('div')
+  label.className = 'fly-tag'
+  label.innerHTML = `<i style="background:${color}"></i>${id} · moving`
+  labelsEl.append(label)
+  flights.push({ id, color, mesh, curve, trail, ring, label, left: `${from.tag}:${src}`, t: 0, landed: null, done: () => {
+    world.remove(mesh)
+    incoming.delete(`${tag}:${slot}`); colorBars()
+    H[tag].bars[slot].scale.y = 1.35 // a small pop as it lands
+    totals.active--
+    runs.unshift({ text: `Moved <b>${id}</b> from ${from.tag} to ${to.tag}`, sub: `${siteName(from)} → ${siteName(to)} · server ${slot + 1} · live migration · 0 s downtime`, at: Date.now(), fresh: true })
+    renderRuns(); renderTiles(true)
+    if (!quiet) toast(`Moved ${id} to ${to.tag}`, `${siteName(to)} · no downtime, no duplicate copy`)
+  } })
+  selected = null
+  colorBars(); paint(); renderTables(); renderTiles(); hint()
+}
+function refuse(id, tag) {
+  const b = blockOf(tag), inst = instances[id]
+  const why = b.status === 'crit' ? `${tag} is running hot (${b.temp.toFixed(1)} °C)`
+    : !b.slots.includes(null) ? `${tag} has no free server`
+    : `${tag} already runs a copy of ${SERVICES[inst.svc].name}`
+  toast(`Can’t move ${id} there`, why, true)
+}
+
+// drain: move every service off hot blocks to the coolest block that can take it, one after another
+document.getElementById('drain').onclick = () => {
+  const queue = blocks.filter(b => b.status === 'crit').flatMap(b => b.slots.filter(Boolean))
+  if (!queue.length) return toast('Nothing to drain', 'No block is running hot right now.', true)
+  queue.forEach((id, k) => setTimeout(() => {
+    const t = [...targetsFor(id)].map(blockOf).sort((a, b) => a.temp - b.temp)[0]
+    if (t) move(id, t.tag, undefined, undefined, true)
+  }, k * 700))
+  setTimeout(() => toast(`Drained ${queue.length} service${queue.length === 1 ? '' : 's'} off hot blocks`, 'Each went to the coolest block with a free server and no copy of itself'), queue.length * 700 + 1000)
+}
+
+// ── per frame: flights, highlights, labels ──
+const v = new THREE.Vector3()
+let last = performance.now()
+const place = (el, p, dy = 0, anchor = 'translate(-50%, -100%)') => {
+  v.copy(p).project(camera)
+  el.style.transform = `translate(${((v.x + 1) / 2) * stage.clientWidth}px, ${((1 - v.y) / 2) * stage.clientHeight + dy}px) ${anchor}`
+}
+// the on-screen slope of a slab's front edge, so floor labels sit along it (the camera never moves, so this is fixed)
+const edgeAngle = (() => {
+  frame()
+  const a = new THREE.Vector3(-1, 0, 0).project(camera), b = new THREE.Vector3(1, 0, 0).project(camera)
+  return Math.atan2(-(b.y - a.y) * stage.clientHeight, (b.x - a.x) * stage.clientWidth)
+})()
+function tick(now) {
+  requestAnimationFrame(tick) // schedule first, so one bad frame can never freeze the scene
+  const dt = Math.min(0.05, (now - last) / 1000); last = now
+
+  for (let k = flights.length - 1; k >= 0; k--) {
+    const f = flights[k]
+    if (f.landed === null) {
+      f.t = Math.min(1, f.t + dt / FLY_S)
+      const e = f.t < 0.5 ? 4 * f.t ** 3 : 1 - (-2 * f.t + 2) ** 3 / 2 // ease in-out
+      f.curve.getPoint(e, f.mesh.position)
+      f.trail.geometry.setDrawRange(0, Math.max(6, Math.floor(e * SEGS)) * 36) // the line grows behind the packet
+      if (f.t >= 1) { f.landed = now; leaving.delete(f.left); f.done(); f.label.innerHTML = `<i style="background:${f.color}"></i>${f.id} · landed` }
+    } else {
+      const q = Math.min(1, (now - f.landed) / FADE_MS), out = 1 - (1 - q) ** 3
+      f.trail.material.opacity = 0.95 * (1 - out)
+      f.ring.material.opacity = 0.9 * (1 - q)
+      f.ring.scale.setScalar(0.5 + 0.9 * out)
+      f.label.style.opacity = String(Math.max(0, 1 - Math.max(0, q - 0.4) / 0.6))
+      if (q >= 1) {
+        for (const m of [f.trail, f.ring]) { world.remove(m); m.geometry.dispose(); m.material.dispose() }
+        f.label.remove(); flights.splice(k, 1)
+      }
+    }
+  }
+
+  const pulse = 0.35 + 0.25 * Math.sin(now / 260), bob = Math.sin(now / 220) * 0.06
+  blocks.forEach(b => {
+    const h = H[b.tag]
+    b.slots.forEach((id, r) => {
+      const bar = h.bars[r]
+      if (h.on && !id) { bar.material.color.set(P.accent); bar.material.emissiveIntensity = hoverBlock === b.tag ? 0.6 : pulse } // a free server it can go to
+      else if (!id && !incoming.has(`${b.tag}:${r}`)) bar.material.color.set(leaving.has(`${b.tag}:${r}`) ? LEAVING : P.free)
+      const lift = id && id === selected && !dragging ? 0.45 + bob : 0 // the picked service rises out of its block
+      bar.position.y += (BAR_Y + lift - bar.position.y) * 0.25
+      bar.scale.y += (1 - bar.scale.y) * 0.15
+    })
+    h.shellMat.opacity += ((hoverBlock === b.tag && selected ? 0.22 : 0.1) - h.shellMat.opacity) * 0.2
+  })
+
+  renderer.render(scene, camera)
+  flights.forEach(f => place(f.label, f.landed === null ? f.mesh.position : f.curve.v2, -12))
+  blocks.forEach(b => { const h = H[b.tag]; place(h.label, h.g.getWorldPosition(v).setY(h.g.getWorldPosition(v).y + HH + 0.3)) })
+  floorLabels.forEach(({ el, si, fi }) => place(el, v.set(SITE_X[si] - PLATE.w * 0.36, SITE_Y[si] + fi * FLOOR_H - 0.15, PLATE.d / 2), 4, `rotate(${edgeAngle}rad) translate(-50%, 0)` /* turn about the anchor, then centre along the edge */))
+  siteLabels.forEach(({ el, si }) => place(el, v.set(SITE_X[si], SITE_Y[si] - 0.15, PLATE.d / 2), 2, `rotate(${edgeAngle}rad) translate(-50%, 2px)`)) // along the bottom slab's front edge, like the floor labels
+}
+requestAnimationFrame(tick)
+
+// ── page: count, legend, hint, tiles, tables, runs, toasts ──
+const nInst = Object.keys(instances).length
+document.getElementById('count').textContent = `${nInst} instances on ${blocks.length} blocks · ${SITES.reduce((n, s) => n + s.floors.length, 0)} floors`
+document.getElementById('legend').innerHTML = SERVICES.map(s => `<div><span class="sw" style="background:${s.color}"></span>${s.name}</div>`).join('')
+  + `<div><span class="sw" style="background:${P.free}"></span>free server</div>`
+  + `<div style="margin-top:4px;padding-top:6px;border-top:1px solid var(--border)"><span class="sw" style="background:${COLOR.ok}"></span>Block: nominal</div>`
+  + `<div><span class="sw" style="background:${COLOR.warn}"></span>warm ≥ 50 °C</div><div><span class="sw" style="background:${COLOR.crit}"></span>hot ≥ 55 °C</div>`
+
+function hint() {
+  const el = document.getElementById('hint')
+  el.style.display = selected ? '' : 'none' // only shown while a service is picked
+  if (!selected) return
+  const n = targetsFor(selected).size, inst = instances[selected]
+  el.innerHTML = n
+    ? `<b>${selected}</b> on ${inst.block}. Click a <b style="color:var(--accent)">blue server</b> in one of ${n} blocks, on any floor or site, or drag it there. <span style="color:var(--muted-ink)">Esc to cancel.</span>`
+    : `<b>${selected}</b> has nowhere to go: every block with a free server is hot or already runs ${SERVICES[inst.svc].name}.`
+}
+
+function renderTiles(bump) {
+  const tiles = [
+    ['Instances', nInst, 'never changes'],
+    ['Instances moved', totals.moved, 'live migration'],
+    ['Duplicates avoided', totals.dupes, 'copies a failover would start'],
+    ['Downtime', `${totals.downtime} s`, 'across all runs'],
+    ['Active runs', totals.active, 'moves in flight'],
+  ]
+  document.getElementById('tiles').innerHTML = tiles.map(([k, val, note], i) =>
+    `<li class="tile${bump && (i === 1 || i === 2) ? ' bump' : ''}"><span>${k}</span><b class="tabular">${val}</b><small>${note}</small></li>`).join('')
+}
+
+function renderTables() {
+  const t = selected ? targetsFor(selected) : new Set()
+  document.getElementById('sites').innerHTML = SITES.map((s, si) => {
+    const body = s.floors.map((_, fi) => `<tr class="floor-row"><th colspan="4">Floor ${fi + 1}</th></tr>` + blocks.filter(b => b.site === si && b.floor === fi).map(b => {
+      const used = b.slots.filter(Boolean)
+      const cls = t.has(b.tag) ? 'target' : selected && instances[selected].block === b.tag ? 'source' : ''
+      return `<tr class="${cls}" data-tag="${b.tag}">
+        <td><span class="blk" style="color:${b.status === 'ok' ? 'inherit' : COLOR[b.status]}">${b.tag}</span></td>
+        <td><span class="st"><i style="background:${COLOR[b.status]}"></i>${b.temp.toFixed(1)} °C</span></td>
+        <td>${used.map(id => `<button class="svc${id === selected ? ' on' : ''}" data-id="${id}"><span class="sw" style="background:${SERVICES[instances[id].svc].color}"></span>${id}</button>`).join('') || '<span class="free">empty</span>'}</td>
+        <td class="free tabular">${SLOTS - used.length} free</td>
+      </tr>`
+    }).join('')).join('')
+    return `<section class="card"><div class="row-head"><h2>${s.name}</h2><span>${s.floors.length} floors · ${blocks.filter(b => b.site === si).length} blocks</span></div>
+      <table><thead><tr><th>Block</th><th>Temp</th><th>Services</th><th></th></tr></thead><tbody>${body}</tbody></table></section>`
+  }).join('')
+}
+document.getElementById('sites').addEventListener('click', e => {
+  const chip = e.target.closest('.svc')
+  if (chip) return select(chip.dataset.id)
+  const row = e.target.closest('tr[data-tag]')
+  if (row && selected && canMove(selected, row.dataset.tag)) move(selected, row.dataset.tag)
+  else if (row && selected && row.dataset.tag !== instances[selected].block) refuse(selected, row.dataset.tag)
+})
+
+function ago(ms) { const s = Math.round((Date.now() - ms) / 1000); return s < 60 ? 'just now' : `${Math.round(s / 60)} min ago` }
+function renderRuns() {
+  document.getElementById('runcount').textContent = runs.length ? `${runs.length} · newest first` : ''
+  document.getElementById('runs').innerHTML = runs.length
+    ? runs.map(r => { const li = `<li class="${r.fresh ? 'new' : ''}"><span class="ok">✓</span><div><div>${r.text}</div><div class="caption">${r.sub}</div></div><span class="when">${ago(r.at)}</span></li>`; r.fresh = false; return li }).join('')
+    : '<li class="empty">No moves yet. Move a service off a hot block to start a run.</li>'
+}
+setInterval(renderRuns, 30000)
+
+function toast(title, body, bad) {
+  const el = document.createElement('div')
+  el.className = `toast${bad ? ' bad' : ''}`
+  el.innerHTML = `<small>${bad ? '▲ Not moved' : '● Done'}</small><b>${title}</b><p>${body}</p>`
+  const box = document.getElementById('toasts')
+  box.append(el)
+  while (box.children.length > 3) box.firstChild.remove()
+  setTimeout(() => el.remove(), 4200)
+}
+
+hint(); renderTiles(); renderTables(); renderRuns()
+</script>
+</body>
+</html>
