@@ -1,5 +1,6 @@
 import { schema, table, t } from 'spacetimedb/server';
 import { agentIdentity, eventLog, incident, incidentReport, shift, shiftReport } from './tables/reporting';
+import { feedHealth, rackProbe, threshold, watchdogTimer } from './tables/rules';
 
 // Keep this file as the single schema() call. The rest of the Phase 1 contract
 // (docs/PLAN.md section 4, docs/SCOPE-v2.md) is added here as it lands.
@@ -142,5 +143,9 @@ const spacetimedb = schema({
   incidentReport,
   shiftReport,
   agentIdentity,
+  threshold,
+  rackProbe,
+  feedHealth,
+  watchdogTimer,
 });
 export default spacetimedb;
