@@ -70,6 +70,7 @@ All three executor reducers reject the agent identity and quarantined identities
 **Cluster** in the sidebar (Operations, under Floor).
 
 - **Totals:** instances (constant), instances moved, duplicates avoided, downtime, active runs.
+- **Live placement (3D):** the 16 real racks grouped by data center and region, with the simulated instances in their slots (color = running, throttled, patching; rack strip = Ready, Warm, Incident, Silent with text). When an instance's rack changes in the `instance` table, it flies from the old slot to the new one: one object the whole way, so there is never a second copy, and the vacated slot shows an empty outline until it lands. Nothing flies on load, only on a real change; reduced motion jumps straight to the new slot. Click an instance, then a highlighted Ready rack, to migrate it by hand with `live_migrate_instance` (operator or lead). Built in `placement-scene.ts` (Three.js) and `placement-3d.tsx`.
 - **Services per rack:** one card per rack with its live status (Ready, Not Ready: warm, Incident, Feed silent; color, icon and text), hottest GPU from telemetry, slots used, and its instances with draw and a Throttled or Patching badge.
 - **Remediation runs:** newest first. Action, status, instance, from → to, a countdown while a throttle window is open, patch progress, whether it was automatic, the incident, "Simulated effect", duplicates avoided, downtime and warning lead time.
 - **Services:** version and placement; a **Patch to vX** button when a known patch exists (needs a registered operator).

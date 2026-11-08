@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Badge } from '@/components/reui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Placement3D } from '@/components/cluster/placement-3d'
 import { RackGrid } from '@/components/cluster/rack-grid'
 import { RunList } from '@/components/cluster/run-list'
 import { ServiceList } from '@/components/cluster/service-list'
@@ -39,6 +40,11 @@ export function ClusterView() {
             {totals.services} services placed on the real racks. Temperatures are recorded telemetry, so moving a service does not cool them; cooling figures are a simulated effect.
           </span>
         </div>
+
+        <section aria-labelledby="cluster-3d" className="flex flex-col gap-2">
+          <h2 id="cluster-3d" className="text-sm font-medium">Live placement</h2>
+          <Placement3D racks={racks} runs={runs} ready={ready} />
+        </section>
 
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" aria-label="Remediation totals">
           {tiles.map(t => (
