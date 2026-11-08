@@ -1,0 +1,73 @@
+/* Shift Handoff: chart colours, the chat panel's entrance, and the print (PDF) layout.
+   Kept next to the view so the shared stylesheet stays untouched. */
+
+.handoff-report {
+  /* Chart colours: mid-lightness so they read on the dark console and on white paper. Each is paired with text. */
+  --ho-line: oklch(0.74 0.16 50);
+  --ho-hot: oklch(0.74 0.16 50);
+  --ho-fault: oklch(0.65 0.22 27);
+  --ho-feed: oklch(0.7 0.13 245);
+  --ho-manual: oklch(0.7 0.03 280);
+  --ho-warn: oklch(0.78 0.15 85);
+  --ho-save-1: oklch(0.72 0.15 160);
+  --ho-save-2: oklch(0.68 0.12 195);
+  --ho-save-3: oklch(0.66 0.14 285);
+}
+
+/* The agent panel is a genuine state change (the operator opened it), so its content slides in once.
+   transform and opacity only, the shared strong ease-out, 200 ms. */
+.handoff-panel-in {
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), translate 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@starting-style {
+  .handoff-panel-in { opacity: 0; translate: 16px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .handoff-panel-in { transition: opacity 150ms ease; }
+  @starting-style {
+    .handoff-panel-in { translate: none; }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Print. "Download PDF" copies the report into a hidden light-theme frame (a document with no `dark`
+   class, so every token resolves to its light value and the page is white) and prints that.
+   --------------------------------------------------------------------------- */
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+.print-doc {
+  margin: 0;
+  background: #fff;
+  color: #111;
+  font-size: 11.5px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.print-doc .handoff-report {
+  --ho-warn: oklch(0.62 0.15 70);
+  --ho-fault: oklch(0.56 0.21 27);
+  --ho-line: oklch(0.62 0.17 45);
+  max-width: none;
+  overflow: visible;
+}
+.print-doc [data-noprint] { display: none !important; }
+.print-doc [data-slot='card'],
+.print-doc li,
+.print-doc tr,
+.print-doc figure { break-inside: avoid; }
+.print-doc h2 { break-after: avoid; }
+.print-doc [data-slot='chart'] { height: auto !important; aspect-ratio: auto !important; display: block; }
+/* Recharts nests the chart in a 0 x 0 anchor div; let every level size to its content so the svg can scale. */
+.print-doc [data-slot='chart'] .recharts-responsive-container,
+.print-doc [data-slot='chart'] .recharts-responsive-container > div,
+.print-doc [data-slot='chart'] .recharts-wrapper { width: 100% !important; height: auto !important; overflow: visible; }
+/* Recharts writes width/height 100% on the <svg> itself; the viewBox then scales it to the page width. */
+.print-doc svg.recharts-surface { width: 100% !important; height: auto !important; margin: 0 auto; }
+.print-doc .print-only { display: block; }
+
+@media screen {
+  .print-only { display: none; }
+}

@@ -11,13 +11,15 @@ import { AgentChat } from '@/components/agent/agent-chat'
 import { AppShell } from '@/components/shell/app-shell'
 import type { ViewId } from '@/components/shell/nav'
 import { AlertsView } from '@/views/alerts-view'
+import { ClusterView } from '@/views/cluster-view'
 import { FloorView } from '@/views/floor-view'
+import { HandoffView } from '@/views/handoff-view'
 import { LogTableView } from '@/views/log-table-view'
 import { LogView } from '@/views/log-view'
 import { OperatorsView } from '@/views/operators-view'
 import { SecurityView } from '@/views/security-view'
 
-const VIEWS: ViewId[] = ['floor', 'agent', 'alerts', 'log', 'operators', 'security']
+const VIEWS: ViewId[] = ['floor', 'cluster', 'agent', 'alerts', 'handoff', 'log', 'operators', 'security']
 const KEY = 'mesa:view'
 
 function viewInHash(): ViewId | null {
@@ -113,8 +115,10 @@ export default function App() {
   return (
     <AppShell view={view} onNavigate={navigate}>
       {view === 'floor' && <FloorView />}
+      {view === 'cluster' && <ClusterView />}
       {view === 'agent' && <AgentChat />}
       {view === 'alerts' && <AlertsView />}
+      {view === 'handoff' && <HandoffView />}
       {view === 'log' && <LogView onViewAll={() => go(logsPath(1))} />}
       {view === 'operators' && <OperatorsView />}
       {view === 'security' && <SecurityView />}
