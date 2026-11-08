@@ -27,8 +27,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow,none)}
 .abs{position:absolute}
 .brand{display:flex;align-items:center;gap:10px}
-.brand svg{width:30px;height:30px;flex:none}
-.brand b{font-family:'Jaro',sans-serif;font-weight:400;font-size:24px;letter-spacing:.02em}
+.brand .mk{width:32px;height:32px;flex:none;border-radius:8px;background:#18181b;color:#fff;display:grid;place-items:center} /* same mark as the console's BrandMark */
+.brand .mk svg{width:20px;height:20px;fill:currentColor}
+.brand b{font-family:'Jaro',sans-serif;font-weight:400;font-size:30px;line-height:1} /* same wordmark as the console sidebar */
+.brand b .m{font-size:25px} /* capital M at 25px stands level with lowercase "esa" at 30px */
 .live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border:1px solid var(--accent);color:var(--ink);border-radius:99px}
 .live::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.25}}
@@ -118,29 +120,45 @@ table.tbl td.r,table.tbl th.r{text-align:right}
 .scroll{overflow:auto}
 
 /* ═════════ 12 BENTO — tiles ═════════ */
-.d12{--bg:#ebe8e2;--ink:#18181b;--muted:#5b5b63;--line:#e7e5e0;--card:#fff;--accent:#ff6a3d;--chart:#ff6a3d;--ok:#2f9e6b;--warn:#d48806;--crit:#e5484d;--sel:#18181b;--sel-ink:#fff;--hl:#f5f3ef;--radius:12px;--font:'Lexend',sans-serif}
-.d12#stage{display:grid;grid-template-columns:370px 310px 1fr 310px;grid-template-rows:1fr 1fr 236px;gap:14px;padding:14px}
+.d12{--bg:#ebe8e2;--ink:#18181b;--muted:#5b5b63;--line:#e7e5e0;--card:#fff;--accent:#ff6a3d;--chart:#ff6a3d;--ok:#2f9e6b;--warn:#d48806;--crit:#e5484d;--sel:#18181b;--sel-ink:#fff;--hl:#f5f3ef;--radius:8px;--font:'Lexend',sans-serif}
+.d12#stage{display:grid;grid-template-columns:210px 1fr 150px 360px;grid-template-rows:1fr 1fr 268px;gap:14px;padding:14px}
 .d12 .t{background:var(--card);border-radius:var(--radius);position:relative;min-height:0;overflow:hidden}
-.d12 .t-detwrap{grid-row:1/4;display:flex;flex-direction:column;gap:12px;min-height:0}
+.d12 .t-detwrap{grid-column:4;grid-row:1/4;display:flex;flex-direction:column;gap:12px;min-height:0}
 .d12 .brandbar{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 0}
 .d12 .t-det{flex:1;padding:22px;overflow:auto;display:flex;flex-direction:column;gap:16px}
-.d12 .t-detwrap{gap:0} .d12 .brandbar{margin-bottom:12px}
+.d12 .t-detwrap{gap:0}
+/* left nav, same items as the React console sidebar; it sits on the page background and the current page is a white card */
+.d12 .nav{grid-column:1;grid-row:1/4;display:flex;flex-direction:column;gap:20px;padding:6px 2px 4px;min-height:0}
+.d12 .nav .brand{padding:0 8px}
+.d12 .nav .tag{display:block;font-size:12.5px;color:var(--muted);margin-top:0;padding-left:50px}
+.d12 .nav .grp{display:flex;flex-direction:column;gap:2px}
+.d12 .nav .gl{font-size:12.5px;color:var(--muted);padding:0 10px 6px;font-weight:500}
+.d12 .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius);font-size:14.5px;color:var(--ink);text-decoration:none;cursor:pointer}
+.d12 .nav a:hover{background:rgba(255,255,255,.55)}
+.d12 .nav a.on{background:var(--card);font-weight:600}
+.d12 .nav a.soon{color:var(--muted);cursor:default} .d12 .nav a.soon:hover{background:none}
+.d12 .nav a.soon em{margin-left:auto;font-style:normal;font-size:12px}
+.d12 .nav .ic{width:17px;height:17px;flex:none}
+.d12 .nav .foot{margin-top:auto;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:0 8px}
+.d12 .nav .me{display:flex;align-items:center;gap:10px}
+.d12 .nav .av{width:34px;height:34px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-weight:600;font-size:13px}
+.d12 .nav .me b{display:block;font-size:14px;font-weight:600} .d12 .nav .me small{font-size:12.5px;color:var(--muted)}
 /* folder tabs: the selected tab is part of the detail card; the others sit on the page background */
 .ftabs .tabs{gap:0;align-items:flex-end}
-.ftabs .tab{flex:1 1 0;min-width:0;padding:12px 4px;border-radius:12px 12px 0 0;font-size:15px;color:var(--muted);background:none;position:relative}
+.ftabs .tab{flex:1 1 0;min-width:0;padding:12px 4px;border-radius:8px 8px 0 0;font-size:15px;color:var(--muted);background:none;position:relative}
 .ftabs .tab:hover{color:var(--ink)}
 .ftabs .tab[aria-selected=true]{background:var(--card);color:var(--ink);font-weight:700}
-.ftabs .tab[aria-selected=true]::before,.ftabs .tab[aria-selected=true]::after{content:'';position:absolute;bottom:0;width:12px;height:12px;pointer-events:none}
-.ftabs .tab[aria-selected=true]::before{left:-12px;background:radial-gradient(circle at 0 0,transparent 11.5px,var(--card) 12px)} /* concave curve where the tab meets the card */
-.ftabs .tab[aria-selected=true]::after{right:-12px;background:radial-gradient(circle at 100% 0,transparent 11.5px,var(--card) 12px)}
+.ftabs .tab[aria-selected=true]::before,.ftabs .tab[aria-selected=true]::after{content:'';position:absolute;bottom:0;width:8px;height:8px;pointer-events:none}
+.ftabs .tab[aria-selected=true]::before{left:-8px;background:radial-gradient(circle at 0 0,transparent 7.5px,var(--card) 8px)} /* concave curve where the tab meets the card */
+.ftabs .tab[aria-selected=true]::after{right:-8px;background:radial-gradient(circle at 100% 0,transparent 7.5px,var(--card) 8px)}
 .ftabs .tab:first-child[aria-selected=true]::before,.ftabs .tab:last-child[aria-selected=true]::after{display:none}
 .d12 .t-det.first{border-top-left-radius:0} .d12 .t-det.last{border-top-right-radius:0} /* first tab selected: the card's corner becomes the tab's edge */
-.d12 .t-scene{grid-column:2/4;grid-row:1/3;background:linear-gradient(#f7f5f1,#efece6)}
+.d12 .t-scene{grid-column:2;grid-row:1/3;background:linear-gradient(#f7f5f1,#efece6)}
 .d12 .t-scene .over{position:absolute;left:20px;top:18px;z-index:2;display:flex;flex-direction:column;gap:4px}
 .d12 .t-scene .over{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 14px;top:16px;right:72px} /* right:72px keeps clear of the zoom buttons; the floor bar drops under the title when the tile is narrow */
 .d12 .t-scene .over .eyebrow{white-space:nowrap;font-size:15px;font-weight:600;color:var(--ink)}
-.floors{display:inline-flex;gap:2px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
-.floors button{white-space:nowrap;display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:10px;font-size:14.5px;font-weight:600;color:var(--muted)}
+.floors{display:inline-flex;gap:2px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.floors button{white-space:nowrap;display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:7px;font-size:14.5px;font-weight:600;color:var(--muted)}
 .floors button:hover{color:var(--ink);background:var(--hl)}
 .floors button{border:2px solid transparent}
 .floors button[aria-pressed=true]{border-color:var(--ink);color:var(--ink);background:var(--card)}
@@ -148,13 +166,12 @@ table.tbl td.r,table.tbl th.r{text-align:right}
 .floors i.s-warn{background:var(--warn)} .floors i.s-crit{background:var(--crit)}
 .floors .ct{font-size:11.5px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;display:inline-grid;place-items:center;background:var(--warn);color:#1a1a1a}
 .floors .ct.s-crit{background:var(--crit);color:#fff}
-.d12 .t-rank{grid-column:4;grid-row:1/3;padding:16px 8px;overflow:auto}
-.d12 .t-rank .rh{padding:0 12px 8px;font-weight:600}
-.d12 .t-chart{grid-column:3/5;grid-row:3;padding:18px 22px}
-.d12 .t-kpis{grid-column:2;grid-row:3;background:none;display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.d12 .t-kpis .kpi{background:var(--card);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+.d12 .t-chart{grid-column:2/4;grid-row:3;padding:18px 22px}
+.d12 .t-kpis{grid-column:3;grid-row:1/3;background:none;display:flex;flex-direction:column;gap:10px} /* four compact tiles stacked down the right edge */
+.d12 .t-kpis .kpi{flex:1;min-height:0;background:var(--card);border-radius:var(--radius);padding:10px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+.d12 .t-kpis .kpi .k{font-size:12.5px} .d12 .t-kpis .kpi .v{font-size:20px}
 .d12 .t-kpis .kpi.hot{background:#18181b;color:#fff} .d12 .t-kpis .kpi.hot .k{color:#a1a1aa}
-.d12 .ctrls{right:16px;top:16px;border-radius:14px}
+.d12 .ctrls{right:16px;top:16px;border-radius:8px}
 .d12 .hint{left:16px;bottom:14px;z-index:2;background:rgba(255,255,255,.88);padding:5px 10px;border-radius:99px;color:var(--ink)}
 </style>
 </head>
@@ -293,7 +310,7 @@ const ICON = {
 const ic = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 const MARK = `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="mm"><rect x="35.6" y="0" width="28.8" height="100"/></clipPath></defs><rect width="100" height="100" rx="18" fill="#1C1C1C"/><g fill="#F0E6C0" transform="translate(50 50) scale(0.8) translate(-50 -50)"><path d="M36 4 Q30 46 4 50 Q30 54 36 96Z"/><path d="M64 4 Q70 46 96 50 Q70 54 64 96Z"/><path clip-path="url(#mm)" d="M50 4 Q53 46 78 50 Q53 54 50 96 Q47 54 22 50 Q47 46 50 4Z"/></g></svg>`;
 const C = {
-  brand: () => `<div class="brand">${MARK}<b>MESA</b></div>`,
+  brand: () => `<div class="brand" aria-label="MESA"><span class="mk" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M36 4 Q30 46 4 50 Q30 54 36 96Z"/><path d="M64 4 Q70 46 96 50 Q70 54 64 96Z"/><path d="M50 4 Q53 46 64.4 50 Q53 54 50 96 Q47 54 35.6 50 Q47 46 50 4Z"/></svg></span><b aria-hidden="true"><span class="m">M</span>esa</b></div>`,
   live: (t = 'Live') => `<span class="live">${t}</span>`,
   pill: (s, l) => `<span class="pill s-${s}">${ST[s].g} ${l || ST[s].l}</span>`,
   tabs(o = {}) {
@@ -351,6 +368,22 @@ const C = {
   },
   floors: () => `<div class="floors" role="group" aria-label="Floor">${Object.keys(FLOORS).map(f => { const list = FLOORS[f], w = worst(list), ct = list.reduce((s, b) => s + issues(b), 0);
     return `<button data-floor="${f}" aria-pressed="${+f === state.floor}" title="Floor ${f}: ${ct} open issue${ct === 1 ? '' : 's'}">Floor ${f}${ct ? `<span class="ct s-${w}">${ct}</span>` : ''}</button>`; }).join('')}</div>`,
+  nav() {
+    const I = {
+      queue: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M5.5 5h13L20 13v6H4v-6z"/>',
+      floor: '<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>',
+      agent: '<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01"/>',
+      alerts: '<path d="M7 17V11a5 5 0 0 1 10 0v6"/><path d="M5 17h14M12 3v1M4.5 6.5l1 1M19.5 6.5l-1 1"/>',
+      handoff: '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>',
+      log: '<path d="M8 4h11v16H8z"/><path d="M5 7v13h11M11 8h5M11 12h5M11 16h3"/>',
+      ops: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3 6"/>',
+    };
+    const item = (k, label, on, soon) => `<a class="${on ? 'on' : ''} ${soon ? 'soon' : ''}" ${on ? 'aria-current="page"' : ''}><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${I[k]}</svg>${label}${soon ? '<em>Soon</em>' : ''}</a>`;
+    return `<nav class="nav" aria-label="Primary"><div>${C.brand()}<span class="tag">No alert left unowned</span></div>
+      <div class="grp"><div class="gl">Operations</div>${item('queue', 'My Queue', 0, 1)}${item('floor', 'Floor', 1)}${item('agent', 'AI Agent')}${item('alerts', 'Alerts')}${item('handoff', 'Shift Handoff', 0, 1)}</div>
+      <div class="grp"><div class="gl">System</div>${item('log', 'Event log', 0, 1)}${item('ops', 'Operators')}</div>
+      <div class="foot">${C.live()}<div class="me"><span class="av">NS</span><span><b>Night shift</b><small>Operator · Connected</small></span></div></div></nav>`;
+  },
   ctrls: () => `<div class="ctrls"><button data-zoom="in" aria-label="Zoom in">+</button><button data-zoom="out" aria-label="Zoom out">−</button><button data-zoom="reset" aria-label="Reset view">⤢</button></div>`,
   slot: (inner = '') => `<div class="scene-slot"><div class="labels"></div>${inner}</div>`,
   hint: () => `<div class="hint">Drag to orbit · scroll to zoom · click a hall</div>`,
@@ -361,10 +394,9 @@ const S = (o) => Object.assign({ plinth: '#e6dcc4', block: '#fbf7ec', roof: '#ef
 
 const DESIGNS = [
   { cls: 'd12', name: 'Bento', blurb: 'Tile grid: model, detail, ranking, chart and KPI tiles', scene: S({ plinth: '#dedbd4', block: '#ffffff', roof: '#f3f1ec', rack: '#222', unit: '#e7e4dd', edge: '#222', edgeOp: .18, ok: '#2f9e6b', warn: '#e59a1a', crit: '#e5484d', gnd: '#c8c3b8', dist: 36 }),
-    html: b => `<section class="t-detwrap"><div class="brandbar">${C.brand()}${C.live()}</div>${C.tabs()}<div class="t t-det ${state.tab === TABS[0].k ? 'first' : state.tab === TABS[TABS.length - 1].k ? 'last' : ''}">${C.head(b)}<div>${C.body(b)}</div></div></section>
+    html: b => `${C.nav()}<section class="t-detwrap">${C.tabs()}<div class="t t-det ${state.tab === TABS[0].k ? 'first' : state.tab === TABS[TABS.length - 1].k ? 'last' : ''}">${C.head(b)}<div>${C.body(b)}</div></div></section>
       <section class="t t-scene">${C.slot()}<div class="over"><span class="eyebrow">Dallas DC-2</span>${C.floors()}</div>${C.ctrls()}${C.hint()}</section>
-      <section class="t t-rank"><div class="rh">Halls by risk</div>${C.rank()}</section>
-      <section class="t t-chart">${C.chartHead(b)}${C.chart(b, { h: 150 })}</section>
+      <section class="t t-chart">${C.chartHead(b)}${C.chart(b, { h: 190 })}</section>
       <section class="t t-kpis"><div class="kpi"><span class="k">IT load</span><span class="v">${(TOTAL.load / 1000).toFixed(2)}<span class="u">MW</span></span></div><div class="kpi"><span class="k">Open issues</span><span class="v">${TOTAL.issues}</span></div><div class="kpi"><span class="k">Avg inlet</span><span class="v">${TOTAL.avgT.toFixed(1)}<span class="u">°C</span></span></div><div class="kpi hot"><span class="k">Next breach</span><span class="v">${NEXT ? `${NEXT.id}<span class="u" style="color:#a1a1aa">${fmtH(NEXT.breachH)}</span>` : '<span style="font-size:16px;white-space:nowrap">None expected</span>'}</span></div></section>` },
 ];
 
@@ -425,7 +457,7 @@ function buildWorld(t) {
     const shellMat = new THREE.MeshLambertMaterial({ color: shellColor, transparent: true, opacity: t.face, depthWrite: t.face >= .5 });
     const shell = box(4.3, HH, 5, shellMat, 0, HH / 2, 0, g); shell.userData.id = b.id; picks.push(shell);
     const rackM = mat(t.rack, wire ? Math.min(1, t.face * 3) : 1);
-    for (let r = 0; r < 6; r++) box(.34, 1.3, 3.7, rackM, -1.55 + r * .62, .66, 0, g, wire);
+    for (let r = 0; r < 6; r++) { const rk = box(.34, 1.3, 3.7, rackM, -1.55 + r * .62, .66, 0, g, wire); rk.castShadow = rk.receiveShadow = false; } // racks never sit in the walls' shadow, so nothing darkens or pops as a hall opens and closes
     const band = new THREE.Mesh(new THREE.BoxGeometry(4.42, .14, 5.12), new THREE.MeshBasicMaterial({ color: t[b.status] })); band.position.y = .14; g.add(band);
     // lid: roof + rooftop units, lifts away when the hall is selected
     const lid = new THREE.Group(); g.add(lid);
@@ -441,6 +473,7 @@ function buildWorld(t) {
     const beacon = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 12), new THREE.MeshBasicMaterial({ color: t[b.status], transparent: true }));
     beacon.position.set(1.75, HH + .55, 1.95); g.add(beacon);
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .4, 6), new THREE.MeshBasicMaterial({ color: t.edge, transparent: true })); mast.position.set(1.75, HH + .3, 1.95); g.add(mast);
+    lid.traverse(o => { if (o.isMesh) o.castShadow = false; }); // the roof never casts a shadow, so there is no shadow to pop on or off while it fades
     halls.push({ b, g, shell, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, beacon, mast });
   });
   orbit.distT = t.dist; orbit.el = t.el;
@@ -460,7 +493,7 @@ function resize() {
 // never while the model turns, so the building stays still like in fonts.html.
 const view = { x: 0, y: 0 }, pv = new THREE.Vector3();
 let frameReq = 0, lastW = 0, lastH = 0;
-function frame(w, h) {
+function frame(w, h, ease = 1) {
   camera.updateMatrixWorld(); // project() reads the camera matrix, which lookAt alone doesn't refresh
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   const pts = [];
@@ -474,7 +507,7 @@ function frame(w, h) {
   }
   const top = overEl ? overEl.offsetTop + overEl.offsetHeight + 12 : 12, bottom = h - 12;
   const dx = (x0 + x1) / 2 - w / 2, dy = (y0 + y1) / 2 - (top + bottom) / 2;
-  view.x = Math.max(-w / 2, Math.min(w / 2, view.x + dx)); view.y = Math.max(-h / 2, Math.min(h / 2, view.y + dy)); // one exact correction; never fly off
+  view.x = Math.max(-w / 2, Math.min(w / 2, view.x + dx * ease)); view.y = Math.max(-h / 2, Math.min(h / 2, view.y + dy * ease)); // ease 1 = one exact correction; never fly off
   camera.setViewOffset(w, h, view.x, view.y, w, h); camera.updateProjectionMatrix();
 }
 const ro = new ResizeObserver(resize);
@@ -483,22 +516,23 @@ const v3 = new THREE.Vector3();
 function tick(now) {
   requestAnimationFrame(tick);
   if (!T || !slotEl) return;
-  if (now - lastInteract > 4000 && !drag) orbit.az += .0006 * T.spin;
-  orbit.dist += (orbit.distT - orbit.dist) * .12;
+  if (homing) { // ⤢ pressed: glide rotation, tilt and zoom back to the start view together
+    const da = Math.atan2(Math.sin(HOME.az - orbit.az), Math.cos(HOME.az - orbit.az)); // shortest way round
+    orbit.az += da * .09; orbit.el += (HOME.el - orbit.el) * .09; orbit.distT = T.dist;
+    if (Math.abs(da) < .002 && Math.abs(HOME.el - orbit.el) < .002 && Math.abs(orbit.dist - T.dist) < .02) { homing = false; frameReq = 2; }
+    lastInteract = now; // no idle spin while gliding home
+  } else if (now - lastInteract > 4000 && !drag) orbit.az += .0006 * T.spin;
+  orbit.dist += (orbit.distT - orbit.dist) * (homing ? .09 : .12);
   orbit.target.lerp(orbit.targetT, .06);
   const { az, el, dist, target } = orbit;
   camera.position.set(target.x + dist * Math.cos(el) * Math.sin(az), target.y + dist * Math.sin(el), target.z + dist * Math.cos(el) * Math.cos(az));
   camera.lookAt(target);
-  if (frameReq) { frameReq--; frame(slotEl.clientWidth, slotEl.clientHeight); }
+  if (homing) frame(slotEl.clientWidth, slotEl.clientHeight, .15); // keep the building centred as it glides
+  else if (frameReq) { frameReq--; frame(slotEl.clientWidth, slotEl.clientHeight); }
   const k = .12, t = now / 1000;
   halls.forEach(H => {
     const on = H.b.id === state.sel;
     H.g.position.y += ((on ? .3 : 0) - H.g.position.y) * k;
-    if (H.on !== on) { // selection changed: drop this hall's shadows at once, so no dark roof shadow lingers and then pops off
-      H.on = on;
-      H.lid.traverse(o => { if (o.isMesh) o.castShadow = !on && T.shadow; });
-      H.shell.castShadow = !on && T.shadow;
-    }
     const f = .2; // fade speed: quick, but still visibly animated
     H.lid.position.y += ((on ? 1.4 : 0) - H.lid.position.y) * f;
     const lo = on ? 0 : T.face;
@@ -527,7 +561,8 @@ function tick(now) {
 }
 
 // pointer orbit + pick
-let drag = null;
+let drag = null, homing = false;
+const HOME = { az: -.62, el: .72 };
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function pick(e) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -537,7 +572,7 @@ function pick(e) {
   return hit ? hit.object.userData.id : null;
 }
 const cv = renderer.domElement;
-cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: 0 }; cv.setPointerCapture(e.pointerId); lastInteract = performance.now(); });
+cv.addEventListener('pointerdown', e => { homing = false; drag = { x: e.clientX, y: e.clientY, moved: 0 }; cv.setPointerCapture(e.pointerId); lastInteract = performance.now(); });
 cv.addEventListener('pointermove', e => {
   if (drag) {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx) + Math.abs(dy);
@@ -547,7 +582,7 @@ cv.addEventListener('pointermove', e => {
   }
 });
 cv.addEventListener('pointerup', e => { if (drag && drag.moved < 6) { const id = pick(e); if (id) select(id); } drag = null; });
-cv.addEventListener('wheel', e => { e.preventDefault(); orbit.distT = Math.max(16, Math.min(70, orbit.distT * (1 + e.deltaY * .0012))); lastInteract = performance.now(); }, { passive: false });
+cv.addEventListener('wheel', e => { e.preventDefault(); homing = false; orbit.distT = Math.max(16, Math.min(70, orbit.distT * (1 + e.deltaY * .0012))); lastInteract = performance.now(); }, { passive: false });
 
 /* ═══════════════════ RENDER + EVENTS ═══════════════════ */
 function render() {
@@ -610,9 +645,10 @@ document.addEventListener('click', e => {
   else if (t.dataset.block) select(t.dataset.block);
   else if (t.dataset.zoom) {
     const z = t.dataset.zoom; lastInteract = performance.now();
+    if (z !== 'reset') homing = false;
     if (z === 'in') orbit.distT = Math.max(16, orbit.distT * .82);
     else if (z === 'out') orbit.distT = Math.min(70, orbit.distT * 1.2);
-    else { orbit.distT = T.dist; orbit.el = T.el; orbit.az = -.62; orbit.targetT.set(0, 1, 0); orbit.dist = T.dist; frameReq = 3; }
+    else { orbit.targetT.set(0, 1, 0); HOME.el = T.el; homing = true; } // glide home instead of jumping
   }
   else if (t.dataset.step) setDesign(state.d + +t.dataset.step);
   else if (t.dataset.go) setDesign(+t.dataset.go);

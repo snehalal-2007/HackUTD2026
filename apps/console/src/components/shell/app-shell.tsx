@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import {
-  ActivityIcon,
   BotIcon,
   InboxIcon,
   LayoutGridIcon,
@@ -30,7 +29,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Badge } from '@/components/reui/badge'
 import { BrandMark } from './brand-mark'
 import { ShiftClock } from './shift-clock'
 import { ThemeToggle } from './theme-toggle'
@@ -76,6 +74,7 @@ function NavGroup({
           {items.map(item => (
             <SidebarMenuItem key={item.id}>
               <SidebarMenuButton
+                className="h-9 text-[14.5px] data-active:font-semibold" // prototype nav: larger text, current page as a white card
                 isActive={item.view === view}
                 tooltip={item.view ? item.label : `${item.label} (coming soon)`}
                 disabled={!item.view}
@@ -91,6 +90,27 @@ function NavGroup({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
+  )
+}
+
+/** Connection status + theme toggle + shift clock: the prototype keeps these at the bottom of the nav. */
+function StatusRow() {
+  const conn = useSpacetimeDB()
+  const state = conn.isActive ? 'Live' : conn.connectionError ? 'Offline' : 'Connecting'
+  return (
+    <div className="flex flex-col gap-2 px-2 group-data-[collapsible=icon]:hidden">
+      <div className="flex items-center justify-between">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12.5px] ${conn.isActive ? 'border-success text-foreground' : conn.connectionError ? 'border-destructive text-destructive' : 'border-warning text-foreground'}`}
+          role="status"
+        >
+          <span aria-hidden="true" className={`size-1.5 rounded-full ${conn.isActive ? 'animate-pulse bg-success' : conn.connectionError ? 'bg-destructive' : 'bg-warning'}`} />
+          {state}
+        </span>
+        <ThemeToggle />
+      </div>
+      <ShiftClock />
+    </div>
   )
 }
 
@@ -142,7 +162,6 @@ function ShellBody({
   onNavigate: (v: ViewId) => void
   children: ReactNode
 }) {
-  const conn = useSpacetimeDB()
   const { isMobile, setOpenMobile } = useSidebar()
   // On phones the sidebar is a drawer; close it once a view is picked.
   const onNavigate = (v: ViewId) => {
@@ -151,7 +170,7 @@ function ShellBody({
   }
   return (
     <>
-      <Sidebar collapsible="icon" className="absolute h-full">
+      <Sidebar collapsible="icon" className="absolute h-full group-data-[side=left]:border-r-0" /* no divider: the nav sits on the page background */>
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -175,22 +194,21 @@ function ShellBody({
         </SidebarContent>
 
         <SidebarFooter>
+          <StatusRow />
           <AccountButton onNavigate={onNavigate} />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
 
       <SidebarInset className="min-w-0 overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-          <SidebarTrigger />
-          <h1 className="truncate text-sm font-medium">{VIEW_TITLES[view]}</h1>
-          <div className="ml-auto"><ShiftClock /></div>
-          <ThemeToggle />
-          <Badge variant={conn.isActive ? 'success' : conn.connectionError ? 'destructive' : 'warning'}>
-            <ActivityIcon aria-hidden="true" />
-            {conn.isActive ? 'Live' : conn.connectionError ? 'Offline' : 'Connecting'}
-          </Badge>
-        </header>
+        {view === 'floor' ? (
+          <h1 className="sr-only">{VIEW_TITLES[view]}</h1> // the Floor page is full-bleed like the prototype; its tile carries the mobile menu button
+        ) : (
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+            <SidebarTrigger />
+            <h1 className="truncate text-sm font-medium">{VIEW_TITLES[view]}</h1>
+          </header>
+        )}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </>

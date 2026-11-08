@@ -1,141 +1,47 @@
 import { useState } from 'react'
-import { BoxIcon, OctagonAlertIcon, Table2Icon, TriangleAlertIcon } from 'lucide-react'
 import { Badge } from '@/components/reui/badge'
-import { BAND_BORDER, bandOf } from '@/components/floor/bands'
-import { Floor3D } from '@/components/floor/floor-3d'
-import {
-  HALL_NAME,
-  INLET_CRIT_C,
-  INLET_WARN_C,
-  PREVIEW_RACKS,
-  PREVIEW_UNITS,
-  type PreviewRack,
-  type PreviewUnit,
-} from '@/components/floor/sample'
-import { cn } from '@/lib/utils'
+import { FLOORS, mostUrgent, type TabId } from '@/components/floor/data'
+import { FloorSceneTile } from '@/components/floor/floor-scene'
+import { HallPanel } from '@/components/floor/hall-panel'
+import { KpiTiles } from '@/components/floor/kpi-tiles'
+import { ChartKey, TempChart } from '@/components/floor/temp-chart'
 
-type Mode = 'table' | '3d'
-const MODE_KEY = 'mesa:floor-mode'
-
-function readMode(): Mode {
-  try {
-    return localStorage.getItem(MODE_KEY) === '3d' ? '3d' : 'table'
-  } catch {
-    return 'table' // storage blocked: start in table mode
-  }
-}
-
+// Floor overview, ported from docs/prototype.html: 3D floor | floor totals | hall details, chart along the bottom.
+// The data is sample data (components/floor/data.ts) until the module exposes assets, readings and alerts.
 export function FloorView() {
-  const rows = [...new Set(PREVIEW_RACKS.map(r => r.row))].sort()
-  const [mode, setModeState] = useState<Mode>(readMode)
+  const [floor, setFloor] = useState(3)
+  const [selected, setSelected] = useState(() => mostUrgent(FLOORS[3]).id)
+  const [tab, setTab] = useState<TabId>('overview')
+  const halls = FLOORS[floor]
+  const hall = halls.find(h => h.id === selected) ?? halls[0]
 
-  function setMode(m: Mode) {
-    setModeState(m)
-    try {
-      localStorage.setItem(MODE_KEY, m) // remember this viewer's choice across reloads
-    } catch {
-      // storage blocked: the choice just isn't remembered
-    }
+  function changeFloor(f: number) {
+    if (f === floor) return
+    setFloor(f)
+    setSelected(mostUrgent(FLOORS[f]).id) // open on the floor's most urgent hall
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <ul className="flex flex-wrap items-center gap-2 text-xs" aria-label="Temperature bands">
-              <li className="text-muted-foreground">Normal under {INLET_WARN_C}°C</li>
-              <li><Badge variant="warning-light" size="lg">{INLET_WARN_C}–{INLET_CRIT_C}°C</Badge></li>
-              <li><Badge variant="destructive-light" size="lg">{INLET_CRIT_C}°C and over</Badge></li>
-            </ul>
-            <ModeSwitch mode={mode} onChange={setMode} />
-          </div>
-        </div>
-
-        {mode === '3d' ? (
-          <Floor3D racks={PREVIEW_RACKS} rows={rows} />
-        ) : (
-          <div className="flex flex-col gap-3" role="list" aria-label={`${HALL_NAME} racks`}>
-            {rows.map(row => (
-              <div key={row} className="flex items-center gap-3" role="listitem">
-                <span className="w-6 shrink-0 text-center font-mono text-sm text-muted-foreground">{row}</span>
-                <div className="grid flex-1 grid-cols-3 gap-3 sm:grid-cols-6">
-                  {PREVIEW_RACKS.filter(r => r.row === row)
-                    .sort((a, b) => a.col - b.col)
-                    .map(r => <RackTile key={r.assetId} rack={r} />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <section aria-labelledby="cooling-power" className="flex flex-col gap-3">
-          <h3 id="cooling-power" className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-            Cooling and power
+    <div className="grid min-h-0 flex-1 gap-3.5 overflow-auto p-3.5 lg:grid-cols-[minmax(0,1fr)_150px_360px] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)_268px] lg:overflow-hidden">
+      <div className="h-[460px] lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:h-auto">
+        <FloorSceneTile floor={floor} halls={halls} selected={hall.id} onFloor={changeFloor} onSelect={setSelected} />
+      </div>
+      <div className="h-[340px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:h-auto">
+        <KpiTiles halls={halls} />
+      </div>
+      <section className="min-w-0 rounded-lg bg-card px-5.5 py-4.5 lg:col-span-2 lg:col-start-1 lg:row-start-3" aria-label="Inlet temperature">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
+          <h3 className="flex items-center gap-2 text-[15.5px] font-semibold">
+            Inlet temperature · Hall {hall.id}
+            <Badge variant="warning-light" size="sm" title="Sample data until the predictor and telemetry are wired in">Sample</Badge>
           </h3>
-          <ul className="flex flex-wrap gap-2">
-            {PREVIEW_UNITS.map(u => <UnitChip key={u.assetId} unit={u} />)}
-          </ul>
-        </section>
+          <ChartKey />
+        </div>
+        <TempChart hall={hall} />
+      </section>
+      <div className="min-h-[520px] lg:col-start-3 lg:row-span-3 lg:row-start-1 lg:min-h-0">
+        <HallPanel hall={hall} floor={floor} tab={tab} onTab={setTab} />
       </div>
     </div>
-  )
-}
-
-function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
-  const options = [
-    { id: 'table' as const, label: 'Table', icon: Table2Icon },
-    { id: '3d' as const, label: '3D', icon: BoxIcon },
-  ]
-  return (
-    <div role="group" aria-label="Floor view mode" className="ml-auto inline-flex rounded-lg border bg-card p-0.5">
-      {options.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          type="button"
-          aria-pressed={mode === id}
-          onClick={() => onChange(id)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors',
-            mode === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          <Icon className="size-3.5" aria-hidden="true" />
-          {label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function RackTile({ rack }: { rack: PreviewRack }) {
-  const band = bandOf(rack.inletC)
-  return (
-    <div
-      className={cn('flex flex-col gap-1 rounded-lg border-2 bg-card px-3 py-2.5', BAND_BORDER[band])} // only the border carries the band; 2px so it reads at a glance
-      aria-label={`${rack.assetId}, ${rack.inletC.toFixed(1)} degrees${band === 'normal' ? '' : `, ${band}`}`}
-    >
-      <span className="font-mono text-xs text-muted-foreground">{rack.assetId}</span>
-      <span className="flex items-center gap-1 font-mono text-lg font-semibold tabular-nums">
-        {rack.inletC.toFixed(1)}°
-        {band === 'warm' && <TriangleAlertIcon className="size-3.5 text-warning" aria-hidden="true" />} {/* icon backs up color, never color alone */}
-        {band === 'hot' && <OctagonAlertIcon className="size-3.5 text-destructive" aria-hidden="true" />}
-      </span>
-    </div>
-  )
-}
-
-function UnitChip({ unit }: { unit: PreviewUnit }) {
-  const cooling = unit.kind === 'cooling'
-  return (
-    <li>
-      <Badge
-        size="xl"
-        variant={!unit.ok ? 'destructive-light' : cooling ? 'success-light' : 'secondary'}
-        className={cn(!cooling && 'font-mono')} // power loads read as numbers, so mono like the mockup
-      >
-        {unit.assetId} · {unit.status}
-      </Badge>
-    </li>
   )
 }

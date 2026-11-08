@@ -9,7 +9,7 @@ function currentTheme(): Theme {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
 }
 
-/** Switches between dark quiet mode (default) and light mode; remembered per browser. */
+/** Switches between light mode (default, matches the prototype) and dark mode; remembered per browser. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(currentTheme)
   const next: Theme = theme === 'dark' ? 'light' : 'dark'
