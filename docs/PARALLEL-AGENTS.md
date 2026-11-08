@@ -113,7 +113,7 @@ A 3-minute, two-laptop demo script built on what is live (feeds, an incident ope
 1. **A** (motion), then **B** and **C** in any order (separate files).
 2. **D** and **E**: whichever is second rebases, regenerates bindings and reruns checks. E waits for A.
 3. **F** last, so the demo script matches what merged.
-4. After module changes merge: Railway redeploys the replayer, then the release manager runs `pnpm publish:prod` from `main`. New columns use defaults, so no reset; the publish disconnects clients and the replayer restarts itself.
+4. After module changes merge: Railway redeploys the replayer, then the release manager runs `pnpm publish:prod` from `main`. New columns use defaults, so no reset; the publish disconnects clients. If the replayer does not reconnect on its own (check that `server_latest` rows keep updating), run `pnpm redeploy:replayer`.
 
 ## 6. Cleanup
 
