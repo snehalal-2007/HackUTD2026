@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MoveRightIcon } from 'lucide-react'
+import { LoaderCircleIcon, MoveRightIcon } from 'lucide-react'
+import { toast } from 'sonner'
 import { useReducer, useSpacetimeDB } from 'spacetimedb/react'
 import { reducers } from '@mesa/bindings'
 import { DARK_PALETTE, LIGHT_PALETTE } from '@/components/floor/scene'
@@ -78,6 +79,49 @@ export function Placement3D({ racks, runs, services, ready }: { racks: RackVM[];
     } finally {
       setBusy(false)
     }
+  }
+
+  // Move everything off hot racks: every instance on a rack with an open incident (red) goes to the coolest Ready
+  // (green) rack with a free slot and no copy of the same service, one move at a time so each one flies. Same reducer
+  // and same rules as a move by hand; the plan is worked out up front so two moves never aim at the same last slot.
+  const hot = racks.filter(r => r.status === 'incident' && r.instances.length > 0)
+  const [draining, setDraining] = useState<{ done: number; total: number } | null>(null)
+  const drain = async () => {
+    if (busy || draining) return
+    const room = new Map(racks.map(r => [r.id, { free: RACK_SLOTS - r.instances.length, services: new Set(r.instances.map(i => i.service)) }]))
+    const plan: { id: string; service: string; to: string }[] = []
+    let stuck = 0
+    for (const r of hot) for (const i of r.instances) {
+      if (i.state === 'patching') { stuck++; continue }
+      const to = racks
+        .filter(t => t.status === 'ready' && t.id !== r.id && room.get(t.id)!.free > 0 && !room.get(t.id)!.services.has(i.service))
+        .sort((a, b) => a.gpuMaxC - b.gpuMaxC)[0]
+      if (!to) { stuck++; continue }
+      room.get(to.id)!.free--
+      room.get(to.id)!.services.add(i.service)
+      plan.push({ id: i.id, service: i.service, to: to.id })
+    }
+    if (!plan.length) {
+      toast('Nothing could move', { description: stuck ? `${stuck} instance${stuck === 1 ? ' has' : 's have'} no Ready rack with a free slot that isn’t already running the same service.` : 'No hot rack is running anything right now.' })
+      return
+    }
+    setError(null)
+    setSelected(null)
+    setDraining({ done: 0, total: plan.length })
+    let moved = 0
+    for (const step of plan) {
+      try {
+        await migrate({ instanceId: step.id, toRackId: step.to })
+        moved++
+        setDraining({ done: moved, total: plan.length })
+        await new Promise(res => setTimeout(res, 700)) // let each move fly before the next
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+        break
+      }
+    }
+    setDraining(null)
+    if (moved) toast(`Moved ${moved} instance${moved === 1 ? '' : 's'} off hot racks`, { description: `Each went to the coolest Ready rack with a free slot and no copy of itself${stuck ? `; ${stuck} had nowhere to go` : ''}. No downtime, no duplicates.` })
   }
 
   useEffect(() => {
@@ -163,6 +207,16 @@ export function Placement3D({ racks, runs, services, ready }: { racks: RackVM[];
             )}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => void drain()}
+          disabled={!!draining || busy || hot.length === 0 || !conn.isActive}
+          title={hot.length === 0 ? 'No hot rack is running anything right now' : `Move every instance off the ${hot.length} hot rack${hot.length === 1 ? '' : 's'}`}
+          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-black shadow-sm hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {draining && <LoaderCircleIcon className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+          {draining ? `Moving ${draining.done} of ${draining.total}…` : `Move off hot racks${hot.length ? ` (${hot.reduce((n, r) => n + r.instances.length, 0)})` : ''}`}
+        </button>
       </div>
     </div>
   )
