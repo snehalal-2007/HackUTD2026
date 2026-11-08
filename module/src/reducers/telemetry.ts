@@ -1,6 +1,7 @@
 import { t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { ScheduleAt } from 'spacetimedb';
 import spacetimedb, { ReadingIn, pruneTimer } from '../schema';
+import { rejectAgent } from '../lib/agent';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
@@ -30,6 +31,7 @@ function finite(n: number, field: string, serverId: string) {
 export const ingestReadings = spacetimedb.reducer(
   { datacenterId: t.string(), readings: t.array(ReadingIn) },
   (ctx, { datacenterId, readings }) => {
+    rejectAgent(ctx);
     if (!datacenterId.trim()) throw new SenderError('datacenterId is required');
     if (readings.length === 0) return;
     if (readings.length > MAX_BATCH) throw new SenderError(`batch over ${MAX_BATCH} readings`);

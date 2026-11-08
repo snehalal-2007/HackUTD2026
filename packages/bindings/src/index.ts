@@ -34,18 +34,29 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AttachReportReducer from "./attach_report_reducer";
+import AttachShiftReportReducer from "./attach_shift_report_reducer";
 import IngestReadingsReducer from "./ingest_readings_reducer";
+import OpenIncidentReducer from "./open_incident_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
+import SetIncidentStatusReducer from "./set_incident_status_reducer";
+import SetShiftStatusReducer from "./set_shift_status_reducer";
+import StartShiftReducer from "./start_shift_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
 import DatacenterRow from "./datacenter_table";
+import EventLogRow from "./event_log_table";
+import IncidentRow from "./incident_table";
+import IncidentReportRow from "./incident_report_table";
 import OperatorRow from "./operator_table";
 import RackRow from "./rack_table";
 import ServerRow from "./server_table";
 import ServerLatestRow from "./server_latest_table";
 import ServerReadingRow from "./server_reading_table";
+import ShiftRow from "./shift_table";
+import ShiftReportRow from "./shift_report_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -62,6 +73,43 @@ const tablesSchema = __schema({
       { name: 'datacenter_datacenter_id_key', constraint: 'unique', columns: ['datacenterId'] },
     ],
   }, DatacenterRow),
+  eventLog: __table({
+    name: 'event_log',
+    indexes: [
+      { accessor: 'seq', name: 'event_log_seq_idx_btree', algorithm: 'btree', columns: [
+        'seq',
+      ] },
+    ],
+    constraints: [
+      { name: 'event_log_seq_key', constraint: 'unique', columns: ['seq'] },
+    ],
+  }, EventLogRow),
+  incident: __table({
+    name: 'incident',
+    indexes: [
+      { accessor: 'incidentId', name: 'incident_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_incident_id_key', constraint: 'unique', columns: ['incidentId'] },
+    ],
+  }, IncidentRow),
+  incidentReport: __table({
+    name: 'incident_report',
+    indexes: [
+      { accessor: 'by_incident_kind', name: 'incident_report_incident_id_kind_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+        'kind',
+      ] },
+      { accessor: 'reportId', name: 'incident_report_report_id_idx_btree', algorithm: 'btree', columns: [
+        'reportId',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_report_report_id_key', constraint: 'unique', columns: ['reportId'] },
+    ],
+  }, IncidentReportRow),
   operator: __table({
     name: 'operator',
     indexes: [
@@ -135,12 +183,40 @@ const tablesSchema = __schema({
       { name: 'server_reading_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ServerReadingRow),
+  shift: __table({
+    name: 'shift',
+    indexes: [
+      { accessor: 'shiftId', name: 'shift_shift_id_idx_btree', algorithm: 'btree', columns: [
+        'shiftId',
+      ] },
+    ],
+    constraints: [
+      { name: 'shift_shift_id_key', constraint: 'unique', columns: ['shiftId'] },
+    ],
+  }, ShiftRow),
+  shiftReport: __table({
+    name: 'shift_report',
+    indexes: [
+      { accessor: 'shiftId', name: 'shift_report_shift_id_idx_btree', algorithm: 'btree', columns: [
+        'shiftId',
+      ] },
+    ],
+    constraints: [
+      { name: 'shift_report_shift_id_key', constraint: 'unique', columns: ['shiftId'] },
+    ],
+  }, ShiftReportRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("attach_report", AttachReportReducer),
+  __reducerSchema("attach_shift_report", AttachShiftReportReducer),
   __reducerSchema("ingest_readings", IngestReadingsReducer),
+  __reducerSchema("open_incident", OpenIncidentReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
+  __reducerSchema("set_incident_status", SetIncidentStatusReducer),
+  __reducerSchema("set_shift_status", SetShiftStatusReducer),
+  __reducerSchema("start_shift", StartShiftReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
