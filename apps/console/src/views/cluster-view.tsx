@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Badge } from '@/components/reui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RackGrid } from '@/components/cluster/rack-grid'
+import { RollingUpdates } from '@/components/cluster/rolling-update'
 import { RunList } from '@/components/cluster/run-list'
 import { ServiceList } from '@/components/cluster/service-list'
 import { useCluster } from '@/components/cluster/use-cluster'
@@ -9,7 +10,7 @@ import { useNow } from '@/lib/snapshot'
 
 // Capacity-neutral, in-place remediation on a simulated cluster (docs/CLUSTER-CYCLING.md).
 export function ClusterView() {
-  const { ready, racks, runs, services, totals } = useCluster()
+  const { ready, racks, runs, services, rollouts, totals } = useCluster()
   const now = useNow()
   const hot = useMemo(() => new Set(racks.filter(r => r.status === 'incident').map(r => r.id)), [racks])
 
@@ -49,6 +50,16 @@ export function ClusterView() {
             </li>
           ))}
         </ul>
+
+        <section aria-labelledby="cluster-rolling" className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="cluster-rolling" className="text-sm font-medium">Rolling updates</h2>
+            <span className="text-xs text-muted-foreground">
+              One instance at a time, updated in place and never restarted; the rest keep serving. Simulated services.
+            </span>
+          </div>
+          <RollingUpdates rollouts={rollouts} ready={ready} now={now} />
+        </section>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <section aria-labelledby="cluster-racks" className="flex flex-col gap-2">
