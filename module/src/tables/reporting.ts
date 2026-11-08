@@ -16,6 +16,12 @@ export const incident = table(
     datacenterId: t.string(),
     openedAt: t.timestamp(),
     updatedAt: t.timestamp(),
+    // Appended with defaults so existing databases migrate without a reset.
+    kind: t.string().default('manual'), // manual | gpu_temp | gpu_failure | feed_stale
+    rackId: t.string().default(''),
+    source: t.string().default('manual'), // manual | rule
+    peakValue: t.f64().default(0),
+    closedReason: t.string().default(''),
   }
 );
 

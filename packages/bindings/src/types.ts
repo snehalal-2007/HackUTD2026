@@ -36,6 +36,16 @@ export const EventLog = __t.object("EventLog", {
 });
 export type EventLog = __Infer<typeof EventLog>;
 
+export const FeedHealth = __t.object("FeedHealth", {
+  datacenterId: __t.string(),
+  lastIngestAt: __t.timestamp(),
+  batches: __t.u64(),
+  readings: __t.u64(),
+  stale: __t.bool(),
+  incidentId: __t.option(__t.u64()),
+});
+export type FeedHealth = __Infer<typeof FeedHealth>;
+
 export const Incident = __t.object("Incident", {
   incidentId: __t.u64(),
   status: __t.string(),
@@ -44,6 +54,11 @@ export const Incident = __t.object("Incident", {
   datacenterId: __t.string(),
   openedAt: __t.timestamp(),
   updatedAt: __t.timestamp(),
+  kind: __t.string(),
+  rackId: __t.string(),
+  source: __t.string(),
+  peakValue: __t.f64(),
+  closedReason: __t.string(),
 });
 export type Incident = __Infer<typeof Incident>;
 
@@ -82,6 +97,15 @@ export const Rack = __t.object("Rack", {
   updatedAt: __t.timestamp(),
 });
 export type Rack = __Infer<typeof Rack>;
+
+export const RackProbe = __t.object("RackProbe", {
+  rackId: __t.string(),
+  failCount: __t.u32(),
+  okCount: __t.u32(),
+  level: __t.string(),
+  incidentId: __t.option(__t.u64()),
+});
+export type RackProbe = __Infer<typeof RackProbe>;
 
 export const ReadingIn = __t.object("ReadingIn", {
   region: __t.string(),
@@ -162,4 +186,20 @@ export const ShiftReport = __t.object("ShiftReport", {
   writtenAt: __t.timestamp(),
 });
 export type ShiftReport = __Infer<typeof ShiftReport>;
+
+export const Threshold = __t.object("Threshold", {
+  metric: __t.string(),
+  warn: __t.f64(),
+  crit: __t.f64(),
+  failureThreshold: __t.u32(),
+  successThreshold: __t.u32(),
+  clearMargin: __t.f64(),
+});
+export type Threshold = __Infer<typeof Threshold>;
+
+export const WatchdogTimer = __t.object("WatchdogTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type WatchdogTimer = __Infer<typeof WatchdogTimer>;
 

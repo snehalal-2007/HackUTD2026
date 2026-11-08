@@ -74,6 +74,7 @@ function toReading(row: SampleRow, measuredAtMs: number, seq: bigint): ReadingIn
   }
 }
 
+let finished = false
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 async function run(conn: DbConnection) {
@@ -116,6 +117,7 @@ async function run(conn: DbConnection) {
     }
   }
   console.log(`[replayer] done: ${sent} readings sent, ${failed} failed batches`)
+  finished = true
   conn.disconnect()
 }
 
@@ -140,6 +142,13 @@ DbConnection.builder()
   })
   .onConnectError((_ctx, err) => {
     console.error('[replayer] connection failed:', err.message)
-    process.exitCode = 1
+    process.exit(1)
+  })
+  // A schema publish or network drop disconnects every client. Exit so the host
+  // (Railway restarts on failure) brings up a fresh connection, unless we finished.
+  .onDisconnect((_ctx, err) => {
+    if (finished) return
+    console.error('[replayer] disconnected:', err?.message ?? 'connection closed')
+    process.exit(1)
   })
   .build()

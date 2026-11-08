@@ -25,6 +25,11 @@ export const openIncident = spacetimedb.reducer(
       datacenterId,
       openedAt: ctx.timestamp,
       updatedAt: ctx.timestamp,
+      kind: 'manual',
+      rackId: '',
+      source: 'manual',
+      peakValue: 0,
+      closedReason: '',
     });
     appendEvent(ctx, ctx.sender.toHexString().slice(0, 16), 'opened incident', title.trim(), row.incidentId);
   }

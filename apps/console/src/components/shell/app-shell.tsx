@@ -51,7 +51,7 @@ const WORK: Item[] = [
 ]
 
 const SYSTEM: Item[] = [
-  { id: 'events', label: 'Event log', icon: <ScrollTextIcon aria-hidden="true" /> },
+  { id: 'events', label: 'Log', view: 'log', icon: <ScrollTextIcon aria-hidden="true" /> },
   { id: 'operators', label: 'Operators', view: 'operators', icon: <UsersIcon aria-hidden="true" /> },
 ]
 
@@ -123,7 +123,7 @@ function AccountButton({ onNavigate }: { onNavigate: (v: ViewId) => void }) {
   )
 }
 
-export function AppShell(props: { view: ViewId; onNavigate: (v: ViewId) => void; children: ReactNode }) {
+export function AppShell(props: { view: ViewId; title?: string; onNavigate: (v: ViewId) => void; children: ReactNode }) {
   return (
     <SidebarProvider className="relative h-dvh min-h-0 w-full overflow-hidden">
       <ShellBody {...props} />
@@ -133,10 +133,12 @@ export function AppShell(props: { view: ViewId; onNavigate: (v: ViewId) => void;
 
 function ShellBody({
   view,
+  title,
   onNavigate: navigate,
   children,
 }: {
   view: ViewId
+  title?: string
   onNavigate: (v: ViewId) => void
   children: ReactNode
 }) {
@@ -178,7 +180,7 @@ function ShellBody({
       <SidebarInset className="min-w-0 overflow-hidden">
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
           <SidebarTrigger />
-          <h1 className="truncate text-sm font-medium">{VIEW_TITLES[view]}</h1>
+          <h1 className="truncate text-sm font-medium">{title ?? VIEW_TITLES[view]}</h1>
           <Badge className="ml-auto" variant={conn.isActive ? 'success' : conn.connectionError ? 'destructive' : 'warning'}>
             <ActivityIcon aria-hidden="true" />
             {conn.isActive ? 'Live' : conn.connectionError ? 'Offline' : 'Connecting'}
