@@ -6,9 +6,21 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AttachReportReducer from "../attach_report_reducer";
+import AttachShiftReportReducer from "../attach_shift_report_reducer";
 import IngestReadingsReducer from "../ingest_readings_reducer";
+import OpenIncidentReducer from "../open_incident_reducer";
 import RegisterOperatorReducer from "../register_operator_reducer";
+import SetIncidentStatusReducer from "../set_incident_status_reducer";
+import SetShiftStatusReducer from "../set_shift_status_reducer";
+import StartShiftReducer from "../start_shift_reducer";
 
+export type AttachReportParams = __Infer<typeof AttachReportReducer>;
+export type AttachShiftReportParams = __Infer<typeof AttachShiftReportReducer>;
 export type IngestReadingsParams = __Infer<typeof IngestReadingsReducer>;
+export type OpenIncidentParams = __Infer<typeof OpenIncidentReducer>;
 export type RegisterOperatorParams = __Infer<typeof RegisterOperatorReducer>;
+export type SetIncidentStatusParams = __Infer<typeof SetIncidentStatusReducer>;
+export type SetShiftStatusParams = __Infer<typeof SetShiftStatusReducer>;
+export type StartShiftParams = __Infer<typeof StartShiftReducer>;
 

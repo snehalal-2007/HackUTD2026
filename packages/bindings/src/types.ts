@@ -10,6 +10,11 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const AgentIdentity = __t.object("AgentIdentity", {
+  identity: __t.identity(),
+});
+export type AgentIdentity = __Infer<typeof AgentIdentity>;
+
 export const Datacenter = __t.object("Datacenter", {
   datacenterId: __t.string(),
   name: __t.string(),
@@ -18,6 +23,39 @@ export const Datacenter = __t.object("Datacenter", {
   lastIngestAt: __t.timestamp(),
 });
 export type Datacenter = __Infer<typeof Datacenter>;
+
+export const EventLog = __t.object("EventLog", {
+  seq: __t.u64(),
+  at: __t.timestamp(),
+  actor: __t.string(),
+  action: __t.string(),
+  target: __t.string(),
+  incidentId: __t.option(__t.u64()),
+  prevHash: __t.string(),
+  hash: __t.string(),
+});
+export type EventLog = __Infer<typeof EventLog>;
+
+export const Incident = __t.object("Incident", {
+  incidentId: __t.u64(),
+  status: __t.string(),
+  title: __t.string(),
+  severity: __t.string(),
+  datacenterId: __t.string(),
+  openedAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Incident = __Infer<typeof Incident>;
+
+export const IncidentReport = __t.object("IncidentReport", {
+  reportId: __t.u64(),
+  incidentId: __t.u64(),
+  kind: __t.string(),
+  reportJson: __t.string(),
+  source: __t.string(),
+  writtenAt: __t.timestamp(),
+});
+export type IncidentReport = __Infer<typeof IncidentReport>;
 
 export const Operator = __t.object("Operator", {
   identity: __t.identity(),
@@ -109,4 +147,19 @@ export const ServerReading = __t.object("ServerReading", {
   cpuUtilPct: __t.f64(),
 });
 export type ServerReading = __Infer<typeof ServerReading>;
+
+export const Shift = __t.object("Shift", {
+  shiftId: __t.u64(),
+  status: __t.string(),
+  startedAt: __t.timestamp(),
+});
+export type Shift = __Infer<typeof Shift>;
+
+export const ShiftReport = __t.object("ShiftReport", {
+  shiftId: __t.u64(),
+  reportJson: __t.string(),
+  source: __t.string(),
+  writtenAt: __t.timestamp(),
+});
+export type ShiftReport = __Infer<typeof ShiftReport>;
 
