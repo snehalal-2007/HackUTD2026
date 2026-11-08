@@ -42,7 +42,7 @@ export function ClusterView() {
 
         <section aria-labelledby="cluster-3d" className="flex flex-col gap-2">
           <h2 id="cluster-3d" className="text-sm font-medium">Live placement</h2>
-          <Placement3D racks={racks} runs={runs} ready={ready} />
+          <Placement3D racks={racks} runs={runs} services={services} ready={ready} />
         </section>
 
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" aria-label="Remediation totals">
@@ -77,7 +77,7 @@ export function ClusterView() {
                 <h2 id="cluster-runs" className="text-sm font-medium">Remediation runs</h2>
                 <span className="text-xs text-muted-foreground">{runs.length}</span>
               </div>
-              <RunList runs={runs} now={now} />
+              <RunList runs={runs} now={now} rackIds={racks.map(r => r.id)} />
             </section>
 
             <section aria-labelledby="cluster-services" className="flex flex-col gap-2">
