@@ -18,7 +18,8 @@ const { values: args } = parseArgs({
   args: argv,
   options: {
     file: { type: 'string', default: resolve(here, '../data/summit-sample.csv.gz') },
-    speed: { type: 'string', default: '1' }, // 1 = real time (a sample every ~10 s)
+    // 1 = real time (a sample every ~10 s); 4 = every 2.5 s. REPLAY_SPEED sets it on Railway.
+    speed: { type: 'string', default: process.env.REPLAY_SPEED || '1' },
     sites: { type: 'string' }, // comma-separated datacenter ids; default all
     loops: { type: 'string', default: '0' }, // 0 = loop forever
     feed: { type: 'string', default: 'all' }, // names the stored identity for this feed
@@ -97,7 +98,9 @@ async function run(conn: DbConnection) {
       const wait = dueMs - Date.now()
       if (wait > 0) await sleep(wait)
 
-      const measuredAtMs = startMs + elapsedData // data time mapped onto now
+      // Stamp readings with the wall-clock time they are sent. Mapping data time onto now
+      // (startMs + elapsedData) ran ahead of the clock at any speed above 1x.
+      const measuredAtMs = dueMs
       const seq = seqBase + BigInt(loop * ticks.length + i)
       const calls = [...tick.byDatacenter].map(([datacenterId, rows]) =>
         conn.reducers
