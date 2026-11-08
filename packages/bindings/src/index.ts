@@ -35,6 +35,7 @@ import {
 
 // Import all reducer arg schemas
 import AdminOverrideAlarmReducer from "./admin_override_alarm_reducer";
+import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
 
 // Import all procedure arg schemas
@@ -86,6 +87,7 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("admin_override_alarm", AdminOverrideAlarmReducer),
+  __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
 );
 

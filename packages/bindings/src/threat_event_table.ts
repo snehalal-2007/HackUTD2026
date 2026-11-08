@@ -13,6 +13,9 @@ import {
 export default __t.row({
   id: __t.u64().primaryKey(),
   identity: __t.identity(),
+  connectionId: __t.string().name("connection_id"),
+  decoy: __t.string(),
+  hitNumber: __t.u32().name("hit_number"),
   kind: __t.string(),
   severity: __t.string(),
   summary: __t.string(),

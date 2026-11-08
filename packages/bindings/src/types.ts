@@ -23,12 +23,16 @@ export const Quarantine = __t.object("Quarantine", {
   identity: __t.identity(),
   reason: __t.string(),
   at: __t.timestamp(),
+  hits: __t.u32(),
 });
 export type Quarantine = __Infer<typeof Quarantine>;
 
 export const ThreatEvent = __t.object("ThreatEvent", {
   id: __t.u64(),
   identity: __t.identity(),
+  connectionId: __t.string(),
+  decoy: __t.string(),
+  hitNumber: __t.u32(),
   kind: __t.string(),
   severity: __t.string(),
   summary: __t.string(),

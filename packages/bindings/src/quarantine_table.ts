@@ -14,4 +14,5 @@ export default __t.row({
   identity: __t.identity().primaryKey(),
   reason: __t.string(),
   at: __t.timestamp(),
+  hits: __t.u32(),
 });
