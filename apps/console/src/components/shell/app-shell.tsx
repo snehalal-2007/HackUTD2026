@@ -252,7 +252,8 @@ function ShellBody({
   onNavigate: (v: ViewId) => void
   children: ReactNode
 }) {
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { isMobile, setOpenMobile, toggleSidebar, state } = useSidebar()
+  const pageIcon = [...WORK, ...SYSTEM].find(i => i.view === view)?.icon
   const [actionsEl, setActionsEl] = useState<HTMLElement | null>(null) // the header's right-hand slot (PageActions)
   // On phones the sidebar is a drawer; close it once a view is picked.
   const onNavigate = (v: ViewId) => {
@@ -265,8 +266,13 @@ function ShellBody({
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild size="lg" className="cursor-default group-data-[collapsible=icon]:h-12! hover:bg-transparent active:bg-transparent" /* just the logo, not a link; same height collapsed so the mark doesn't jump up */>
-                <div>
+              <SidebarMenuButton
+                size="lg"
+                onClick={toggleSidebar} // the logo opens and closes the nav; there is no separate collapse button
+                aria-label={state === 'expanded' ? 'Collapse navigation' : 'Expand navigation'}
+                aria-expanded={state === 'expanded'}
+                className="group-data-[collapsible=icon]:h-12! hover:bg-transparent active:bg-transparent" /* same height collapsed so the mark doesn't jump up */
+              >
                 <BrandMark />
                 <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
                   <span className="truncate font-brand leading-none">
@@ -274,7 +280,6 @@ function ShellBody({
                     <span className="text-[30px]">esa</span>
                   </span>
                 </span>
-              </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -298,8 +303,11 @@ function ShellBody({
           <h1 className="sr-only">{VIEW_TITLES[view]}</h1> // the Floor page is full-bleed like the prototype; its tile carries the mobile menu button
         ) : (
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-            <SidebarTrigger />
-            <h1 className="truncate text-sm font-medium">{title ?? VIEW_TITLES[view]}</h1>
+            <SidebarTrigger className="md:hidden" /* phones only: the nav is a drawer there, so the logo can't open it */ />
+            <h1 className="flex min-w-0 items-center gap-2 text-sm font-medium">
+              {pageIcon && <span className="grid shrink-0 place-items-center text-muted-foreground [&>svg]:size-4" aria-hidden="true">{pageIcon}</span>}
+              <span className="truncate">{title ?? VIEW_TITLES[view]}</span>
+            </h1>
             <div ref={setActionsEl} className="ml-auto flex min-w-0 items-center gap-2" /> {/* views put controls here through <PageActions> */}
           </header>
         )}

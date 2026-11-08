@@ -88,11 +88,26 @@ export function AlertsView() {
   const pick = (on: boolean) =>
     cn('flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[14px] font-medium whitespace-nowrap transition-colors', on ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:bg-card/60 hover:text-foreground')
 
-  // The block to look at: the picked alert's (or the most urgent one's) hottest block; with no alerts, the hottest block.
-  const focusIncident = active.find(i => String(i.incidentId) === picked) ?? active[0]
+  // Focus now lists blocks, like the heat map: every block at or over 50 °C on a rack with an active alert gets its own row,
+  // with its own reading and severity. The module opens one alert per rack, so blocks on the same rack share that alert
+  // (its owner and status). A rack that has cooled keeps one row (its hottest block) until the rule closes the alert;
+  // a feed alert has no block, so it is one row of its own.
   const blocksOf = (rackId: string) => allHalls.filter(h => h.id.startsWith(`${rackId}#`))
+  type Entry = { key: string; inc: IncidentRow; hall?: Hall; tag: string; temp?: number; sev: string }
+  const entries: Entry[] = active
+    .flatMap((i): Entry[] => {
+      const id = String(i.incidentId)
+      if (!i.rackId) return [{ key: id, inc: i, tag: placeOf(i).block, sev: i.severity }]
+      const rack = blocksOf(i.rackId).sort((a, b) => b.temp - a.temp)
+      const hot = rack.filter(h => h.temp >= GPU_WARN_C)
+      return (hot.length ? hot : rack.slice(0, 1)).map(h => ({ key: `${id}:${h.tag}`, inc: i, hall: h, tag: h.tag, temp: h.temp, sev: h.temp >= GPU_CRIT_C ? 'critical' : h.temp >= GPU_WARN_C ? 'high' : i.severity }))
+    })
+    .sort((a, b) => (SEV[b.sev] ?? 0) - (SEV[a.sev] ?? 0) || (b.temp ?? 0) - (a.temp ?? 0))
+  // The block to look at: the picked row's block (or the most urgent one's); with no alerts, the hottest block.
+  const focusEntry = entries.find(e => e.key === picked) ?? entries[0]
+  const focusIncident = focusEntry?.inc
   const focusHall =
-    (focusIncident?.rackId ? hottestOf(blocksOf(focusIncident.rackId)) : undefined) ??
+    focusEntry?.hall ??
     (focusIncident ? hottestOf(allHalls.filter(h => h.datacenter === focusIncident.datacenterId)) : undefined) ??
     hottestOf(allHalls)
   // Chart data, all live and under the same filters as the list.
@@ -102,8 +117,8 @@ export function AlertsView() {
     .map(chartRow)
 
 
-  const crit = active.filter(i => i.severity === 'critical').length
-  const unowned = active.filter(i => !i.owner).length
+  const crit = entries.filter(e => e.sev === 'critical').length
+  const unowned = entries.filter(e => !e.inc.owner).length
   const hottest = hottestOf(allHalls)
   const blockedWhy = !me ? 'Register as an operator first' : !me.onShift ? 'Start your shift in My Queue to take alerts' : null
 
@@ -148,7 +163,7 @@ export function AlertsView() {
 
         {/* totals */}
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4 lg:col-span-2">
-          <Tile k="Active alerts" v={active.length} sub={active.length ? `${active.filter(i => i.status === 'escalated').length} escalated` : 'All clear'} />
+          <Tile k="Blocks in alert" v={entries.length} sub={entries.length ? `${active.length} alert${active.length === 1 ? '' : 's'} · ${active.filter(i => i.status === 'escalated').length} escalated` : 'All clear'} />
           <Tile k="Critical" v={crit} tone={crit ? 'crit' : undefined} sub={crit ? 'need eyes now' : 'none'} />
           <Tile k="Unassigned" v={unowned} tone={unowned ? 'warn' : undefined} sub={unowned ? 'nobody on them yet' : 'every alert has an owner'} />
           <Tile k="Hottest GPU" v={hottest ? `${hottest.temp.toFixed(1)} °C` : '—'} sub={hottest ? `Block ${hottest.tag} · ${SITES.find(s => s.id === hottest.site)?.name} · Floor ${hottest.floor}` : undefined} />
@@ -166,10 +181,14 @@ export function AlertsView() {
             <p className="text-[15px] text-muted-foreground">No active alerts. The rules open one when a GPU stays over 50 °C or a feed goes silent.</p>
           ) : (
             <ol className="-mr-2 flex min-h-0 flex-col gap-2 overflow-y-auto pr-2">
-              {active.map(i => {
-                const id = String(i.incidentId)
-                const on = focusIncident?.incidentId === i.incidentId
+              {entries.map(e => {
+                const i = e.inc
+                const id = e.key
+                const on = focusEntry?.key === e.key
                 const at = placeOf(i)
+                const nowC = e.temp // this block's reading right now (feed alerts: none)
+                const limit = e.sev === 'critical' ? GPU_CRIT_C : GPU_WARN_C
+                const shared = entries.filter(x => x.inc === i && x.key !== e.key).map(x => x.tag) // other blocks on the same rack's alert
                 return (
                   <li key={id} className="shrink-0">
                     <div
@@ -180,30 +199,41 @@ export function AlertsView() {
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPicked(id) } }}
                       className={cn('flex cursor-pointer gap-3.5 rounded-lg px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring', on ? 'bg-[#eeebe5] ring-1 ring-inset ring-foreground/20 dark:bg-[#2a2a2e]' : 'bg-muted/60 hover:bg-muted')} // lighter fills; the picked one gets a thin outline drawn inside, so the scrolling list can't clip it
                     >
-                      <AddressBlock block={at.block} floor={at.floor} site={at.site} severity={i.severity} />
+                      <AddressBlock block={e.tag} floor={at.floor} site={at.site} severity={e.sev} />
                       <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={cn('text-[13px] font-semibold capitalize', i.severity === 'critical' ? 'text-destructive' : i.severity === 'high' ? 'text-warning' : 'text-muted-foreground')}>{i.severity}</span>
-                        <Badge size="sm" variant="outline">{(() => { const T = typeOf(i.kind); const Icon = T.icon; return <><Icon aria-hidden="true" />{T.label}</> })()}</Badge>
-                        <Badge size="sm" variant={i.status === 'escalated' ? 'destructive-light' : i.status === 'open' ? 'warning-light' : 'info-light'} className="capitalize">{i.status}</Badge>
-                        {i.owner ? <Badge size="sm" variant="secondary"><UserIcon aria-hidden="true" />{i.owner === myId ? 'You' : i.ownerName}</Badge> : <Badge size="sm" variant="outline">Unassigned</Badge>}
-                        {rowNow(i) != null && rowNow(i)! < GPU_WARN_C && <Badge size="sm" variant="success-light" title="The row is back under 50 °C; the rule closes the alert after 12 good readings in a row">Cooling down</Badge>}
-                        <span className="ml-auto text-[12.5px] text-muted-foreground tabular-nums">open {ago(ms(i.openedAt), now)}</span>
-                      </div>
-                      <p className="mt-1 text-[15px] leading-snug font-semibold">{at.what}</p>
-                      <div className="mt-1.5 flex items-center justify-between gap-2">
-                        <span className="truncate text-[13px] text-muted-foreground">
-                          {rowNow(i) != null && (
-                            <>opened at {Math.round(i.peakValue * 10) / 10} °C · <b className={cn('font-semibold', rowNow(i)! >= GPU_CRIT_C ? 'text-destructive' : rowNow(i)! >= GPU_WARN_C ? 'text-warning' : 'text-success')}>now {rowNow(i)!.toFixed(1)} °C</b></>
+                        {/* the reading against its limit, big; feed alerts have no reading, so they say what's wrong */}
+                        <div className="flex items-start justify-between gap-3">
+                          {nowC != null ? (
+                            <p className="flex flex-wrap items-baseline gap-x-2">
+                              <span className={cn('text-[24px] leading-none font-semibold tracking-tight tabular-nums', nowC >= GPU_CRIT_C ? 'text-destructive' : nowC >= GPU_WARN_C ? 'text-warning' : 'text-success')}>{nowC.toFixed(1)} °C</span>
+                              <span className="text-[13.5px] text-muted-foreground tabular-nums">{nowC >= limit ? '>' : '<'} {limit} °C limit</span>
+                            </p>
+                          ) : (
+                            <p className="text-[15px] leading-snug font-semibold">{at.what}</p>
                           )}
-                          {i.handedFrom && !i.owner ? ` · left by ${i.handedFrom}` : ''}
-                        </span>
-                        {!i.owner && (
-                          <Button size="sm" disabled={!!blockedWhy || busy !== null} title={blockedWhy ?? undefined} onClick={e => { e.stopPropagation(); void take(i) }}>
-                            <HandIcon aria-hidden="true" /> {busy === i.incidentId ? 'Taking…' : 'Take it'}
-                          </Button>
-                        )}
-                      </div>
+                          {!i.owner ? (
+                            <Button size="sm" className="shrink-0" disabled={!!blockedWhy || busy !== null} title={blockedWhy ?? undefined} onClick={e => { e.stopPropagation(); void take(i) }}>
+                              <HandIcon aria-hidden="true" /> {busy === i.incidentId ? 'Taking…' : 'Take it'}
+                            </Button>
+                          ) : (
+                            <span className="shrink-0 text-[12.5px] text-muted-foreground tabular-nums">{ago(ms(i.openedAt), now)}</span>
+                          )}
+                        </div>
+                        {/* the small print, in one line */}
+                        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] text-muted-foreground">
+                          <span className={cn('font-semibold capitalize', e.sev === 'critical' ? 'text-destructive' : e.sev === 'high' ? 'text-warning' : '')}>{e.sev}</span>
+                          <span aria-hidden="true">·</span>
+                          <span>{typeOf(i.kind).label}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className={cn('capitalize', i.status === 'escalated' && 'font-semibold text-destructive')}>{i.status}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="inline-flex items-center gap-1"><UserIcon className="size-3" aria-hidden="true" />{i.owner ? (i.owner === myId ? 'You' : i.ownerName) : 'Unassigned'}</span>
+                          {nowC != null && <><span aria-hidden="true">·</span><span className="tabular-nums">opened at {Math.round(i.peakValue * 10) / 10} °C</span></>}
+                          {!i.owner && <><span aria-hidden="true">·</span><span className="tabular-nums">{ago(ms(i.openedAt), now)}</span></>}
+                          {i.handedFrom && !i.owner && <><span aria-hidden="true">·</span><span>left by {i.handedFrom}</span></>}
+                          {nowC != null && nowC < GPU_WARN_C && <Badge size="sm" variant="success-light" className="ml-1" title="The row is back under 50 °C; the rule closes the alert after 12 good readings in a row">Cooling down</Badge>}
+                        </p>
+                        {shared.length > 0 && <p className="mt-1 text-[12px] text-muted-foreground">Same rack as {shared.join(', ')}: one alert covers them, so taking one takes both.</p>}
                       </div>
                     </div>
                   </li>

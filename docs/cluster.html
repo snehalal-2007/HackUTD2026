@@ -41,7 +41,7 @@ h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .row-head span { font-size: 13px; color: var(--muted-ink); }
 
 /* 3D stage */
-.stage { position: relative; height: 620px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
+.stage { position: relative; height: 470px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .stage canvas.grabbing { cursor: grabbing; }
 .labels { position: absolute; inset: 0; pointer-events: none; }
@@ -49,9 +49,16 @@ h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 .tag.s-warn i { background: var(--warn); } .tag.s-crit i { background: var(--crit); }
 .tag.target { border-color: var(--accent); color: var(--accent); }
-.site-tag { position: absolute; left: 0; top: 0; transform: translate(-50%, 0); padding: 6px 12px; border-radius: 9px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.site-tag { position: absolute; left: 0; top: 0; transform: translate(-50%, 0); padding: 3px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--border); white-space: nowrap; }
 .site-tag small { font-weight: 400; opacity: .7; margin-left: 4px; }
 .overlay { position: absolute; z-index: 2; }
+.floors { display: inline-flex; padding: 2px; gap: 2px; border-radius: 999px; background: var(--muted); vertical-align: middle; }
+.floors button { border: 0; background: transparent; padding: 2px 10px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 500; color: var(--muted-ink); cursor: pointer; }
+.floors button:hover { color: var(--ink); }
+.floors button.on { background: var(--ink); color: #fff; }
+.site-tag { pointer-events: auto; display: flex; align-items: center; gap: 8px; }
+.site-tag .floors { background: transparent; padding: 0; }
+.site-tag .floors::before { content: 'Floor'; align-self: center; padding: 0 4px 0 8px; font-size: 12px; color: var(--muted-ink); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--border); font-size: 12.5px; }
 .legend { top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.92); border: 1px solid var(--border); font-size: 12.5px; }
 .legend div { display: flex; align-items: center; gap: 7px; }
@@ -139,7 +146,6 @@ tr.source td { background: var(--muted); }
   <main class="main">
     <div class="top">Cluster</div>
     <div class="page">
-      <p class="caption" id="caption"></p>
 
       <section aria-labelledby="h3d">
         <div class="row-head"><h2 id="h3d">Live placement</h2><span>Drag to turn · scroll to zoom · drag a coloured bar onto a block to move that service</span></div>
@@ -174,11 +180,12 @@ tr.source td { background: var(--muted); }
 
 <script>
 // ── sample data (console naming: site → floor → blocks; letter = rack row, number = position) ──
+// Each site has 3 floors of 6 blocks; each site's board shows one floor at a time (its 1 / 2 / 3 filter).
 // A block is 6 servers, drawn as the 6 bars inside it, exactly like the Floor page. A coloured bar runs a service; a dark bar is free.
 const SITES = [
-  { id: 'spt', name: 'Spartanburg', floor: 1, rows: ['A', 'B'] },
-  { id: 'nc', name: 'North Carolina', floor: 1, rows: ['G', 'H'] },
-  { id: 'dal', name: 'Dallas', floor: 1, rows: ['M', 'N'] },
+  { id: 'spt', name: 'Spartanburg', floors: [['A', 'B'], ['C', 'D'], ['E', 'F']], view: 0 },
+  { id: 'nc', name: 'North Carolina', floors: [['G', 'H'], ['I', 'J'], ['K', 'L']], view: 0 },
+  { id: 'dal', name: 'Dallas', floors: [['M', 'N'], ['O', 'P'], ['Q', 'R']], view: 0 },
 ]
 const SERVICES = [
   { name: 'api-gateway', color: '#5b6cf0' },
@@ -191,27 +198,30 @@ const SERVICES = [
   { name: 'queue', color: '#64748b' },
 ]
 const SLOTS = 6 // servers (bars) per block
-const TEMPS = { A1: 56.8, A2: 51.2, A3: 47.9, B1: 44.1, B2: 49.4, B3: 46.0, G1: 45.2, G2: 43.8, G3: 46.6, H1: 50.6, H2: 44.9, H3: 42.7, M1: 46.7, M2: 45.9, M3: 44.2, N1: 46.7, N2: 43.1, N3: 45.0 }
+const TEMPS = { A1: 56.8, A2: 51.2, A3: 47.9, B1: 44.1, B2: 49.4, B3: 46.0, G1: 45.2, G2: 43.8, G3: 46.6, H1: 50.6, H2: 44.9, H3: 42.7, M1: 46.7, M2: 45.9, M3: 44.2, N1: 46.7, N2: 43.1, N3: 45.0,
+  C2: 55.6, D3: 50.9, J1: 56.1, K2: 51.4, P2: 50.3, Q1: 55.2 } // floors 2 and 3: a few hot blocks; the rest come from tempOf
+const tempOf = tag => TEMPS[tag] ?? 42 + ((tag.charCodeAt(0) * 7 + Number(tag[1]) * 13) % 70) / 10 // 42–49 °C, the same every visit
 const status = t => (t >= 55 ? 'crit' : t >= 50 ? 'warn' : 'ok')
 const WORD = { ok: 'Nominal', warn: 'Warm', crit: 'Hot' }
 const COLOR = { ok: '#2f9e6b', warn: '#e59a1a', crit: '#e5484d' }
 
-const blocks = [] // { tag, site, idx (0–5 on its floor), temp, status, slots: (instanceId|null)[6] }
-SITES.forEach((s, si) => s.rows.forEach((r, ri) => [1, 2, 3].forEach((n, ci) => {
-  const tag = r + n
-  blocks.push({ tag, site: si, idx: ri * 3 + ci, temp: TEMPS[tag], status: status(TEMPS[tag]), slots: Array(SLOTS).fill(null) })
-})))
+const blocks = [] // { tag, site, floor (0–2), idx (0–5 on its floor), temp, status, slots: (instanceId|null)[6] }
+SITES.forEach((s, si) => s.floors.forEach((rows, fi) => rows.forEach((r, ri) => [1, 2, 3].forEach((n, ci) => {
+  const tag = r + n, t = tempOf(tag)
+  blocks.push({ tag, site: si, floor: fi, idx: ri * 3 + ci, temp: t, status: status(t), slots: Array(SLOTS).fill(null) })
+}))))
 const instances = {} // id → { id, svc, block }
 SERVICES.forEach((svc, s) => {
-  for (let r = 0; r < 6; r++) {
-    const b = blocks[(s + r * 3) % blocks.length] // spreads each service over 6 blocks, never two copies in one block
+  for (let r = 0; r < 12; r++) {
+    const b = blocks[(s * 5 + r * 4) % blocks.length] // spreads each service over 12 blocks, never two copies in one block
     const id = `${svc.name}-${r + 1}`
     instances[id] = { id, svc: s, block: b.tag }
     b.slots[b.slots.indexOf(null)] = id
   }
 })
 const blockOf = tag => blocks.find(b => b.tag === tag)
-const siteName = b => `${SITES[b.site].name} · Floor ${SITES[b.site].floor}`
+const siteName = b => `${SITES[b.site].name} · Floor ${b.floor + 1}`
+const floorButtons = si => `<span class="floors" role="group" aria-label="Floor">${SITES[si].floors.map((_, f) => `<button data-site="${si}" data-f="${f}" class="${SITES[si].view === f ? 'on' : ''}" aria-pressed="${SITES[si].view === f}">${f + 1}</button>`).join('')}</span>`
 const totals = { moved: 0, dupes: 0, downtime: 0, active: 0 }
 const runs = []
 
@@ -226,7 +236,9 @@ const targetsFor = id => new Set(blocks.filter(b => canMove(id, b.tag)).map(b =>
 
 // ── 3D: the Floor page's scene (same palette, lights, buildings), three floors side by side ──
 const P = { plinth: '#dedbd4', block: '#ffffff', roof: '#f3f1ec', rack: '#222222', unit: '#e7e4dd', edge: '#222222', edgeOp: 0.18, free: '#2b2b2e', accent: '#3b6ff5' }
+const BAR_Y = 0.66 // a bar's resting height
 const HH = 2.2 // block height, as on the Floor page
+const TOP = 1.4 // where data leaves and lands, just above the bars
 const stage = document.getElementById('stage'), labelsEl = document.getElementById('labels'), tip = document.getElementById('tip')
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
@@ -260,6 +272,16 @@ function cyl(r, h, m, x, y, z, parent) {
   parent.add(mesh); return mesh
 }
 
+function groundText(text, x, z) { // a word painted flat on the plinth, readable from the default view
+  const c = document.createElement('canvas'), k = c.getContext('2d')
+  c.width = 1024; c.height = 128
+  k.font = '600 84px Inter, system-ui, sans-serif'; k.fillStyle = '#3a3833'; k.textAlign = 'center'; k.textBaseline = 'middle'
+  k.fillText(text.toUpperCase().split('').join(String.fromCharCode(8202)), 512, 68)
+  const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.25), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }))
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.02, z)
+  return m
+}
 const HALL_POS = Array.from({ length: 6 }, (_, i) => [-5 + 5 * (i % 3), i < 3 ? -3.6 : 3.6]) // Floor page layout for 6 blocks
 const W = 7.15 // half-width of the block area (layout(6) on the Floor page)
 const SITE_POS = [[0, -11], [-19, 11], [19, 11]] // triangle: one floor at the back in the middle, two in front
@@ -280,23 +302,26 @@ SITES.forEach((s, si) => {
   }
   for (const z of [-3.4, 3.4]) { cyl(1.2, 1.8, unitM, W + 4.75, 0.9, z, site); cyl(0.9, 0.15, lam(P.rack), W + 4.75, 1.85, z, site) } // cooling towers
   box(2.2, 1.3, 2.6, unitM, W + 4.75, 0.65, 0, site) // substation
+  site.add(groundText(s.name, 0, 7.7)) // the name, painted on the slab in front of the blocks
   s.group = site
   const lab = document.createElement('div')
   lab.className = 'site-tag'
-  lab.innerHTML = `${s.name}<small>Floor ${s.floor}</small>`
+  lab.innerHTML = floorButtons(si)
   labelsEl.append(lab); s.labelEl = lab
+  lab.addEventListener('click', pickFloor)
 })
 
 blocks.forEach(b => {
   const [x, z] = HALL_POS[b.idx]
   const g = new THREE.Group(); g.position.set(x, 0.3, z) // raised like an open block on the Floor page
+  g.visible = b.floor === SITES[b.site].view // only the floor the site's filter shows
   SITES[b.site].group.add(g)
   const shellMat = lam(P.block, { transparent: true, opacity: 0.07, depthWrite: false }) // open: the walls fade to glass
   const shell = box(4.3, HH, 5, shellMat, 0, HH / 2, 0, g)
   shell.userData.tag = b.tag; shells.push(shell)
   const bars = []
   for (let r = 0; r < SLOTS; r++) { // the 6 bars: one per server
-    const m = box(0.34, 1.3, 3.7, lam(P.free, { emissive: new THREE.Color(P.accent), emissiveIntensity: 0 }), RACK_X(r), 0.66, 0, g, null)
+    const m = box(0.34, 1.3, 3.7, lam(P.free, { emissive: new THREE.Color(P.accent), emissiveIntensity: 0 }), RACK_X(r), BAR_Y, 0, g, null)
     m.castShadow = m.receiveShadow = false
     m.userData = { tag: b.tag, slot: r }
     bars.push(m); barMeshes.push(m)
@@ -318,11 +343,11 @@ function colorBars() {
   }))
 }
 colorBars()
-const barWorld = (tag, slot, y = 0.66) => H[tag].bars[slot].localToWorld(new THREE.Vector3(0, 0, 0)).setY(H[tag].g.position.y + y)
+const barWorld = (tag, slot, y = BAR_Y) => H[tag].bars[slot].localToWorld(new THREE.Vector3(0, 0, 0)).setY(H[tag].g.position.y + y)
 
 // ── camera: orbit like the Floor page ──
 const HOME = { az: -0.42, el: 0.82, dist: 96 }
-const orbit = { az: HOME.az, el: HOME.el, dist: HOME.dist + 10, distT: HOME.dist, target: new THREE.Vector3(0, 0.6, 0) }
+const orbit = { az: HOME.az, el: HOME.el, dist: HOME.dist + 10, distT: HOME.dist, target: new THREE.Vector3(0, 0.6, 4) } // aimed a little in front of the middle, so the locations sit higher in the frame
 let homing = false
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight
@@ -333,14 +358,14 @@ document.getElementById('home').onclick = () => (homing = true)
 
 // ── selection, drag and move ──
 let selected = null, hoverBlock = null, pending = null, dragging = null, orbitDrag = null, ghost = null
-const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -3.2), hitPt = new THREE.Vector3()
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(HH + 1)), hitPt = new THREE.Vector3()
 function cast(e) {
   const r = renderer.domElement.getBoundingClientRect()
   ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
   ray.setFromCamera(ndc, camera)
 }
-const hitBar = () => { const o = ray.intersectObjects(barMeshes, false)[0]?.object; return o ? o.userData : null }
-const hitBlock = () => hitBar()?.tag ?? ray.intersectObjects(shells, false)[0]?.object.userData.tag ?? null
+const hitBar = () => { const o = ray.intersectObjects(barMeshes.filter(m => m.parent.visible), false)[0]?.object; return o ? o.userData : null }
+const hitBlock = () => hitBar()?.tag ?? ray.intersectObjects(shells.filter(m => m.parent.visible), false)[0]?.object.userData.tag ?? null
 const barId = d => (d ? blockOf(d.tag).slots[d.slot] : null)
 
 function select(id) {
@@ -379,7 +404,7 @@ canvas.addEventListener('pointermove', e => {
     dragging = pending.id
     if (selected !== dragging) { selected = dragging; paint(); renderTables(); hint() }
     const inst = instances[dragging], b = blockOf(inst.block)
-    ghost = packet(dragging); ghost.position.copy(barWorld(inst.block, b.slots.indexOf(dragging), 1.4))
+    ghost = packet(dragging); ghost.position.copy(barWorld(inst.block, b.slots.indexOf(dragging), TOP))
     canvas.classList.add('grabbing')
   }
   if (dragging) {
@@ -440,7 +465,7 @@ function move(id, tag, slot, fromPos, quiet) {
   const inst = instances[id], from = blockOf(inst.block), to = blockOf(tag)
   const src = from.slots.indexOf(id)
   if (slot === undefined || to.slots[slot]) slot = to.slots.indexOf(null)
-  const start = fromPos ?? barWorld(from.tag, src, 1.4)
+  const start = fromPos ?? barWorld(from.tag, src, TOP)
   from.slots[src] = null
   to.slots[slot] = id
   inst.block = tag
@@ -448,7 +473,7 @@ function move(id, tag, slot, fromPos, quiet) {
   totals.moved++; totals.dupes++; totals.active++
   const mesh = packet(id)
   mesh.position.copy(start)
-  flights.push({ mesh, from: start, to: barWorld(tag, slot, 1.4), t: 0, done: () => {
+  flights.push({ mesh, from: start, to: barWorld(tag, slot, TOP), t: 0, done: () => {
     world.remove(mesh) // r128 has no removeFromParent
     incoming.delete(`${tag}:${slot}`); colorBars()
     H[tag].bars[slot].scale.y = 1.35 // a small pop as it lands
@@ -513,7 +538,7 @@ function tick(now) {
       if (h.on && !id) { bar.material.color.set(P.accent); bar.material.emissiveIntensity = hoverBlock === b.tag ? 0.6 : pulse } // a free server it can go to
       else if (!id && !incoming.has(`${b.tag}:${r}`)) bar.material.color.set(P.free)
       const lift = id && id === selected && !dragging ? 0.45 + bob : 0 // the picked service rises out of its rack
-      bar.position.y += (0.66 + lift - bar.position.y) * 0.25
+      bar.position.y += (BAR_Y + lift - bar.position.y) * 0.25
       bar.scale.y += (1 - bar.scale.y) * 0.15
     })
     h.shellMat.opacity += ((hoverBlock === b.tag && selected ? 0.18 : 0.07) - h.shellMat.opacity) * 0.2
@@ -524,7 +549,7 @@ function tick(now) {
   blocks.forEach(b => {
     const el = H[b.tag].label
     v.copy(H[b.tag].g.getWorldPosition(v)).setY(HH + 2.9).project(camera)
-    el.style.display = v.z > 1 ? 'none' : ''
+    el.style.display = v.z > 1 || !H[b.tag].g.visible ? 'none' : ''
     el.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * hgt}px) translate(-50%, -100%)`
     el.style.zIndex = String(Math.round((1 - v.z) * 1e4))
   })
@@ -534,7 +559,6 @@ requestAnimationFrame(tick)
 
 // ── page: caption, legend, hint, tiles, tables, runs, toasts ──
 const nInst = Object.keys(instances).length
-document.getElementById('caption').textContent = `${nInst} services running on ${blocks.length * SLOTS} servers (${blocks.length} blocks) across ${SITES.length} sites. Sample data for this prototype.`
 document.getElementById('count').textContent = `${nInst} instances on ${blocks.length} blocks`
 document.getElementById('legend').innerHTML = SERVICES.map(s => `<div><span class="sw" style="background:${s.color}"></span>${s.name}</div>`).join('')
   + `<div><span class="sw" style="background:${P.free}"></span>free server</div>`
@@ -566,7 +590,7 @@ function renderTiles(bump) {
 function renderTables() {
   const t = selected ? targetsFor(selected) : new Set()
   document.getElementById('sites').innerHTML = SITES.map((s, si) => {
-    const rows = blocks.filter(b => b.site === si).map(b => {
+    const rows = blocks.filter(b => b.site === si && b.floor === s.view).map(b => {
       const used = b.slots.filter(Boolean)
       const cls = t.has(b.tag) ? 'target' : selected && instances[selected].block === b.tag ? 'source' : ''
       return `<tr class="${cls}" data-tag="${b.tag}">
@@ -576,11 +600,12 @@ function renderTables() {
         <td class="free tabular">${SLOTS - used.length} free</td>
       </tr>`
     }).join('')
-    return `<section class="card"><div class="row-head"><h2>${s.name}</h2><span>Floor ${s.floor} · ${blocks.filter(b => b.site === si).length} blocks</span></div>
+    return `<section class="card"><div class="row-head"><h2>${s.name}</h2><span style="display:flex;align-items:center;gap:8px">Floor ${floorButtons(si)}</span></div>
       <table><thead><tr><th>Block</th><th>Status</th><th>Services</th><th></th></tr></thead><tbody>${rows}</tbody></table></section>`
   }).join('')
 }
 document.getElementById('sites').addEventListener('click', e => {
+  if (e.target.closest('.floors')) return pickFloor(e)
   const chip = e.target.closest('.svc')
   if (chip) return select(chip.dataset.id)
   const row = e.target.closest('tr[data-tag]')
@@ -605,6 +630,17 @@ function toast(title, body, bad) {
   box.append(el)
   while (box.children.length > 3) box.firstChild.remove()
   setTimeout(() => el.remove(), 4200)
+}
+
+// each site's floor filter (on its label in 3D and on its table): shows that floor's 6 blocks
+function pickFloor(e) {
+  const btn = e.target.closest('button[data-f]')
+  if (!btn) return
+  const si = Number(btn.dataset.site), s = SITES[si]
+  s.view = Number(btn.dataset.f)
+  blocks.forEach(b => { if (b.site === si) H[b.tag].g.visible = b.floor === s.view })
+  s.labelEl.innerHTML = floorButtons(si)
+  paint(); renderTables(); hint()
 }
 
 hint(); renderTiles(); renderTables(); renderRuns()
