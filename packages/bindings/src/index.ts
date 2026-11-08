@@ -50,6 +50,7 @@ import StartShiftReducer from "./start_shift_reducer";
 // Import all table schema definitions
 import DatacenterRow from "./datacenter_table";
 import EventLogRow from "./event_log_table";
+import FeedHealthRow from "./feed_health_table";
 import IncidentRow from "./incident_table";
 import IncidentReportRow from "./incident_report_table";
 import OperatorRow from "./operator_table";
@@ -61,6 +62,7 @@ import ServerReadingRow from "./server_reading_table";
 import ShiftRow from "./shift_table";
 import ShiftReportRow from "./shift_report_table";
 import ThreatEventRow from "./threat_event_table";
+import ThresholdRow from "./threshold_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -88,6 +90,17 @@ const tablesSchema = __schema({
       { name: 'event_log_seq_key', constraint: 'unique', columns: ['seq'] },
     ],
   }, EventLogRow),
+  feedHealth: __table({
+    name: 'feed_health',
+    indexes: [
+      { accessor: 'datacenterId', name: 'feed_health_datacenter_id_idx_btree', algorithm: 'btree', columns: [
+        'datacenterId',
+      ] },
+    ],
+    constraints: [
+      { name: 'feed_health_datacenter_id_key', constraint: 'unique', columns: ['datacenterId'] },
+    ],
+  }, FeedHealthRow),
   incident: __table({
     name: 'incident',
     indexes: [
@@ -231,6 +244,17 @@ const tablesSchema = __schema({
       { name: 'threat_event_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ThreatEventRow),
+  threshold: __table({
+    name: 'threshold',
+    indexes: [
+      { accessor: 'metric', name: 'threshold_metric_idx_btree', algorithm: 'btree', columns: [
+        'metric',
+      ] },
+    ],
+    constraints: [
+      { name: 'threshold_metric_key', constraint: 'unique', columns: ['metric'] },
+    ],
+  }, ThresholdRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */

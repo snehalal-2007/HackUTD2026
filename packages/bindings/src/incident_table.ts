@@ -18,4 +18,9 @@ export default __t.row({
   datacenterId: __t.string().name("datacenter_id"),
   openedAt: __t.timestamp().name("opened_at"),
   updatedAt: __t.timestamp().name("updated_at"),
+  kind: __t.string(),
+  rackId: __t.string().name("rack_id"),
+  source: __t.string(),
+  peakValue: __t.f64().name("peak_value"),
+  closedReason: __t.string().name("closed_reason"),
 });

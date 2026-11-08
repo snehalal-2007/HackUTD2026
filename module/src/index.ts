@@ -6,7 +6,7 @@ import { rejectAgent } from './lib/agent';
 
 export default spacetimedb;
 
-export { ingestReadings, pruneReadings } from './reducers/telemetry';
+export { ingestReadings, pruneReadings, watchFeeds } from './reducers/telemetry';
 export { attachReport, attachShiftReport } from './reducers/reports';
 export { openIncident, setIncidentStatus, startShift, setShiftStatus } from './reducers/incidents';
 

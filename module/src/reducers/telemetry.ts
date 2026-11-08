@@ -1,7 +1,9 @@
 import { t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { ScheduleAt } from 'spacetimedb';
 import spacetimedb, { ReadingIn, pruneTimer } from '../schema';
+import { watchdogTimer } from '../tables/rules';
 import { rejectAgent } from '../lib/agent';
+import { checkFeeds, ensureRules, evaluateRack, recordFeedBatch } from '../lib/rules';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
@@ -36,6 +38,7 @@ export const ingestReadings = spacetimedb.reducer(
     if (readings.length === 0) return;
     if (readings.length > MAX_BATCH) throw new SenderError(`batch over ${MAX_BATCH} readings`);
     ensurePruneTimer(ctx);
+    ensureRules(ctx);
 
     const first = readings[0];
     const dc = ctx.db.datacenter.datacenterId.find(datacenterId);
@@ -114,11 +117,13 @@ export const ingestReadings = spacetimedb.reducer(
 
     for (const rackId of touchedRacks) {
       let servers = 0;
+      let gpuFailure = false;
       let gpuMax = 0;
       let cpuMax = 0;
       let watts = 0;
       for (const s of ctx.db.serverLatest.rackId.filter(rackId)) {
         servers++;
+        if (s.gpuFailure) gpuFailure = true;
         gpuMax = Math.max(gpuMax, s.gpuTempC);
         cpuMax = Math.max(cpuMax, s.cpuTempC);
         watts += s.nodePowerW;
@@ -134,7 +139,18 @@ export const ingestReadings = spacetimedb.reducer(
       };
       if (ctx.db.rack.rackId.find(rackId)) ctx.db.rack.rackId.update(row);
       else ctx.db.rack.insert(row);
+      evaluateRack(ctx, row, gpuFailure);
     }
+    recordFeedBatch(ctx, datacenterId, readings.length);
+  }
+);
+
+/** Scheduled every 10 s: opens an incident for any data center whose feed went silent. */
+export const watchFeeds = spacetimedb.reducer(
+  { onSchedule: watchdogTimer },
+  { timer: watchdogTimer.rowType },
+  (ctx, _args) => {
+    checkFeeds(ctx);
   }
 );
 
