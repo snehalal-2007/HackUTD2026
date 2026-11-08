@@ -41,7 +41,7 @@ if [[ "$TARGET" == local ]]; then
   if [[ "$FRESH" == 1 ]]; then
     pnpm -s publish:local -- --delete-data >"$LOGS/publish.log" 2>&1
     ok "Published the module with a wiped database (re-register on the Operators page)"
-  elif ! spacetime sql "$DB_LOCAL" "SELECT * FROM quarantine" --server local >/dev/null 2>&1; then
+  elif ! spacetime sql --no-config --server local "$DB_LOCAL" "SELECT * FROM quarantine" >/dev/null 2>&1; then # --no-config: spacetime.local.json would pick its own database
     pnpm -s publish:local >"$LOGS/publish.log" 2>&1
     ok "Published the module with the honeypot to '$DB_LOCAL'"
   else

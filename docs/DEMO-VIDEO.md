@@ -4,7 +4,7 @@ The script for the recorded HackUTD 2026 demo video on DevPost. It is written fo
 
 The story is **capacity-neutral, in-place remediation**. A rack runs hot. MESA throttles the hottest instance where it is. After a two-minute window it live-migrates an instance to a cooler rack. The instance count stays 48, no duplicate copy is started, downtime is 0 s, and every step is in the hash-chained log. Along the way it shows the SpacetimeDB angle for the Spacetime track.
 
-Everything below uses only what is merged on `main` (checked against `origin/main` at `c9ffbf4`). Features still in a branch are in [the pending section](#optional-pending-only-if-merged-by-recording-day) and nowhere else.
+Everything below uses only what is merged on `main`. The beats were tested at `c9ffbf4`; the setup and the rules were updated for `7c35f2f`, which added sign-in, My Queue, the live Alerts dashboard, Shift Handoff and the live AI agent (see [Merged since the take was tested](#merged-since-the-take-was-tested)). For a product-style pitch that walks through those views, use [PITCH.md](PITCH.md) with the setup in section 3 below.
 
 ## 1. Length and constraints
 
@@ -32,11 +32,12 @@ Say these on camera or leave the claim out. The product rule in `AGENTS.md` appl
 | Only **one NMC2 site, Spartanburg, is verified**. The other seven data centers are simulated, and the console says so | Beat 2 |
 | Cooling from an action is a modeled **"Simulated effect"**. Telemetry is recorded, so a move cannot change the temperatures you see | Beat 6 |
 | **No AI in incident decisions.** Fixed thresholds decide and act, inside the module | Beat 2 |
-| The agent may only write reports, and its output is labeled **AI drafted**. The agent service is not part of this recording, so the **AI Agent page stays closed** (it shows sample content when the service is off) | Not shown. Say nothing about the agent unless you add a beat that runs it |
-| Do not claim owners, acknowledgment deadlines, escalation or the shift handoff lock. They are not merged | The problem sentence in beat 1 describes the pain; the script never says MESA already solves the owner and handoff part |
-| Do not open **Alerts** (Preview, sample data), **My Queue** or **Shift Handoff** ("Soon") | Never on screen |
+| The agent answers questions and writes reports; it can't change anything, and its output is labeled **AI drafted**. The AI Agent page is live, but it needs `services/agent` running with an Anthropic key (it is not deployed on Railway). Without it, a question waits at "Sending to the agent…" | Not in this script. [PITCH.md](PITCH.md) beat 5 runs it |
+| Owners are merged: **My Queue** claims, reassigns ("Give to someone on shift"), releases and resolves incidents, and a shift that ends returns its unfinished tasks as leftovers marked "left by" that operator. **Acknowledgment deadlines, automatic escalation to the next operator, and a handoff lock that blocks ending a shift are not merged.** Do not claim them | Not in this script. [PITCH.md](PITCH.md) beats 2 and 6 show the queue |
+| **Shift Handoff** has one live tab, **This shift (live)**. **Last night**, **The night before** and **A week ago** are hand-written sample shifts, labeled **Sample shift (illustrative)**. Show only the live tab, or say "sample" on camera. Its costs are editable estimates, not measured savings | Not in this script |
+| **Alerts** is live (active incidents ranked, taking one goes through `claim_incident`) | Not in this script |
 
-The problem sentence in beat 1 is the workshop sentence from the notes, shortened: it keeps the situation, the user, the task and the why, and drops "Our solution" because the owner, deadline, escalation and handoff parts of that sentence are not merged.
+The problem sentence in beat 1 is the workshop sentence from the notes, shortened: it keeps the situation, the user, the task and the why, and drops "Our solution" because the deadline, escalation and handoff-lock parts of that sentence are not merged. Owners now are, so a longer cut may add "and every alert gets an owner".
 
 ## 3. Recording setup (tested)
 
@@ -90,12 +91,20 @@ SPACETIME_DB=mesa-video pnpm replay -- --speed 10 --feed video
 
 When you do press Return, the first line must read `connected to ws://localhost:3000/mesa-video`. If it says anything else, stop it.
 
+This script replays at 10x (a batch per data center every second) so the take fits. Production runs at 4x through `REPLAY_SPEED` on Railway; the timeline below is for 10x only. Readings are stamped with the wall-clock time they are sent at any speed.
+
 ### In the browser, once per database wipe
 
-1. Open `http://localhost:5190` (window A) and `http://localhost:5191` (window B).
-2. In each window: sidebar **Operators**, type a name, **Register**. The page reads "Signed in as <name>" and the list shows role `operator` with both names. Operators are required for the hand migration.
+1. Open `http://localhost:5190` (window A) and `http://localhost:5191` (window B). Each opens on the MESA home page.
+2. In each window: **Sign in**, type a name (each window a different one) and sign in. The console sits behind this sign-in; there is no password check for a plain name. Signing in registers the browser as an operator under that name and opens **Floor**. Operators are required for the hand migration. Check **Operators**: both names with role `operator`.
 3. In each window: click the moon icon at the bottom of the sidebar ("Switch to dark mode"). The console starts light; the choice is saved per origin, so it survives a database reset.
 4. Window A: open **Log**. Window B: open **Log** too.
+
+A sign-in lasts for the browser tab. If a window shows the sign-in page again after a reload, sign in with the same name.
+
+### Demo accounts (optional, for the queue scenes in PITCH.md)
+
+`SPACETIME_DB=mesa-video pnpm demo:accounts` creates three operators on the local database, **Marcus**, **Priya** and **Daniel** (sign in with the first name as both username and password), and puts them on shifts: Marcus's night shift ends about 90 s later holding two tasks, Priya is on shift holding one, Daniel is off shift. Run it after the replayer has opened incidents (it hands out active ones). When Marcus's shift ends, his tasks become leftovers marked "left by Marcus". Signing in as a demo account opens **My Queue**. Re-run it after every database wipe. It refuses to run against Maincloud; its tokens are written to git-ignored files.
 
 ### The timeline the system follows
 
@@ -276,7 +285,7 @@ Then click **Verify chain** again. The badge turns red: "Chain broken at event #
 | Beats 5 to 7 | A left, B right, each 960 px wide at 100 percent zoom. Tested at 960x1000: both Cluster and Log lay out. The Floor does not fit at 960, which is why it comes before the split |
 | Theme | Dark, set in both windows before the take. The console defaults to light today |
 | Hide | Bookmarks bar, other tabs, desktop notifications (Do Not Disturb), the replayer terminal, the dock |
-| Do not open | AI Agent, Alerts, My Queue, Shift Handoff, Security |
+| Do not open | Anything outside the beats. In particular: AI Agent unless `services/agent` is running, and the sample tabs of Shift Handoff unless you say "sample" |
 | Mouse | Slow, deliberate moves. Click once and wait |
 | Audio | Record the voiceover after the picture, one beat at a time, using the word counts as timing |
 | Sidebar clock | It shows the real time, so leave it |
@@ -290,7 +299,8 @@ Tiling is not required. If tiling is awkward, keep one window full-screen for be
 | No feeds or incidents 10 s after Return | The replayer did not connect. Read its first lines. Confirm `connected to ws://localhost:3000/mesa-video`. Check the console's database name (`VITE_SPACETIME_DB`) matches |
 | Wrong incidents, or a rack already migrated before you start | The database was not reset. Stop the replayer, run the wipe command, reload both windows, register again, restart |
 | Clicks on the 3D map miss | Click the cube itself, not its label. The map has **+** and **-** zoom buttons (not tried for this) |
-| The hand migration does nothing | The reducer needs a registered operator (or lead), and the target must be a highlighted Ready rack. Register on the Operators page, then pick a highlighted rack |
+| The hand migration does nothing | The reducer needs a registered operator (or lead), and the target must be a highlighted Ready rack. Sign in again (or register on the Operators page), then pick a highlighted rack |
+| A window shows the sign-in page or the home page | The sign-in lasts for the browser tab. Sign in again with the same name |
 | The map caption says the rack is not Ready | Pick another green **Ready** rack. Racks that received instances can turn **Warm** |
 | The automatic migration does not happen at R+2:04 | Check **Remediation runs** for "Throttle in place · Not enough". If the status is **Running** with a countdown, wait for it. If the rack recovered, the throttle held: that is correct, not a bug. If this keeps happening, you pressed Return on a database that was not wiped. Reset and redo the take |
 | Window B shows "Connecting" or no data | Reload it. Both consoles must use the same `VITE_SPACETIME_DB` |
@@ -306,7 +316,7 @@ Tiling is not required. If tiling is awkward, keep one window full-screen for be
 - [ ] Branch is `main`, up to date; `pnpm install` done
 - [ ] `.env` does not point at Maincloud; the replayer line reads `ws://localhost:3000/mesa-video`
 - [ ] Database wiped with `--delete-data` just now
-- [ ] Both consoles open, dark theme, operators registered (role `operator` on both)
+- [ ] Both consoles open and signed in with two different names, dark theme, both listed on **Operators** with role `operator`
 - [ ] Window A on Log, maximized, browser zoom 125 percent; window B on Log, hidden behind A and sized to the right half
 - [ ] Replayer command typed, not run, in a terminal outside the capture area
 - [ ] Notifications off, bookmarks bar hidden, other tabs closed
@@ -342,19 +352,19 @@ A 2:04 wait cannot fit in 60 s, so cut it in the edit. Use the same recording an
 | 0:46 to 0:55 | T 2:42 to 2:54, totals and Verify chain | none | "48 instances, 3 copies avoided, 0 seconds of downtime. Verify chain: intact." |
 | 0:55 to 0:58 | End card | | none |
 
-## Optional (pending, only if merged by recording day)
+## Merged since the take was tested
 
-**Nothing in this section is merged. Do not record or claim any of it until you have checked it on `main`.** At the time of writing, `origin/main` is at `c9ffbf4`; no `feature/migration-report` branch exists on `origin`, and the sidebar still shows **Shift Handoff** as "Soon".
+These views reached `main` after the take above was tested at `c9ffbf4`. They work at `7c35f2f` but were **not timed in this take**. [PITCH.md](PITCH.md) builds a product-style script around them. Rehearse any of them on a local database before recording, and read the screen rather than this table.
 
-Before using it, run `git fetch && git log origin/main --oneline` and look for the migration report and the shift handoff with PDF export. Then run each step below on a local database, correct the wording to what the screen really says, and only then record.
-
-| Beat to add if merged | Where | What to do and say (draft, not verified) |
+| Feature | Where | What it shows |
 |---|---|---|
-| A. Migration report and toast (about 10 s) | After beat 6 | A toast appears when a migration finishes, linking to a migration report. Open the report. Say what it lists, using only what it shows. Draft: "Each migration writes a report: what moved, from where, to where, and the duplicates it avoided." Check that its numbers match the Remediation runs card |
-| B. Shift Handoff blocked until accepted (about 15 s) | New beat 8, before the end card | Sidebar **Shift Handoff**: end the shift, show it refused while an item is unaccepted, accept as the incoming operator, then end it. Draft: "The shift will not end until the incoming operator accepts each open item." This matches the rule in `AGENTS.md` (`end_shift` rejects while any handoff item is unaccepted). Confirm the Handoff page really does that on camera |
-| C. PDF export (about 8 s) | Right after B | Click export, show the PDF opening. Draft: "The handoff exports as a PDF." Confirm that the PDF contents are real data, and never read out anything the PDF does not contain. If the report is written by the AI agent, say it is AI drafted and show the label |
+| Sign-in and home page | `/`, `/auth/...` | A home page, a sign-in that opens the console, and a create-organization flow. A plain name has no password check; demo accounts (above) do |
+| My Queue | Sidebar **My Queue** | Start a shift by length (for example **8 hours**). Leftovers from an ended shift arrive first, marked "left by" that operator, then the most urgent unowned incidents. **Give to someone on shift** reassigns a task; **End shift & hand over** returns unfinished tasks as leftovers |
+| Alerts | Sidebar **Alerts** | Active incidents ranked by urgency, with the floor holding the most urgent one in 3D. Taking an alert claims it |
+| AI Agent | Sidebar **AI Agent** | Ask a question (for example "Which rack is hottest right now?"); the answer is labeled **AI drafted** with a thought-process panel. Needs `services/agent` running |
+| Shift Handoff | Sidebar **Shift Handoff** | **This shift (live)**: summary, incidents, savings from automatic moves, charts, action items, **Download PDF**. The other three tabs are illustrative sample shifts |
 
-To make room, cut beat 3 first, then shorten beat 5. If B and C go in, update the outcome in beat 7 to add what the handoff measures, and add the handoff completeness number from the screen. The workshop's other measures (time to acknowledge, escalations) depend on incident ownership, which is not merged either.
+Still not merged, so never claim them: acknowledgment deadlines, automatic escalation to the next operator, a handoff lock that blocks ending a shift, and a per-migration report.
 
 ## Where each beat lives in the code
 
