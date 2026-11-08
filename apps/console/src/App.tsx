@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { logsPageFrom, logsPath, usePath } from '@/lib/route'
+import { NAVIGATE_EVENT } from '@/components/notify/navigate'
 import { AgentChat } from '@/components/agent/agent-chat'
 import { AppShell } from '@/components/shell/app-shell'
 import type { ViewId } from '@/components/shell/nav'
@@ -36,6 +37,13 @@ export default function App() {
       // Storage blocked: the view just won't be remembered.
     }
   }
+
+  // Toasts ("View in Log") ask for a view switch through a window event.
+  useEffect(() => {
+    const onNavigate = (e: Event) => navigate((e as CustomEvent<ViewId>).detail)
+    window.addEventListener(NAVIGATE_EVENT, onNavigate)
+    return () => window.removeEventListener(NAVIGATE_EVENT, onNavigate)
+  })
 
   if (logsPage != null) {
     return (
