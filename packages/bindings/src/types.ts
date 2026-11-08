@@ -103,6 +103,7 @@ export const Instance = __t.object("Instance", {
   rackId: __t.string(),
   datacenterId: __t.string(),
   state: __t.string(),
+  autoThrottled: __t.bool(),
   demandKw: __t.f64(),
   powerCapKw: __t.f64(),
   powerKw: __t.f64(),

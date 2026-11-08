@@ -16,6 +16,7 @@ export default __t.row({
   rackId: __t.string().name("rack_id"),
   datacenterId: __t.string().name("datacenter_id"),
   state: __t.string(),
+  autoThrottled: __t.bool().name("auto_throttled"),
   demandKw: __t.f64().name("demand_kw"),
   powerCapKw: __t.f64().name("power_cap_kw"),
   powerKw: __t.f64().name("power_kw"),

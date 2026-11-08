@@ -206,6 +206,41 @@ describe('simulated cluster', () => {
     assertCapacityNeutral(h);
   });
 
+  test('a held throttle is lifted when the incident closes, so repeat incidents do not ratchet the cap', () => {
+    const h = setup();
+    escalate(h);
+    const [first] = runs(h);
+    const capped = h.db.instance.instanceId.find(first.instanceId) as any;
+    assert.equal(capped.autoThrottled, true);
+    batch(h, HOT, 45);
+    advance(h, 120);
+    tx(h, ctx => R.advanceRun(ctx, first.runId));
+    for (let k = 0; k < 12; k++) batch(h, HOT, 40); // successThreshold batches below warn - margin
+    const lifted = h.db.instance.instanceId.find(first.instanceId) as any;
+    assert.equal(lifted.autoThrottled, false);
+    assert.equal(lifted.powerCapKw, R.DEFAULT_CAP_KW);
+    assert.equal(lifted.state, 'running');
+    assert.ok(events(h).includes('throttle lifted'));
+
+    escalate(h); // a new incident on the same rack
+    const second = runs(h).at(-1);
+    assert.equal(second.action, 'throttle_in_place');
+    assert.notEqual(second.runId, first.runId);
+    assert.equal((h.db.instance.instanceId.find(second.instanceId) as any).powerCapKw, capped.powerCapKw);
+    assertCapacityNeutral(h);
+  });
+
+  test('a cap set by hand is not lifted by the rules', () => {
+    const h = setup();
+    batch(h, RACKS[3], 40);
+    const inst = instances(h).find(i => i.rackId === HOT);
+    tx(h, ctx => R.setCap(ctx, inst.instanceId, 1, 'test'));
+    batch(h, HOT, 40);
+    const after = h.db.instance.instanceId.find(inst.instanceId) as any;
+    assert.equal(after.powerCapKw, 1);
+    assert.equal(after.state, 'throttled');
+  });
+
   test('no Ready rack: patch_in_place if the service has a known patch, else failover waits for approval', () => {
     // Every other rack is between warn - margin and warn: not Ready, but not opening incidents either.
     const warmAll = Object.fromEntries(RACKS.slice(1).map(r => [r, 49]));

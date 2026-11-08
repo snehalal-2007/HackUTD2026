@@ -24,7 +24,7 @@ If the rack drops below the warn limit (or its incident closes) within the windo
 
 ### Steps in detail
 
-- **Throttle in place.** The hottest instance on the rack (highest uncapped power demand, skipping one mid-patch) gets its power cap lowered to 70 % of its current draw. Its CPU and GPU utilization scale with it. A scheduled reducer checks the rack again after 2 minutes, so this runs with no client connected.
+- **Throttle in place.** The hottest instance on the rack (highest uncapped power demand, skipping one mid-patch) gets its power cap lowered to 70 % of its current draw. Its CPU and GPU utilization scale with it. A scheduled reducer checks the rack again after 2 minutes, so this runs with no client connected. When the rack's incident closes, the rules lift their own throttles back to the default cap, so a rack that opens several incidents in a row is throttled from full draw each time instead of ratcheting down. A cap set by hand stays until someone changes it.
 - **Live migrate.** Picks the Ready rack with the most temperature headroom (warn limit minus hottest GPU), with a free slot (5 per rack), that does not already run a copy of the same service. Ties: fewer instances, then rack id. **One reducer transaction** sets `instance.rack_id` and `route.target` together, so there is never a moment with two copies or with none. The cap returns to the default (10 kW) on the cool rack.
 - **Patch in place.** Rolls a version across a service's instances one at a time (one step every 6 s): at most one instance is `patching` at any moment, none restarts, none is duplicated. When the last one finishes, `service.version` updates and the known patch clears.
 - **Ready** means: no active incident on the rack, its probe level is ok, its hottest GPU is below warn minus the clear margin (48 °C), and its data center's feed is not stale. The console uses the same rule for its Ready badge.
@@ -46,7 +46,7 @@ If the rack drops below the warn limit (or its incident closes) within the windo
 | Table | Public | Key fields |
 |---|---|---|
 | `service` | Yes | `service_id`, `tier`, `version`, `known_patch` |
-| `instance` | Yes | `instance_id`, `service_id`, `rack_id` (changes on live migration), `state` (running, throttled, patching), `demand_kw`, `power_cap_kw`, `power_kw`, `cpu_pct`, `gpu_pct`, `version` |
+| `instance` | Yes | `instance_id`, `service_id`, `rack_id` (changes on live migration), `state` (running, throttled, patching), `auto_throttled`, `demand_kw`, `power_cap_kw`, `power_kw`, `cpu_pct`, `gpu_pct`, `version` |
 | `route` | Yes | `instance_id`, `service_id`, `target` (rack id; moves with the instance) |
 | `remediation_run` | Yes | `run_id`, `incident_id` (0 if by hand), `rack_id`, `action`, `status` (running, succeeded, insufficient, needs_approval, failed), `actor`, `instance_id`, `from_rack`, `to_rack`, `version`, `detail`, `step`/`steps`, `simulated_effect_c`, `started_at`, `decide_at`, `finished_at` |
 | `remediation_stats` | Yes | `run_id`, `instances_moved`, `duplicates_avoided`, `downtime_s`, `lead_time_s` |
@@ -82,7 +82,7 @@ Unit tests run the module in SpacetimeDB's in-memory test harness (`spacetimedb/
 pnpm --filter @mesa/replayer exec tsx --test ../../module/test/remediation.test.ts
 ```
 
-They cover the decision order, target choice (headroom, Ready, slots, anti-affinity), the full escalate → throttle → window → live-migrate path, a throttle that holds, the patch-or-failover branch when no rack is Ready, a rolling patch, and a refused migration. After every step they assert 48 instances, unique ids, one route per instance and `route.target == instance.rack_id`.
+They cover the decision order, target choice (headroom, Ready, slots, anti-affinity), the full escalate → throttle → window → live-migrate path, a throttle that holds and is lifted when the incident closes (so repeat incidents do not ratchet the cap), a cap set by hand surviving, the patch-or-failover branch when no rack is Ready, a rolling patch, and a refused migration. After every step they assert 48 instances, unique ids, one route per instance and `route.target == instance.rack_id`.
 
 Live, on a local database:
 
@@ -98,4 +98,3 @@ In one replay, three racks went critical within the first minutes. Two were stil
 
 - Real live migration (CRIU checkpoint/restore, or VM live migration) behind the same reducer contract.
 - An approval flow for `failover_to_site`.
-- Restoring a throttle's cap automatically once the rack has recovered.

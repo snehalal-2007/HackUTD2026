@@ -186,6 +186,7 @@ export function ensureCluster(ctx: Ctx): boolean {
         rackId: rack.rackId,
         datacenterId: rack.datacenterId,
         state: 'running',
+        autoThrottled: false,
         demandKw,
         powerCapKw: DEFAULT_CAP_KW,
         powerKw: demandKw,
@@ -312,24 +313,50 @@ function schedule(ctx: Ctx, runId: bigint, at: Timestamp) {
 
 /**
  * The one entry point from the incident rules (evaluateRack). Seeds the cluster on first use;
- * when the rack's incident is critical and has no remediation yet, throttles in place.
+ * when the rack's incident is critical and has no remediation yet, throttles in place; once the
+ * rack has no active incident, lifts the automatic throttles on it.
  */
 export function remediateRack(ctx: Ctx, rackId: string, incidentId: bigint | undefined) {
-  if (!ensureCluster(ctx) || incidentId == null) return;
-  const inc = ctx.db.incident.incidentId.find(incidentId);
-  if (!inc || inc.status === 'closed' || inc.severity !== 'critical') return;
+  if (!ensureCluster(ctx)) return;
+  const inc = incidentId != null ? ctx.db.incident.incidentId.find(incidentId) : undefined;
+  if (!inc || inc.status === 'closed') {
+    liftThrottles(ctx, rackId);
+    return;
+  }
+  if (inc.severity !== 'critical') return;
   if (inc.kind !== 'gpu_temp' && inc.kind !== 'gpu_failure') return;
-  const hasRun = !ctx.db.remediationRun.incidentId.filter(incidentId).next().done;
+  const hasRun = !ctx.db.remediationRun.incidentId.filter(inc.incidentId).next().done;
   const inst = hottestInstance(ctx.db.instance.rackId.filter(rackId));
   if (decideOnCritical({ hasRun, hasInstance: !!inst }) !== 'throttle_in_place' || !inst) return;
-  throttle(ctx, inst.instanceId, ACTOR, incidentId, secondsBetween(inc.openedAt, ctx.timestamp));
+  throttle(ctx, inst.instanceId, ACTOR, inc.incidentId, secondsBetween(inc.openedAt, ctx.timestamp));
+}
+
+/** Once a rack has no active incident, automatic throttles on it go back to the default cap. */
+function liftThrottles(ctx: Ctx, rackId: string) {
+  for (const inst of ctx.db.instance.rackId.filter(rackId)) {
+    if (!inst.autoThrottled) continue;
+    const next = withCap(inst, DEFAULT_CAP_KW);
+    ctx.db.instance.instanceId.update({
+      ...next,
+      state: inst.state === 'patching' ? 'patching' : next.state,
+      autoThrottled: false,
+      updatedAt: ctx.timestamp,
+    });
+    appendEvent(
+      ctx,
+      ACTOR,
+      'throttle lifted',
+      `${inst.instanceId} on ${rackId}: cap ${inst.powerCapKw} → ${DEFAULT_CAP_KW} kW, the rack recovered (simulated cluster)`,
+      null,
+    );
+  }
 }
 
 function throttle(ctx: Ctx, instanceId: string, actor: string, incidentId: bigint, leadTimeS: number) {
   const inst = ctx.db.instance.instanceId.find(instanceId)!;
   const cap = Math.max(0.5, round1(inst.powerKw * THROTTLE_FACTOR));
   const next = withCap(inst, cap);
-  ctx.db.instance.instanceId.update({ ...next, updatedAt: ctx.timestamp });
+  ctx.db.instance.instanceId.update({ ...next, autoThrottled: true, updatedAt: ctx.timestamp });
   const shedKw = round1(inst.powerKw - next.powerKw);
   const decideAt = after(ctx.timestamp, WINDOW_MICROS);
   const run = insertRun(
@@ -446,7 +473,7 @@ export function migrate(
   const from = inst.rackId;
   // A cool rack lifts the throttle: the cap goes back to the default.
   const moved = withCap({ ...inst, rackId: a.toRack, datacenterId: target.datacenterId }, DEFAULT_CAP_KW);
-  ctx.db.instance.instanceId.update({ ...moved, updatedAt: ctx.timestamp });
+  ctx.db.instance.instanceId.update({ ...moved, autoThrottled: false, updatedAt: ctx.timestamp });
   const route = ctx.db.route.instanceId.find(a.instanceId);
   if (route) ctx.db.route.instanceId.update({ ...route, target: a.toRack, updatedAt: ctx.timestamp });
   else ctx.db.route.insert({ instanceId: a.instanceId, serviceId: inst.serviceId, target: a.toRack, updatedAt: ctx.timestamp });
@@ -484,7 +511,8 @@ export function setCap(ctx: Ctx, instanceId: string, kw: number, actor: string) 
   const inst = ctx.db.instance.instanceId.find(instanceId);
   if (!inst) throw new SenderError('no such instance');
   const next = withCap(inst, kw);
-  ctx.db.instance.instanceId.update({ ...next, updatedAt: ctx.timestamp });
+  // A cap set by hand stays until someone changes it; the rules do not lift it.
+  ctx.db.instance.instanceId.update({ ...next, autoThrottled: false, updatedAt: ctx.timestamp });
   insertRun(ctx, {
     incidentId: 0n,
     rackId: inst.rackId,

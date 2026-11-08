@@ -26,6 +26,7 @@ export const instance = table(
     rackId: t.string().index('btree'),
     datacenterId: t.string(),
     state: t.string(), // running | throttled | patching
+    autoThrottled: t.bool(), // capped by the rules; lifted when the rack's incident closes
     demandKw: t.f64(), // what it would draw uncapped
     powerCapKw: t.f64(),
     powerKw: t.f64(), // min(demand, cap)
