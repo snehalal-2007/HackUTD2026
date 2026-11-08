@@ -2,7 +2,7 @@
 
 A beat-by-beat script for the HackUTD 2026 demo. It uses only what is merged on `main`: live telemetry feeds, an incident that opens by rule, the feed watchdog, the **Verify chain** check on the event log, and the 3D floor. Anything still in a branch is listed under [In progress](#in-progress) and is not in the script.
 
-This script needs a refresh after the other streams in [PARALLEL-AGENTS.md](PARALLEL-AGENTS.md) merge.
+Since this script was written, incident toasts, the live temperature chart, motion, and the Cluster view (in-place throttle, live migration, rolling patch and the 3D live placement map) have merged. The two-laptop script below does not use the Cluster view and still runs as written; a toast now appears at the bottom right when an incident opens. The recorded version, which tells the capacity-neutral remediation story, is [DEMO-VIDEO.md](DEMO-VIDEO.md).
 
 ## The two screens
 
@@ -41,11 +41,13 @@ The demo runs on a **local database on Laptop A**, not on Maincloud. Maincloud h
 
 4. Open each console and click the view from the table above in the sidebar. The console opens on **AI Agent** by default; that page is sample content, so leave it. With no replayer running, the Log shows "No feeds yet" and the Floor shows "Connecting" or "No racks": that empty start is intended.
 5. In the replayer tab on Laptop A, type (do not run): `pnpm replay`
-6. In the second tab on Laptop A, type (do not run), with the database name `mesa` and `--server local`:
+6. In the second tab on Laptop A, type (do not run), with the database name `mesa`, `--server local` and `--no-config`:
 
    ```bash
-   spacetime sql --server local mesa "UPDATE event_log SET target = 'edited by hand' WHERE seq = 2"
+   spacetime sql --no-config --server local mesa "UPDATE event_log SET target = 'edited by hand' WHERE seq = 2"
    ```
+
+   The `--no-config` flag is needed when you run it from the repo root: `spacetime.local.json` names a database, and without the flag the CLI reads `mesa` as part of the query and fails with a 400 error.
 
 7. Check the dataset credit is on screen on Laptop B: "Telemetry: ClusterWise (OLCF Summit), CC BY 4.0", under the temperature chart.
 
@@ -136,7 +138,7 @@ A scheduled reducer in the database checks every 10 seconds, so it runs with no 
 | Laptop B shows "Connecting" | Wrong IP, or the network isolates devices. Use a hotspot. `spacetime start` listens on all addresses by default |
 | No incident by 1:10 | You started from old data. Reset with the setup command and start again; a fresh replay opens incidents within about 30 seconds |
 | **Verify chain** is greyed out | The live data has not loaded yet. Wait a moment |
-| Tamper command fails | Check the `--server local` flag and the database name. Rehearse it once; it was not run while writing this script |
+| Tamper command fails with a 400 error | Add `--no-config` when running from the repo root. The command was run against a local database and made **Verify chain** report "Chain broken at event #2" |
 | Chain stays broken after the demo | Expected. Reset with the setup command before the next run |
 | Short on time | Drop beat 4 and keep the order: feeds, incident, stop, Verify, watchdog |
 
@@ -148,17 +150,16 @@ The sidebar has pages that are not live. Do not click them in the demo:
 - **Alerts** is marked Preview and shows sample alerts.
 - **My Queue** and **Shift Handoff** are greyed out ("Soon").
 
-**Operators** and **Security** are live but not in this script. If asked about security, run `pnpm demo:attack` on Laptop A with the Security view open. A new identity calls a decoy, appears in the intrusion feed and is quarantined. The decoy calls are not appended to the event log.
+**Cluster**, **Operators** and **Security** are live but not in this script (Cluster is in [DEMO-VIDEO.md](DEMO-VIDEO.md)). If asked about security, run `pnpm demo:attack` on Laptop A with the Security view open. A new identity calls a decoy, appears in the intrusion feed and is quarantined. The decoy calls are not appended to the event log.
 
 ## In progress
 
 Not merged, so not in the script and not claimed anywhere above. Each is its own stream in [PARALLEL-AGENTS.md](PARALLEL-AGENTS.md).
 
-- Motion for the Log view, agent chat and floor scene (stream A, in review)
-- Toasts when an incident opens (stream B)
-- A live scrolling temperature chart (stream C)
-- Cluster cycling: fixing a hot rack by throttling or moving a service in place, with no duplicate copies (stream D)
 - Acknowledge, assign and automatic escalation of incidents (stream E)
+- A migration report with toasts, and the Shift Handoff report with PDF export
+
+Merged since this script was written and not in it: incident toasts, the live scrolling temperature chart, motion, and the Cluster view. The Cluster view is the centre of the recorded demo, see [DEMO-VIDEO.md](DEMO-VIDEO.md).
 
 The workshop's other outcome measures (time to acknowledge, escalations, handoff completeness) depend on stream E and the shift handoff work. Add them to beat 7 when they merge.
 
