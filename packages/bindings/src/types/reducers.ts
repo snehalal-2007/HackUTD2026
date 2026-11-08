@@ -6,7 +6,9 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AdminOverrideAlarmReducer from "../admin_override_alarm_reducer";
 import RegisterOperatorReducer from "../register_operator_reducer";
 
+export type AdminOverrideAlarmParams = __Infer<typeof AdminOverrideAlarmReducer>;
 export type RegisterOperatorParams = __Infer<typeof RegisterOperatorReducer>;
 

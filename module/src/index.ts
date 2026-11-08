@@ -20,6 +20,7 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
 });
 
 export const registerOperator = spacetimedb.reducer({ name: t.string() }, (ctx, { name }) => {
+  assertAllowed(ctx);
   const trimmed = name.trim();
   if (!trimmed) throw new SenderError('name is required');
   const existing = ctx.db.operator.identity.find(ctx.sender);
