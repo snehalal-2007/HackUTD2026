@@ -10,6 +10,7 @@ import { IncidentList } from '@/components/log/incident-list'
 import { useLogData } from '@/components/log/use-log-data'
 import { verifyChain, type ChainResult } from '@/lib/event-chain'
 import { ago, useNow } from '@/lib/snapshot'
+import { useArrivals } from '@/lib/use-arrivals'
 
 const TIMELINE_PAGE = 12
 
@@ -21,7 +22,11 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
   const now = useNow()
   const [filter, setFilter] = useState<'active' | 'all'>('active')
   const [page, setPage] = useState(0) // 0 = newest
-  const [check, setCheck] = useState<ChainResult | null>(null)
+  const [check, setCheck] = useState<(ChainResult & { at: number }) | null>(null)
+  // Track arrivals across all events (not just the visible page) so paging never animates.
+  const freshEvents = useArrivals(data?.events.map(e => e.seq) ?? [], ready && !cached)
+  const newIncidents = useArrivals(data?.incidents.map(i => i.id) ?? [], ready && !cached)
+  const changedIncidents = useArrivals(data?.incidents.map(i => `${i.id}:${i.status}:${i.severity}`) ?? [], ready && !cached)
 
   if (!data) {
     return (
@@ -71,7 +76,7 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
               </div>
             </div>
             <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-              <IncidentList incidents={incidents} now={now} />
+              <IncidentList incidents={incidents} now={now} newRows={newIncidents} changed={changedIncidents} />
             </div>
           </section>
 
@@ -85,7 +90,7 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
                   variant="outline"
                   disabled={!ready}
                   title={ready ? 'Recompute every hash in the chain' : 'Available once live data has loaded'}
-                  onClick={() => setCheck(verifyChain(live.events))}
+                  onClick={() => setCheck({ ...verifyChain(live.events), at: Date.now() })}
                 >
                   Verify chain
                 </Button>
@@ -96,7 +101,7 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
               </div>
             </div>
             {check && (
-              <Badge variant={check.ok ? 'success-light' : 'destructive-light'} className="shrink-0 self-start" role="status">
+              <Badge key={check.at} variant={check.ok ? 'success-light' : 'destructive-light'} className="enter-pop shrink-0 self-start" role="status">
                 {check.ok ? <ShieldCheckIcon aria-hidden="true" /> : <ShieldAlertIcon aria-hidden="true" />}
                 {check.ok
                   ? `Chain intact: ${check.count.toLocaleString()} events verified`
@@ -105,7 +110,7 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
             )}
             <div className="flex flex-col rounded-lg border bg-card lg:min-h-0 lg:flex-1">
               <div className="px-6 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-                <EventTimeline events={pageEvents} />
+                <EventTimeline events={pageEvents} fresh={freshEvents} />
               </div>
               {data.events.length > TIMELINE_PAGE && (
                 <nav className="flex shrink-0 items-center gap-2 border-t px-3 py-2" aria-label="Event log pages">

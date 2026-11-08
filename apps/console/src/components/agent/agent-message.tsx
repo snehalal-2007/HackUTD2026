@@ -9,9 +9,9 @@ import { ReportAttachment } from './report-attachment'
 import type { ChatMessage } from './types'
 import { useStream } from './use-stream'
 
-export function OperatorMessage({ message }: { message: ChatMessage }) {
+export function OperatorMessage({ message, className }: { message: ChatMessage; className?: string }) {
   return (
-    <Message align="end">
+    <Message align="end" className={className}>
       <MessageContent>
         <Bubble variant="muted">
           <BubbleContent className="whitespace-pre-wrap">{message.text}</BubbleContent>
@@ -26,11 +26,11 @@ export function OperatorMessage({ message }: { message: ChatMessage }) {
 
 // One live region per reply announces the two states worth interrupting for,
 // instead of every streamed chunk. The bubble and footer stay mounted throughout.
-export function AgentMessage({ message, pendingLabel }: { message: ChatMessage; pendingLabel?: string }) {
+export function AgentMessage({ message, pendingLabel, className }: { message: ChatMessage; pendingLabel?: string; className?: string }) {
   const { revealed, done, replay } = useStream(message.text, !!message.stream)
 
   return (
-    <Message>
+    <Message className={className}>
       <MessageAvatar>
         <Avatar className="size-7">
           <AvatarFallback className="bg-primary text-primary-foreground">

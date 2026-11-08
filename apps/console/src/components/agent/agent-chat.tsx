@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SendHorizontalIcon } from 'lucide-react'
 import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
+import { useArrivals } from '@/lib/use-arrivals'
 import { AgentMessage, OperatorMessage } from './agent-message'
 import type { ChatMessage } from './types'
 
@@ -76,6 +77,9 @@ export function AgentChat() {
     pinned.current = true
   }
 
+  // New messages rise in; the conversation already on screen at load does not.
+  const fresh = useArrivals(messages.map(m => m.id))
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
@@ -86,11 +90,12 @@ export function AgentChat() {
           </div>
           {messages.map(m =>
             m.role === 'operator' ? (
-              <OperatorMessage key={m.id} message={m} />
+              <OperatorMessage key={m.id} message={m} className={fresh.has(m.id) ? 'enter-rise' : undefined} />
             ) : (
               <AgentMessage
                 key={m.id}
                 message={m}
+                className={fresh.has(m.id) ? 'enter-rise' : undefined}
                 pendingLabel={m.id === 'sample-a' ? 'Reading the last hour of alerts and readings...' : undefined}
               />
             ),
