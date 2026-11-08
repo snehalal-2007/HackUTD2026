@@ -10,10 +10,35 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const AgentChat = __t.object("AgentChat", {
+  chatId: __t.u64(),
+  askedBy: __t.identity(),
+  askerName: __t.string(),
+  question: __t.string(),
+  status: __t.string(),
+  answer: __t.string(),
+  model: __t.string(),
+  source: __t.string(),
+  askedAt: __t.timestamp(),
+  answeredAt: __t.timestamp(),
+  durationMs: __t.u32(),
+});
+export type AgentChat = __Infer<typeof AgentChat>;
+
 export const AgentIdentity = __t.object("AgentIdentity", {
   identity: __t.identity(),
 });
 export type AgentIdentity = __Infer<typeof AgentIdentity>;
+
+export const AgentStep = __t.object("AgentStep", {
+  stepId: __t.u64(),
+  chatId: __t.u64(),
+  kind: __t.string(),
+  title: __t.string(),
+  detail: __t.string(),
+  at: __t.timestamp(),
+});
+export type AgentStep = __Infer<typeof AgentStep>;
 
 export const Datacenter = __t.object("Datacenter", {
   datacenterId: __t.string(),

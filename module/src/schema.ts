@@ -2,6 +2,7 @@ import { quarantine, threatEvent } from './honeypot/tables';
 import { schema, table, t } from 'spacetimedb/server';
 import { agentIdentity, eventLog, incident, incidentReport, shift, shiftReport } from './tables/reporting';
 import { feedHealth, rackProbe, threshold, watchdogTimer } from './tables/rules';
+import { agentChat, agentStep } from './tables/chat';
 
 // Keep this file as the single schema() call. The rest of the Phase 1 contract
 // (docs/PLAN.md section 4, docs/SCOPE-v2.md) is added here as it lands.
@@ -150,5 +151,7 @@ const spacetimedb = schema({
   rackProbe,
   feedHealth,
   watchdogTimer,
+  agentChat, // operator ↔ agent chat
+  agentStep, // the agent's live working steps per question
 });
 export default spacetimedb;

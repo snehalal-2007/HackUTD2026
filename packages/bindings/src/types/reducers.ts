@@ -6,7 +6,10 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AddAgentStepReducer from "../add_agent_step_reducer";
 import AdminOverrideAlarmReducer from "../admin_override_alarm_reducer";
+import AnswerAgentReducer from "../answer_agent_reducer";
+import AskAgentReducer from "../ask_agent_reducer";
 import AttachReportReducer from "../attach_report_reducer";
 import AttachShiftReportReducer from "../attach_shift_report_reducer";
 import ExportOperatorTokensReducer from "../export_operator_tokens_reducer";
@@ -17,7 +20,10 @@ import SetIncidentStatusReducer from "../set_incident_status_reducer";
 import SetShiftStatusReducer from "../set_shift_status_reducer";
 import StartShiftReducer from "../start_shift_reducer";
 
+export type AddAgentStepParams = __Infer<typeof AddAgentStepReducer>;
 export type AdminOverrideAlarmParams = __Infer<typeof AdminOverrideAlarmReducer>;
+export type AnswerAgentParams = __Infer<typeof AnswerAgentReducer>;
+export type AskAgentParams = __Infer<typeof AskAgentReducer>;
 export type AttachReportParams = __Infer<typeof AttachReportReducer>;
 export type AttachShiftReportParams = __Infer<typeof AttachShiftReportReducer>;
 export type ExportOperatorTokensParams = __Infer<typeof ExportOperatorTokensReducer>;
