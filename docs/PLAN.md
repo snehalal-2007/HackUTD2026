@@ -6,6 +6,8 @@ MESA is a real-time shared operations console for data-center teams, built on Sp
 - Final submission: **Sun Nov 8, 12:00 pm** (team target 11:30 am)
 - Judging: Sun 1:00 to 4:00 pm
 
+> **Scope v2:** [SCOPE-v2.md](SCOPE-v2.md) replaces parts of this plan: in-place remediation instead of duplicate failover, the agent writes automatic incident reports instead of chat answers, threshold math instead of AI decisions, and the Python predictor and voice escalation move to the roadmap. Where they disagree, SCOPE-v2.md wins.
+
 Rule for the whole night: a missed gate cuts scope; it never borrows time from the next phase. Cut in this order: XGBoost (keep the linear trend), voice, AI brief. **Live sync and the handoff lock are never cut.**
 
 ---
