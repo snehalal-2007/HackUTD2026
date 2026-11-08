@@ -4,6 +4,7 @@ import { WalkthroughBackdrop } from '@/auth/components/walkthrough-backdrop'
 import { BrandMark } from '@/components/shell/brand-mark'
 import { Reveal, RiseText } from '../shared/motion'
 import { SiteFooter, SiteHeader } from '../shared/site-chrome'
+import { ThemeSwitch } from '../shared/theme-switch'
 import { RackField } from './grid'
 import { CoolingDemo } from './cooling-demo'
 
@@ -38,6 +39,7 @@ export function HomePage() {
         <div className="relative z-10 flex items-center gap-2.5 px-6 pt-6 sm:px-10">
           <BrandMark className="text-white" />
           <span className="font-brand text-2xl tracking-wide">mesa</span>
+          <ThemeSwitch tone="dark" />
         </div>
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 pb-24 sm:px-10">
           <Reveal variant="blur"><p className="mb-6 text-sm tracking-[0.3em] text-white/60 uppercase">Operations console for data centers</p></Reveal>

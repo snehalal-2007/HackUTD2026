@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PauseIcon, PlayIcon, RotateCcwIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ClusterStoryScene, type Placement, type StoryBlock } from './cluster-story-scene'
+import { ClusterStoryScene, type Placement, type StoryBlock, type StoryTheme } from './cluster-story-scene'
 
 // The home page's cooling-failure story, played on the cluster scene (docs/cluster.html): three floors in a triangle,
 // each block open with its six servers coloured by service. A cooling unit beside Spartanburg fails, the blocks next to
@@ -87,7 +87,24 @@ const placementAt = (t: number): Placement => {
 
 const SETTLE_MS = 2200 // a reset eases every block back to its resting temperature over this long
 
-export function CoolingDemo() {
+// Panel styles per page theme: the dark home page, or the light one (the console's light theme).
+const UI = {
+  dark: {
+    stage: 'border-white/10 bg-[radial-gradient(ellipse_at_50%_35%,#1d2030_0%,#111216_70%)]', chip: 'bg-black/50 text-white/80', btn: 'bg-black/50 text-white/80 hover:text-white',
+    track: 'bg-white/10', fill: 'bg-white/60', card: 'border-white/10 bg-white/[0.03]', k: 'text-white/60', unit: 'text-white/50',
+    now: 'text-white', past: 'text-white/55', next: 'text-white/30', note: 'text-white/40',
+    warn: 'border-amber-300/40 bg-amber-300/10', crit: 'border-red-400/40 bg-red-500/10', moved: 'border-sky-300/40 bg-sky-400/10',
+  },
+  light: {
+    stage: 'border-black/5 bg-[linear-gradient(#f7f5f1,#efece6)]', chip: 'bg-white/90 text-neutral-700 shadow-sm', btn: 'bg-white/90 text-neutral-600 shadow-sm hover:text-neutral-950',
+    track: 'bg-black/10', fill: 'bg-neutral-900', card: 'border-transparent bg-white', k: 'text-neutral-500', unit: 'text-neutral-400',
+    now: 'text-neutral-950', past: 'text-neutral-500', next: 'text-neutral-400', note: 'text-neutral-500',
+    warn: 'border-amber-400/50 bg-amber-50', crit: 'border-red-400/50 bg-red-50', moved: 'border-sky-400/50 bg-sky-50',
+  },
+}
+
+export function CoolingDemo({ tone = 'dark' }: { tone?: StoryTheme } = {}) {
+  const ui = UI[tone]
   const hostRef = useRef<HTMLDivElement>(null)
   const labelsRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<ClusterStoryScene | null>(null)
@@ -102,13 +119,13 @@ export function CoolingDemo() {
   useEffect(() => {
     let scene: ClusterStoryScene | null = null
     try {
-      scene = new ClusterStoryScene(hostRef.current!, labelsRef.current!, SITES, BLOCKS, COLORS, 0)
+      scene = new ClusterStoryScene(hostRef.current!, labelsRef.current!, SITES, BLOCKS, COLORS, 0, tone)
     } catch {
       // No WebGL: the timeline and numbers still tell the story.
     }
     sceneRef.current = scene
     return () => { scene?.dispose(); sceneRef.current = null }
-  }, [])
+  }, [tone])
 
   // Starts from T+00 the first time the demo scrolls into view, and pauses while it's off screen.
   useEffect(() => {
@@ -173,52 +190,52 @@ export function CoolingDemo() {
 
   return (
     <div ref={boxRef} className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-      <div className="relative h-[440px] overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_50%_35%,#1d2030_0%,#111216_70%)] sm:h-[520px]">
+      <div className={cn('relative h-[440px] overflow-hidden rounded-3xl border sm:h-[520px]', ui.stage)}>
         {/* the scene only illustrates: no orbit or zoom, so scrolling the page over it still scrolls the page */}
         <div ref={hostRef} className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div ref={labelsRef} className="absolute inset-0" />
         </div>
-        <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 font-mono text-xs text-white/80 backdrop-blur">
+        <div className={cn('absolute top-4 left-4 flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-xs backdrop-blur', ui.chip)}>
           <span className={cn('size-2 rounded-full', phase === 'Cooling failure' ? 'bg-red-400' : phase === 'Recovering' ? 'bg-amber-300' : 'bg-emerald-400')} aria-hidden="true" />
           {phase} · T+{String(mins).padStart(2, '0')} min
         </div>
         <div className="absolute top-4 right-4 flex gap-1.5">
-          <button type="button" onClick={() => setPlaying(p => !p)} aria-label={playing ? 'Pause' : 'Play'} className="grid size-8 place-items-center rounded-full bg-black/50 text-white/80 backdrop-blur hover:text-white">
+          <button type="button" onClick={() => setPlaying(p => !p)} aria-label={playing ? 'Pause' : 'Play'} className={cn('grid size-8 place-items-center rounded-full backdrop-blur', ui.btn)}>
             {playing ? <PauseIcon className="size-4" aria-hidden="true" /> : <PlayIcon className="size-4" aria-hidden="true" />}
           </button>
-          <button type="button" onClick={rewind} aria-label="Replay from the start" className="grid size-8 place-items-center rounded-full bg-black/50 text-white/80 backdrop-blur hover:text-white">
+          <button type="button" onClick={rewind} aria-label="Replay from the start" className={cn('grid size-8 place-items-center rounded-full backdrop-blur', ui.btn)}>
             <RotateCcwIcon className="size-4" aria-hidden="true" />
           </button>
         </div>
-        <div className="absolute inset-x-4 bottom-4 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
-          <div className={cn('h-full rounded-full bg-white/60', settle && 'transition-[width] duration-[1200ms] ease-out')} style={{ width: `${(t / LOOP_S) * 100}%` }} />
+        <div className={cn('absolute inset-x-4 bottom-4 h-1 overflow-hidden rounded-full', ui.track)} aria-hidden="true">
+          <div className={cn('h-full rounded-full', ui.fill, settle && 'transition-[width] duration-[1200ms] ease-out')} style={{ width: `${(t / LOOP_S) * 100}%` }} />
         </div>
       </div>
 
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-3">
-          <div className={cn('rounded-2xl border p-4 transition-colors duration-500', alerts ? 'border-amber-300/40 bg-amber-300/10' : 'border-white/10 bg-white/[0.03]')}>
-            <p className="text-xs text-white/60">Blocks in alert</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{alerts} <span className="text-sm font-normal text-white/50">of {BLOCKS.length}</span></p>
+          <div className={cn('rounded-2xl border p-4 transition-colors duration-500', alerts ? ui.warn : ui.card)}>
+            <p className={cn('text-xs', ui.k)}>Blocks in alert</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{alerts} <span className={cn('text-sm font-normal', ui.unit)}>of {BLOCKS.length}</span></p>
           </div>
-          <div className={cn('rounded-2xl border p-4 transition-colors duration-500', hottest >= CRIT ? 'border-red-400/40 bg-red-500/10' : 'border-white/10 bg-white/[0.03]')}>
-            <p className="text-xs text-white/60">Hottest GPU</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{hottest.toFixed(1)} <span className="text-sm font-normal text-white/50">°C</span></p>
+          <div className={cn('rounded-2xl border p-4 transition-colors duration-500', hottest >= CRIT ? ui.crit : ui.card)}>
+            <p className={cn('text-xs', ui.k)}>Hottest GPU</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{hottest.toFixed(1)} <span className={cn('text-sm font-normal', ui.unit)}>°C</span></p>
           </div>
-          <div className={cn('rounded-2xl border p-4 transition-colors duration-500', moved ? 'border-sky-300/40 bg-sky-400/10' : 'border-white/10 bg-white/[0.03]')}>
-            <p className="text-xs text-white/60">Services moved</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{moved} <span className="text-sm font-normal text-white/50">· 0 s down</span></p>
+          <div className={cn('rounded-2xl border p-4 transition-colors duration-500', moved ? ui.moved : ui.card)}>
+            <p className={cn('text-xs', ui.k)}>Services moved</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{moved} <span className={cn('text-sm font-normal', ui.unit)}>· 0 s down</span></p>
           </div>
         </div>
-        <ol className="flex-1 rounded-3xl border border-white/10 bg-white/[0.03] p-5" aria-label="What happens" aria-live="polite">
+        <ol className={cn('flex-1 rounded-3xl border p-5', ui.card)} aria-label="What happens" aria-live="polite">
           {STEPS.map((s, i) => (
-            <li key={s.at} className={cn('flex gap-3 py-1.5 text-sm transition-colors duration-500', i === step ? 'text-white' : i < step ? 'text-white/55' : 'text-white/30')}>
+            <li key={s.at} className={cn('flex gap-3 py-1.5 text-sm transition-colors duration-500', i === step ? ui.now : i < step ? ui.past : ui.next)}>
               <span className="w-12 shrink-0 font-mono text-xs leading-5 tabular-nums">T+{String(s.at).padStart(2, '0')}</span>
               <span className={cn(i === step && 'font-semibold')}>{s.text}</span>
             </li>
           ))}
         </ol>
-        <p className="text-xs text-white/40">Illustration with sample numbers; one second here is one minute on the floor. Each bar is a server, coloured by the service it runs.</p>
+        <p className={cn('text-xs', ui.note)}>Illustration with sample numbers; one second here is one minute on the floor. Each bar is a server, coloured by the service it runs.</p>
       </div>
     </div>
   )

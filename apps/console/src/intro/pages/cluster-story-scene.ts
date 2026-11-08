@@ -10,10 +10,20 @@ export interface StoryBlock { tag: string; site: number; idx: number }
 export interface StorySite { name: string }
 export type Placement = Record<string, { block: string; slot: number }> // instance id → where it runs
 
-const C = {
-  plinth: '#1c1d22', spine: '#26272e', unit: '#2e3038', shell: '#9aa3b5', free: '#33353d', edge: '#c9cedb',
-  ok: '#22c55e', warn: '#f59e0b', crit: '#ef4444', sky: '#dfe6ff', gnd: '#0c0d10',
+export type StoryTheme = 'dark' | 'light'
+const PALETTES = {
+  dark: {
+    plinth: '#1c1d22', spine: '#26272e', unit: '#2e3038', shell: '#9aa3b5', shellOp: 0.1, free: '#33353d', edge: '#c9cedb', edgeOp: 0.14,
+    ok: '#22c55e', warn: '#f59e0b', crit: '#ef4444', sky: '#dfe6ff', gnd: '#0c0d10', amb: 1.6, sun: 2.6, glow: 0.35, tower: '#38bdf8',
+    tag: 'border-white/15 bg-black/60 text-white', site: 'bg-white text-neutral-950',
+  },
+  light: { // the console's light floor (LIGHT_PALETTE), with the same bold service and status colours
+    plinth: '#dedbd4', spine: '#f3f1ec', unit: '#e7e4dd', shell: '#ffffff', shellOp: 0.35, free: '#2b2b2e', edge: '#222222', edgeOp: 0.18,
+    ok: '#16a34a', warn: '#f59e0b', crit: '#e5484d', sky: '#ffffff', gnd: '#c8c3b8', amb: 2.3, sun: 2.3, glow: 0.12, tower: '#0ea5e9',
+    tag: 'border-black/10 bg-white text-neutral-900 shadow-sm', site: 'bg-neutral-950 text-white',
+  },
 }
+let C = PALETTES.dark
 const HH = 2.2
 const SLOTS = 6
 const HALL_POS = Array.from({ length: 6 }, (_, i) => [-5 + 5 * (i % 3), i < 3 ? -3.6 : 3.6] as const) // the Floor page's 6-block layout
@@ -46,7 +56,8 @@ export class ClusterStoryScene {
   private host: HTMLElement
   private labels: HTMLElement
 
-  constructor(host: HTMLElement, labels: HTMLElement, sites: StorySite[], blocks: StoryBlock[], colors: Record<string, string>, failSite: number) {
+  constructor(host: HTMLElement, labels: HTMLElement, sites: StorySite[], blocks: StoryBlock[], colors: Record<string, string>, failSite: number, theme: StoryTheme = 'dark') {
+    C = PALETTES[theme]
     this.host = host
     this.labels = labels
     this.colors = colors
@@ -59,8 +70,8 @@ export class ClusterStoryScene {
     host.prepend(this.renderer.domElement)
     this.scene.add(this.world)
 
-    const hemi = new THREE.HemisphereLight(C.sky, C.gnd, 1.6)
-    const sun = new THREE.DirectionalLight('#ffffff', 2.6)
+    const hemi = new THREE.HemisphereLight(C.sky, C.gnd, C.amb)
+    const sun = new THREE.DirectionalLight('#ffffff', C.sun)
     sun.position.set(-20, 40, 18)
     sun.castShadow = true
     Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 35, bottom: -35, near: 1, far: 120 })
@@ -68,7 +79,7 @@ export class ClusterStoryScene {
     sun.shadow.bias = -0.0008
     this.scene.add(hemi, sun)
 
-    const edge = new THREE.LineBasicMaterial({ color: C.edge, transparent: true, opacity: 0.14 })
+    const edge = new THREE.LineBasicMaterial({ color: C.edge, transparent: true, opacity: C.edgeOp })
     const lam = (c: string, extra: THREE.MeshLambertMaterialParameters = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra })
     const box = (w: number, h: number, d: number, m: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D, edges: THREE.LineBasicMaterial | null = edge) => {
       const geo = new THREE.BoxGeometry(w, h, d)
@@ -101,13 +112,13 @@ export class ClusterStoryScene {
       }
       for (const z of [-3.4, 3.4]) { // cooling towers: their rims glow, and turn red on the failing site
         cyl(1.2, 1.8, unit, W + 4.75, 0.9, z, g)
-        const rim = new THREE.MeshBasicMaterial({ color: '#38bdf8' })
+        const rim = new THREE.MeshBasicMaterial({ color: C.tower })
         cyl(0.9, 0.15, rim, W + 4.75, 1.85, z, g)
         if (si === failSite) this.towers.push(rim)
       }
       box(2.2, 1.3, 2.6, unit, W + 4.75, 0.65, 0, g) // substation
       const el = document.createElement('div')
-      el.className = 'absolute top-0 left-0 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-neutral-950'
+      el.className = `absolute top-0 left-0 rounded-lg px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${C.site}`
       el.textContent = s.name
       labels.append(el)
       this.siteLabels.push({ el, pos: new THREE.Vector3(SITE_POS[si][0], 0, SITE_POS[si][1] + 9.6) })
@@ -119,7 +130,7 @@ export class ClusterStoryScene {
       const g = new THREE.Group()
       g.position.set(x, 0.3, z)
       groups[b.site].add(g)
-      box(4.3, HH, 5, lam(C.shell, { transparent: true, opacity: 0.1, depthWrite: false }), 0, HH / 2, 0, g) // open block: glass walls, no roof
+      box(4.3, HH, 5, lam(C.shell, { transparent: true, opacity: C.shellOp, depthWrite: false }), 0, HH / 2, 0, g) // open block: glass walls, no roof
       const bars = Array.from({ length: SLOTS }, (_, r) => {
         const m = box(0.34, 1.3, 3.7, lam(C.free, { emissive: new THREE.Color(C.free), emissiveIntensity: 0 }), RACK_X(r), 0.66, 0, g, null) as BlockObj['bars'][number]
         m.castShadow = m.receiveShadow = false
@@ -129,7 +140,7 @@ export class ClusterStoryScene {
       band.position.y = 0.14
       g.add(band)
       const label = document.createElement('div')
-      label.className = 'absolute top-0 left-0 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-white backdrop-blur'
+      label.className = `absolute top-0 left-0 flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap backdrop-blur ${C.tag}`
       labels.append(label)
       this.blocks.set(b.tag, { g, band, tint: new THREE.Color(C.ok), bars, label, status: 'ok' })
     }
@@ -195,7 +206,7 @@ export class ClusterStoryScene {
         const c = id ? this.colors[id] : C.free
         bar.material.color.set(c)
         bar.material.emissive.set(c)
-        bar.material.emissiveIntensity = id ? 0.35 : 0 // bold: services glow a little on the dark floor
+        bar.material.emissiveIntensity = id ? C.glow : 0 // bold: services glow a little (more on the dark floor)
       })
     }
   }
@@ -233,7 +244,7 @@ export class ClusterStoryScene {
       }
     }
     const blink = this.failing ? 0.5 + 0.5 * Math.sin(now / 180) : 1
-    this.towers.forEach(m => m.color.set(this.failing ? C.crit : '#38bdf8').multiplyScalar(this.failing ? 0.5 + blink * 0.5 : 1))
+    this.towers.forEach(m => m.color.set(this.failing ? C.crit : C.tower).multiplyScalar(this.failing ? 0.5 + blink * 0.5 : 1))
     for (const B of this.blocks.values()) B.band.material.color.lerp(B.tint, 0.15)
 
     this.renderer.render(this.scene, this.camera)
