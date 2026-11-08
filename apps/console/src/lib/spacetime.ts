@@ -3,7 +3,8 @@ import { DbConnection } from '@mesa/bindings'
 export const SPACETIME_URI = import.meta.env.VITE_SPACETIME_URI ?? 'ws://localhost:3000'
 export const SPACETIME_DB = import.meta.env.VITE_SPACETIME_DB ?? 'mesa'
 
-const tokenKey = `mesa:token:${SPACETIME_URI}:${SPACETIME_DB}`
+export const TOKEN_KEY = `mesa:token:${SPACETIME_URI}:${SPACETIME_DB}`
+const tokenKey = TOKEN_KEY
 
 function readToken(): string | undefined {
   try {

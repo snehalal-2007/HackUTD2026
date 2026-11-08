@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { SpacetimeDBProvider } from 'spacetimedb/react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { IncidentToasts } from '@/components/notify/incident-toasts'
 import { Toaster } from '@/components/notify/toaster'
 import { connectionBuilder } from '@/lib/spacetime'
 import App from './App.tsx'
@@ -14,7 +13,6 @@ createRoot(document.getElementById('root')!).render(
       <TooltipProvider>
         <App />
       </TooltipProvider>
-      <IncidentToasts />
       <Toaster />
     </SpacetimeDBProvider>
   </StrictMode>,

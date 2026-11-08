@@ -285,7 +285,116 @@
 .floor-label.s-crit i { background: var(--destructive); }
 .floor-label.is-on { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
 
-/* Thought graph: the edge into the step happening now flows toward it. */
-.thought-edge-live { stroke-dasharray: 5 5; animation: thought-flow .8s linear infinite; }
-@keyframes thought-flow { to { stroke-dashoffset: -10; } }
-@media (prefers-reduced-motion: reduce) { .thought-edge-live { animation: none; } }
+/* ---------------------------------------------------------------------------
+   Motion. Entrances use @starting-style, so they run once when an element mounts
+   and never on re-render. Only things that are genuinely new (an incident, an
+   event, a message, a status flip) get these classes; live numbers never move.
+   --------------------------------------------------------------------------- */
+@theme {
+    --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* A new row arriving in a list: spatial consistency. */
+.enter-rise {
+    transition: opacity 200ms var(--ease-out-strong), translate 200ms var(--ease-out-strong);
+}
+@starting-style {
+    .enter-rise { opacity: 0; translate: 0 6px; }
+}
+
+/* A badge whose state just changed, or a result appearing: feedback. */
+.enter-pop {
+    transition: opacity 150ms var(--ease-out-strong), scale 150ms var(--ease-out-strong);
+}
+@starting-style {
+    .enter-pop { opacity: 0; scale: 0.95; }
+}
+
+/* Colour changes on status badges ease instead of snapping. */
+.state-shift {
+    transition-property: background-color, border-color, color;
+    transition-duration: 200ms;
+    transition-timing-function: ease;
+}
+
+/* Reduced motion: keep the fades (they aid comprehension), drop movement and scale. */
+@media (prefers-reduced-motion: reduce) {
+    .enter-rise { transition: opacity 150ms ease; }
+    .enter-pop { transition: opacity 150ms ease; }
+    @starting-style {
+        .enter-rise { translate: none; }
+        .enter-pop { scale: none; }
+    }
+}
+
+/* ── Notifications (Sonner, unstyled): design 11's card with design 8's label (docs/notification-designs.html).
+   White card, coloured bottom accent, the status written above the title; colour + glyph + word, never colour alone. */
+.mesa-toast {
+    --c: var(--muted-foreground); --ink: var(--muted-foreground); --label: 'Note';
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    width: var(--width, 356px);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    border-bottom: 3px solid var(--c);
+    background: var(--card);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    box-shadow: 0 10px 30px rgba(24, 24, 27, .10), 0 2px 6px rgba(24, 24, 27, .05);
+}
+.dark .mesa-toast { box-shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .3); }
+.mesa-toast[data-type='success'] { --c: var(--success); --ink: var(--success-foreground, var(--success)); --label: '● Done'; }
+.mesa-toast[data-type='warning'] { --c: var(--warning); --ink: var(--warning-foreground, var(--warning)); --label: '▲ Warning'; }
+.mesa-toast[data-type='error'] { --c: var(--destructive); --ink: var(--destructive-foreground, var(--destructive)); --label: '◆ Error'; }
+.mesa-toast.sev-critical { --c: var(--destructive); --ink: var(--destructive-foreground, var(--destructive)); --label: '◆ Critical'; }
+.mesa-toast.sev-high { --c: var(--warning); --ink: var(--warning-foreground, var(--warning)); --label: '▲ High'; }
+.mesa-toast.sev-medium, .mesa-toast.sev-low { --c: var(--warning); --ink: var(--warning-foreground, var(--warning)); --label: '▲ Warning'; }
+.mesa-toast.sev-critical.is-escalated { --label: '◆ Critical · escalated'; }
+.mesa-toast.sev-high.is-escalated { --label: '▲ High · escalated'; }
+.dark .mesa-toast { --ink: var(--c); }
+.mesa-toast [data-icon] { display: none; }
+.mesa-toast [data-content] { flex: 1; min-width: 0; padding-right: 14px; }
+.mesa-toast-title { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.mesa-toast-title::before {
+    content: var(--label);
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink);
+}
+.mesa-toast-desc { margin-top: 2px; font-size: 12.5px; line-height: 1.35; color: var(--muted-foreground); }
+.mesa-toast-action {
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 10px;
+    background: var(--card);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.mesa-toast-action:hover { background: var(--muted); }
+.mesa-toast-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+.mesa-toast-close:hover { background: var(--muted); color: var(--foreground); }
+.mesa-toast-close svg { width: 12px; height: 12px; }

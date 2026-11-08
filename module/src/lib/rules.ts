@@ -49,6 +49,10 @@ function openRuleIncident(
     source: 'rule',
     peakValue: args.value,
     closedReason: '',
+    owner: '',
+    ownerName: '',
+    claimedAtMicros: 0n,
+    handedFrom: '',
   });
   appendEvent(ctx, RULES_ACTOR, `opened ${args.kind} incident`, args.title, row.incidentId);
   return row.incidentId;

@@ -1,31 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useTable } from 'spacetimedb/react'
 import { tables } from '@mesa/bindings'
+import { PLACE, rowLetters } from './names'
 import { GPU_CRIT_C, GPU_WARN_C, RACK_CAP_KW, SERVERS_PER_BLOCK, SITES, type Hall, type Item, type ItemState, type Status } from './data'
 
 // Live sites from SpacetimeDB telemetry (docs/UI-LIVE-DATA.md): site → floors → blocks. Each floor is one telemetry data
 // center (see SITES); each of its racks is a row of 3 blocks of 6 servers. Every number is a real reading, aggregated
 // per block. Read-only: the console never calls ingest_readings.
 
-/** telemetry datacenter id → where it sits in the site model */
-const PLACE = new Map(SITES.flatMap(site => site.floors.flatMap((dcs, i) => dcs.map(dc => [dc, { site: site.id, floor: i + 1 }] as const))))
 export type SiteFloors = Record<string, Hall[][]> // site id → floors (index 0 = Floor 1) → blocks
 const BLOCKS_PER_RACK = 3 // 18 servers / 6
-
-/**
- * Row letters unique across every site: each rack is one row, lettered in site → floor → rack order
- * (Spartanburg floor 1 = A, B; floor 2 = C, D; …). Blocks in a row are numbered 1–3: A1 A2 A3, B1 B2 B3, …
- */
-function rowLetters(rackIds: string[]) {
-  const rows = new Map<string, string>()
-  let row = 0
-  for (const site of SITES) {
-    for (const dcs of site.floors) {
-      for (const id of rackIds.filter(r => dcs.includes(r.split('/')[0])).sort()) rows.set(id, String.fromCharCode(65 + row++))
-    }
-  }
-  return rows
-}
 
 const ms = (ts: { microsSinceUnixEpoch: bigint }) => Number(ts.microsSinceUnixEpoch / 1000n)
 const stateOf = (c: number, failed = false): ItemState => (failed || c >= GPU_CRIT_C ? 'crit' : c >= GPU_WARN_C ? 'warn' : 'ok')
@@ -34,6 +18,27 @@ const cabinet = (id: string) => id.split('/')[1] ?? id
 const nodeNo = (serverId: string) => Number(/n(\d+)$/.exec(serverId)?.[1] ?? 0)
 const blockOf = (serverId: string) => Math.min(BLOCKS_PER_RACK - 1, Math.max(0, Math.floor((nodeNo(serverId) - 1) / SERVERS_PER_BLOCK)))
 const two = (n: number) => String(n).padStart(2, '0')
+
+/** The server ids of one block, from its hall id ("dc-x/a18#2" → dc-x/a18n07 … dc-x/a18n12). Mirrors blockOf. */
+export function blockServerIds(hallId: string) {
+  const [rackId, b] = hallId.split('#')
+  const first = (Number(b) - 1) * SERVERS_PER_BLOCK + 1
+  return Array.from({ length: SERVERS_PER_BLOCK }, (_, i) => `${rackId}n${two(first + i)}`)
+}
+
+// server_reading is large and busy, so history is subscribed only while the temperature chart is on screen.
+// The chart reports its visibility here (setHistoryOnScreen); useLiveSites follows it.
+let historyOnScreen = false
+const historyListeners = new Set<() => void>()
+export function setHistoryOnScreen(onScreen: boolean) {
+  if (onScreen === historyOnScreen) return
+  historyOnScreen = onScreen
+  historyListeners.forEach(l => l())
+}
+function subscribeHistoryOnScreen(l: () => void) {
+  historyListeners.add(l)
+  return () => void historyListeners.delete(l)
+}
 
 /** Least-squares slope (°C per minute) and the value at the last point. */
 function trend(points: number[]) {
@@ -54,7 +59,8 @@ export function useLiveSites({ withHistory }: { withHistory: boolean }) {
   const [, dcReady] = useTable(tables.datacenter) // only for the ready signal; racks carry their datacenterId
   const [racks, rackReady] = useTable(tables.rack)
   const [servers, serverReady] = useTable(tables.serverLatest)
-  const [history] = useTable(tables.serverReading, { enabled: withHistory })
+  const chartOnScreen = useSyncExternalStore(subscribeHistoryOnScreen, () => historyOnScreen)
+  const [history] = useTable(tables.serverReading, { enabled: withHistory && chartOnScreen })
 
   // server_reading changes ~29 times a second; take a snapshot every 3 s instead of recomputing every floor each time
   const latestHistory = useRef(history)

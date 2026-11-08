@@ -40,12 +40,16 @@ interface HallObj {
   beacon: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>
   mast: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>
   label: HTMLDivElement
+  /** Status colour the band and beacon ease toward after a live update. */
+  tint: THREE.Color
 }
 
 export interface SceneOptions {
   onSelect: (id: string) => void
   /** Element whose bottom edge the building should stay below (the floor filter bar). */
   topInset?: () => number
+  /** Idle turn speed in radians per frame (default 0.0006, a slow drift). */
+  spin?: number
 }
 
 export class FloorScene {
@@ -77,7 +81,15 @@ export class FloorScene {
   private labels: HTMLElement
   private opts: SceneOptions
 
+  // Reduced motion: no idle turn, no beacon pulse, status colours change instantly.
+  private motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  private reduceMotion = this.motionQuery.matches
+  private onMotionPref = () => {
+    this.reduceMotion = this.motionQuery.matches
+  }
+
   constructor(host: HTMLElement, labels: HTMLElement, opts: SceneOptions) {
+    this.motionQuery.addEventListener('change', this.onMotionPref)
     this.host = host
     this.labels = labels
     this.opts = opts
@@ -101,6 +113,7 @@ export class FloorScene {
 
   dispose() {
     cancelAnimationFrame(this.raf)
+    this.motionQuery.removeEventListener('change', this.onMotionPref)
     this.ro.disconnect()
     this.clearWorld()
     this.renderer.dispose()
@@ -126,8 +139,11 @@ export class FloorScene {
     this.halls.forEach((H, i) => {
       const hall = this.hallData[i]
       H.hall = hall
-      H.band.material.color.set(this.palette[hall.status])
-      H.beacon.material.color.set(this.palette[hall.status])
+      H.tint.set(this.palette[hall.status]) // tick() eases the band and beacon toward it
+      if (this.reduceMotion) {
+        H.band.material.color.copy(H.tint)
+        H.beacon.material.color.copy(H.tint)
+      }
       H.label.className = `floor-label s-${hall.status}${hall.id === this.selected ? ' is-on' : ''}${this.hovered === hall.id ? ' is-hover' : ''}`
       H.label.lastChild!.textContent = hall.tag
     })
@@ -272,7 +288,7 @@ export class FloorScene {
       label.append(hall.tag)
       label.addEventListener('click', () => this.opts.onSelect(hall.id))
       this.labels.append(label)
-      this.halls.push({ hall, g, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, band, beacon, mast, label })
+      this.halls.push({ hall, g, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, band, beacon, mast, label, tint: new THREE.Color(t[hall.status]) })
     })
   }
 
@@ -323,7 +339,7 @@ export class FloorScene {
       o.distT = this.home.dist
       if (Math.abs(da) < 0.002 && Math.abs(HOME.el - o.el) < 0.002 && Math.abs(o.dist - this.home.dist) < 0.02) { this.homing = false; this.frameReq = 2 }
       this.lastInteract = now // no idle spin while gliding home
-    } else if (now - this.lastInteract > 4000 && !this.drag) o.az += 0.0006 // slow idle turn
+    } else if (!this.reduceMotion && now - this.lastInteract > 4000 && !this.drag) o.az += this.opts.spin ?? 0.0006 // slow idle turn
     o.dist += (o.distT - o.dist) * (this.homing ? 0.09 : 0.12)
     this.camera.position.set(o.target.x + o.dist * Math.cos(o.el) * Math.sin(o.az), o.target.y + o.dist * Math.sin(o.el), o.target.z + o.dist * Math.cos(o.el) * Math.cos(o.az))
     this.camera.lookAt(o.target)
@@ -345,7 +361,10 @@ export class FloorScene {
       H.mast.material.opacity = H.beacon.material.opacity
       H.beacon.visible = H.mast.visible = H.beacon.material.opacity > 0.01
       const pulse: Record<Status, number> = { crit: 1 + 0.35 * Math.sin(t * 5), warn: 1 + 0.15 * Math.sin(t * 2.5), ok: 1 }
-      H.beacon.scale.setScalar(pulse[H.hall.status])
+      H.beacon.scale.setScalar(this.reduceMotion ? 1 : pulse[H.hall.status])
+      // Status colour eases at the same rate as the scene's other smoothing (~200 ms at 60 fps).
+      H.band.material.color.lerp(H.tint, f)
+      H.beacon.material.color.lerp(H.tint, f)
     })
     this.renderer.render(this.scene, this.camera)
 

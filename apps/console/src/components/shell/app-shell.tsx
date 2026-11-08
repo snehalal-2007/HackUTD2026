@@ -8,7 +8,9 @@ import {
   SirenIcon,
   UsersIcon,
   ArrowLeftRightIcon,
+  LogOutIcon,
 } from 'lucide-react'
+import { endSession, HOME_ROUTE } from '@/auth/components/session'
 import { useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { tables } from '@mesa/bindings'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -46,7 +48,7 @@ interface Item {
 
 // Icons are static JSX so the shadcn CLI can rewrite them if the icon library changes.
 const WORK: Item[] = [
-  { id: 'queue', label: 'My Queue', icon: <InboxIcon aria-hidden="true" /> },
+  { id: 'queue', label: 'My Queue', view: 'queue', icon: <InboxIcon aria-hidden="true" /> },
   { id: 'floor', label: 'Floor', view: 'floor', icon: <LayoutGridIcon aria-hidden="true" /> },
   { id: 'agent', label: 'AI Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
   { id: 'alerts', label: 'Alerts', view: 'alerts', icon: <SirenIcon aria-hidden="true" /> },
@@ -95,6 +97,26 @@ function NavGroup({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
+  )
+}
+
+/** Ends the demo sign-in session and returns to the home page. */
+function SignOutButton() {
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          tooltip="Sign out"
+          onClick={() => {
+            endSession()
+            window.location.hash = HOME_ROUTE
+          }}
+        >
+          <LogOutIcon aria-hidden="true" />
+          <span>Sign out</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
   )
 }
 
@@ -188,14 +210,13 @@ function ShellBody({
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="MESA" onClick={() => onNavigate('agent')}>
+              <SidebarMenuButton size="lg" tooltip="MESA" className="group-data-[collapsible=icon]:h-12!" /* same height collapsed, so the mark doesn't jump up */ onClick={() => onNavigate('agent')}>
                 <BrandMark />
                 <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
                   <span className="truncate font-brand leading-none">
                     <span className="text-[25px]" /* capital M at 25px stands level with lowercase "esa" at 30px */>M</span>
                     <span className="text-[30px]">esa</span>
                   </span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">No alert left unowned</span>
                 </span>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -209,7 +230,8 @@ function ShellBody({
 
         <SidebarFooter>
           <StatusRow />
-          <AccountButton onNavigate={onNavigate} />
+          <SignOutButton />
+          <AccountButton onNavigate={onNavigate} /> {/* account at the very bottom, sign out just above it */}
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>

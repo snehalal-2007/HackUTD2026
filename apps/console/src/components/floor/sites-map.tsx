@@ -3,7 +3,6 @@ import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { feature, mesh } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import us from 'us-atlas/states-albers-10m.json'
-import { cn } from '@/lib/utils'
 import type { Site, Status } from './data'
 
 // us-atlas "albers" files are pre-projected into a 975 × 610 frame; this projection places lat/lon in the same frame.
@@ -28,7 +27,7 @@ export interface SitePin {
 // Compact mode crops to the part of the map that holds the sites (Texas to the Carolinas), so pins stay readable in a small tile.
 const CROP = { x: 390, y: 235, w: 520, h: 300 }
 
-/** US map with one pin per site; verified sites are solid, simulated ones dashed. */
+/** US map with one pin per site, coloured by the site's worst status. */
 export function SitesMap({ pins, onOpen, compact, selected }: { pins: SitePin[]; onOpen: (id: string) => void; compact?: boolean; selected?: string }) {
   const [hover, setHover] = useState<string | null>(null)
   const { states, borders, nation } = useMemo(() => {
@@ -57,23 +56,20 @@ export function SitesMap({ pins, onOpen, compact, selected }: { pins: SitePin[];
             transform={`translate(${x},${y})`}
             role="button"
             tabIndex={0}
-            aria-label={`${site.name}, ${site.verified ? 'verified NMC² site' : 'simulated site'}. Open`}
+            aria-label={`${site.name}. Open`}
             className="cursor-pointer outline-none"
             onClick={() => onOpen(site.id)}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen(site.id)}
             onMouseEnter={() => setHover(site.id)}
             onMouseLeave={() => setHover(null)}
           >
-            <title>{`${site.name}: ${site.verified ? 'NMC² · verified' : 'simulated site'}${hot ? ` · ${hot} servers hot` : ''}`}</title>
+            <title>{`${site.name}${hot ? ` · ${hot} servers hot` : ''}`}</title>
             {status !== 'ok' && <circle r={compact ? 21 : 20} fill={TONE[status]} opacity={0.18} className="animate-pulse" />}
             {compact && selected === site.id && <circle r={19} fill="none" stroke="var(--muted-foreground)" strokeWidth={2.5} />} {/* thin ring marks the open site */}
-            <circle r={compact ? (on ? 14 : 12) : on ? 13 : 11} fill={site.verified ? TONE[status] : 'var(--card)'} stroke={site.verified ? 'var(--card)' : TONE[status]} strokeWidth={(site.verified ? 2.5 : 3) * (compact ? 1.4 : 1)} strokeDasharray={site.verified ? undefined : compact ? '5 4' : '4 3'} /> {/* verified: solid with a white edge; simulated: dashed outline */}
+            <circle r={compact ? (on ? 14 : 12) : on ? 13 : 11} fill={TONE[status]} stroke="var(--card)" strokeWidth={2.5 * (compact ? 1.4 : 1)} /> {/* solid pin with a white edge */}
             {!compact && <g transform={`translate(${at.dx},${at.dy})`} textAnchor={at.end ? 'end' : 'start'}>
               <text className="fill-foreground text-[22px] font-semibold">{site.name}</text>
-              <text y={22} className={cn('text-[15px]', site.verified ? 'fill-success' : 'fill-muted-foreground')}>
-                {site.verified ? 'NMC² · verified' : 'Simulated site'}
-                {hot > 0 ? ` · ${hot} hot` : ''}
-              </text>
+              {hot > 0 && <text y={22} className="fill-muted-foreground text-[15px]">{hot} hot</text>}
             </g>}
           </g>
         )

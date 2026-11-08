@@ -1,20 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { useTable } from 'spacetimedb/react'
-import { SirenIcon, TriangleAlertIcon } from 'lucide-react'
 import { tables } from '@mesa/bindings'
+import { makeNamer } from '@/components/floor/names'
 import { requestView } from './navigate'
 
 // Statuses worth interrupting an operator for. Acknowledged means someone already has
 // it; closed incidents are shown in the Log, not announced.
 const ANNOUNCED = new Set(['open', 'escalated'])
-
-const SEVERITY_LABEL: Record<string, string> = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-  critical: 'Critical',
-}
 
 /**
  * Announces incidents that open or escalate while the page is open.
@@ -26,6 +19,9 @@ const SEVERITY_LABEL: Record<string, string> = {
  */
 export function IncidentToasts() {
   const [incidents, ready] = useTable(tables.incident)
+  const [dcs] = useTable(tables.datacenter)
+  const [racks] = useTable(tables.rack)
+  const names = useMemo(() => makeNamer(dcs, racks.map(r => r.rackId)), [dcs, racks])
   // "<incidentId>:<status>" pairs already shown, or present at first load.
   const seen = useRef<Set<string> | null>(null)
 
@@ -42,20 +38,19 @@ export function IncidentToasts() {
       seen.current.add(key)
 
       const escalated = i.status === 'escalated'
-      const severity = SEVERITY_LABEL[i.severity] ?? i.severity
-      const where = i.rackId || i.datacenterId // rack ids already carry the data center
+      const where = i.rackId ? `${names.place(i.datacenterId)} · ${names.blocks(i.rackId)}` : names.place(i.datacenterId)
       const show = escalated ? toast.error : toast.warning
       // The id makes a repeated call (StrictMode, reconnect) update the same toast
       // instead of stacking a duplicate.
-      show(i.title, {
+      show(names.text(i.title), {
         id: key,
-        description: `${severity} severity · ${escalated ? 'Escalated' : 'Opened'}${where ? ` · ${where}` : ''}`,
-        icon: escalated ? <SirenIcon aria-hidden="true" /> : <TriangleAlertIcon aria-hidden="true" />,
+        description: `${escalated ? 'Escalated' : 'Opened'} · ${where}`,
+        className: `sev-${i.severity}${escalated ? ' is-escalated' : ''}`, // the label above the title says the severity
         duration: escalated ? 15_000 : 10_000,
         action: { label: 'View in Log', onClick: () => requestView('log') },
       })
     }
-  }, [incidents, ready])
+  }, [incidents, ready, names])
 
   return null
 }

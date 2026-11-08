@@ -4,7 +4,7 @@
 export type Status = 'ok' | 'warn' | 'crit'
 export type ItemState = Status | 'info'
 export type Category = 'power' | 'infra' | 'apps'
-export type TabId = 'overview' | Category
+export type TabId = 'overview' | 'tasks' | Category
 
 export interface Item {
   name: string
@@ -83,6 +83,7 @@ export const CREDIT = 'Telemetry: ClusterWise (OLCF Summit), CC BY 4.0'
 
 export const TABS: { id: TabId; label: string; full: string }[] = [
   { id: 'overview', label: 'Overview', full: 'Overview' },
+  { id: 'tasks', label: 'Tasks', full: 'Tasks and risks on this block' },
   { id: 'power', label: 'Power', full: 'Power: highest-draw servers' },
   { id: 'infra', label: 'Infra', full: 'Infrastructure' },
   { id: 'apps', label: 'Jobs', full: 'Servers running a job' },

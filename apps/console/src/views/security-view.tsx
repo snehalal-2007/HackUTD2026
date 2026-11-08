@@ -10,7 +10,7 @@ const ATTACK_CMD = 'pnpm demo:attack' // root script: runs security/attack-scrip
 function Severity({ value }: { value: string }) {
   const crit = value === 'critical'
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border border-current px-2 py-0.5 text-[13px] leading-tight font-semibold whitespace-nowrap capitalize', crit ? 'text-destructive' : 'text-warning')}>
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] leading-tight font-semibold whitespace-nowrap capitalize', crit ? 'bg-destructive/10 text-destructive' : 'bg-warning/12 text-warning')}>
       <span aria-hidden="true">{crit ? '◆' : '▲'}</span>
       {value}
     </span>
@@ -107,7 +107,7 @@ export function SecurityView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="grid gap-3.5 p-3.5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-3.5 p-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,4fr)_minmax(0,5fr)]"> {/* feed narrower, details wider */}
         {s.meQuarantined && (
           <div role="alert" className="flex items-center gap-3 rounded-lg bg-destructive px-5 py-3 text-[15px] text-white lg:col-span-2">
             <BanIcon className="size-5 shrink-0" aria-hidden="true" />
@@ -146,27 +146,35 @@ export function SecurityView() {
               <TryIt />
             </div>
           ) : (
-            <ol className="-mx-2 flex flex-col">
+            <ol className="flex flex-col gap-2">
               {s.events.map(e => {
                 const on = e.id === selected?.id
+                const crit = e.severity === 'critical'
                 return (
                   <li key={String(e.id)}>
+                    {/* severity strip: a coloured card with the grey card laid over it, so only a rounded edge shows */}
                     <button
                       type="button"
                       onClick={() => setPick(e.id)}
                       aria-pressed={on}
-                      className={cn('grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left hover:bg-muted', on && 'bg-muted')}
+                      className={cn('block w-full rounded-lg pl-1.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none', crit ? 'bg-destructive/65' : 'bg-warning/65')}
                     >
-                      <span aria-hidden="true" className={cn('size-2.5 rounded-full', e.severity === 'critical' ? 'bg-destructive' : 'bg-warning')} />
-                      <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-semibold">{e.decoy}</span>
-                        <span className="block truncate text-[13.5px] text-muted-foreground">
-                          {shortId(e.identity.toHexString())} · hit #{e.hitNumber} · {e.kind.replace('-', ' ')}
+                      <span
+                        className={cn(
+                          'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-3.5 py-3 transition-colors',
+                          on ? 'bg-[#e6e2da] dark:bg-[#303035]' : 'bg-muted hover:bg-accent',
+                        )}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-[15px] font-semibold">{e.decoy}</span>
+                          <span className="block truncate text-[13.5px] text-muted-foreground">
+                            <span className={cn('font-semibold capitalize', crit ? 'text-destructive' : 'text-warning')}>{e.severity}</span> · {shortId(e.identity.toHexString())} · hit #{e.hitNumber} · {e.kind.replace('-', ' ')}
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-right text-[13px] text-muted-foreground tabular-nums">
-                        {clock(e.at.toDate())}
-                        <span className="block">{ago(e.at.toDate(), now)}</span>
+                        <span className="text-right text-[13px] text-muted-foreground tabular-nums">
+                          {clock(e.at.toDate())}
+                          <span className="block">{ago(e.at.toDate(), now)}</span>
+                        </span>
                       </span>
                     </button>
                   </li>

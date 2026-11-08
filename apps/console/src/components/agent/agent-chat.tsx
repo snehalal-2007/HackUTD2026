@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BotIcon, BrainIcon, FileTextIcon, SendHorizontalIcon } from 'lucide-react'
+import { BotIcon, FileTextIcon, SendHorizontalIcon } from 'lucide-react'
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from '@/components/ui/attachment'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker'
 import { Message, MessageAvatar, MessageContent, MessageFooter } from '@/components/ui/message'
 import { Spinner } from '@/components/ui/spinner'
+import { useArrivals } from '@/lib/use-arrivals'
 import { cn } from '@/lib/utils'
-import { ThoughtPanel } from './thought-panel'
+import { ReportView } from './report-view'
 import { ms, useAgentChat, type ThreadItem } from './use-agent-chat'
 
 // The operator ↔ agent chat, live from SpacetimeDB. Questions go through ask_agent; the agent service
@@ -54,21 +55,12 @@ function AgentAvatar() {
   )
 }
 
-function ThoughtLink({ selected, onSelect }: { selected: boolean; onSelect: () => void }) {
-  return (
-    <Button type="button" variant="ghost" size="xs" onClick={onSelect} aria-pressed={selected} className={cn(selected && 'bg-muted')}>
-      <BrainIcon aria-hidden="true" />
-      {selected ? 'Showing thought process' : 'Thought process'}
-    </Button>
-  )
-}
-
-function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { type: 'chat' }>; selected: boolean; onSelect: () => void }) {
+function ChatEntry({ item, className }: { item: Extract<ThreadItem, { type: 'chat' }>; className?: string }) {
   const { chat, steps } = item
   const live = chat.status === 'pending' || chat.status === 'thinking'
   return (
     <>
-      <Message align="end">
+      <Message align="end" className={className}>
         <MessageContent>
           <Bubble variant="muted">
             <BubbleContent className="whitespace-pre-wrap">{chat.question}</BubbleContent>
@@ -78,7 +70,7 @@ function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { t
           </MessageFooter>
         </MessageContent>
       </Message>
-      <Message>
+      <Message className={className}>
         <AgentAvatar />
         <MessageContent>
           <span role="status" className="sr-only">{live ? 'Agent is working' : 'Reply ready'}</span>
@@ -103,7 +95,6 @@ function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { t
           <MessageFooter className="gap-2">
             {!live && <span className="tabular-nums">{clock(ms(chat.answeredAt))}</span>}
             {chat.status === 'answered' && <span>AI drafted · {secs(chat.durationMs)}</span>}
-            <ThoughtLink selected={selected} onSelect={onSelect} />
           </MessageFooter>
         </MessageContent>
       </Message>
@@ -111,11 +102,12 @@ function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { t
   )
 }
 
-function ReportEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { type: 'report' }>; selected: boolean; onSelect: () => void }) {
+function ReportEntry({ item, className }: { item: Extract<ThreadItem, { type: 'report' }>; className?: string }) {
   const { report, body, incident } = item
+  const [open, setOpen] = useState(false)
   const name = `${report.kind === 'final' ? 'Final' : 'Interim'} report · incident #${String(report.incidentId)}`
   return (
-    <Message>
+    <Message className={className}>
       <AgentAvatar />
       <MessageContent>
         <Bubble variant="ghost">
@@ -123,8 +115,8 @@ function ReportEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, {
             <p>{body?.summary ?? `I wrote the ${report.kind} report for ${incident?.title ?? `incident #${String(report.incidentId)}`}.`}</p>
           </BubbleContent>
         </Bubble>
-        <button type="button" onClick={onSelect} aria-pressed={selected} className="w-full max-w-sm rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <Attachment className={cn('w-full transition-colors hover:border-foreground/30', selected && 'border-foreground/60')}>
+        <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full max-w-sm rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Attachment className={cn('w-full transition-colors hover:border-foreground/30', open && 'border-foreground/60')}>
             <AttachmentMedia>
               <FileTextIcon aria-hidden="true" />
             </AttachmentMedia>
@@ -138,6 +130,11 @@ function ReportEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, {
             </AttachmentContent>
           </Attachment>
         </button>
+        {open && (
+          <div className="w-full rounded-lg border bg-card p-4">
+            <ReportView item={item} />
+          </div>
+        )}
         <MessageFooter>
           <span className="tabular-nums">{clock(ms(report.writtenAt))}</span>
         </MessageFooter>
@@ -150,11 +147,9 @@ export function AgentChat() {
   const { items, myPending, ready, ask } = useAgentChat()
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
-  const [picked, setPicked] = useState<string | null>(null) // null = follow the newest entry
   const scrollRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
-  const selected = items.find(i => i.key === picked) ?? items[items.length - 1]
 
   // Stay pinned to the newest message while answers arrive, unless the operator has scrolled up to read something.
   useEffect(() => {
@@ -182,18 +177,20 @@ export function AgentChat() {
     try {
       await ask(q)
       setDraft('')
-      setPicked(null) // follow the new question in the panel
       pinned.current = true
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
   }
 
+  // New questions and reports rise in; the thread already on screen when it loads does not.
+  const fresh = useArrivals(items.map(i => i.key), ready)
+
   const busy = myPending >= MAX_PENDING
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
-      {/* left: the conversation, floating on the page background */}
-      <div className="flex min-h-[520px] min-w-0 flex-col lg:min-h-0">
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* the conversation, floating on the page background */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
           <div ref={listRef} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
             {!ready ? (
@@ -204,7 +201,7 @@ export function AgentChat() {
                 <MessageContent>
                   <Bubble variant="ghost">
                     <BubbleContent>
-                      <p>I read live telemetry, incidents and the audit log to answer. I can’t change anything, and I write a report whenever an incident escalates or closes.</p>
+                      <p>I read live telemetry, incidents and the audit log to answer. I can’t change anything, and I write an incident report when you ask for one.</p>
                     </BubbleContent>
                   </Bubble>
                   <div className="flex flex-wrap gap-2">
@@ -217,9 +214,9 @@ export function AgentChat() {
             ) : (
               items.map(item =>
                 item.type === 'chat' ? (
-                  <ChatEntry key={item.key} item={item} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ChatEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} />
                 ) : (
-                  <ReportEntry key={item.key} item={item} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ReportEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} />
                 ),
               )
             )}
@@ -255,10 +252,6 @@ export function AgentChat() {
         </form>
       </div>
 
-      {/* right: how the agent worked out the selected answer */}
-      <div className="min-h-[420px] p-3.5 lg:min-h-0 lg:pl-0">
-        <ThoughtPanel item={selected} />
-      </div>
     </div>
   )
 }

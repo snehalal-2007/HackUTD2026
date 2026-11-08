@@ -100,8 +100,8 @@ export function LogTableView({ page, onPage, onBack }: { page: number; onPage: (
                         </TableCell>
                         <TableCell>{actorLabel(e.actor)}</TableCell>
                         <TableCell>{e.action}</TableCell>
-                        <TableCell className="max-w-md truncate" title={e.target}>
-                          {e.target}
+                        <TableCell className="max-w-md truncate" title={e.label}>
+                          {e.label}
                         </TableCell>
                         <TableCell className="tabular-nums">{e.incidentId ? `#${e.incidentId}` : ''}</TableCell>
                         <TableCell className="font-mono text-xs" title={`hash ${e.hash}\nprevious ${e.prevHash}`}>

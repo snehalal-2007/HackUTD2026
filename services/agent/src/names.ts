@@ -3,8 +3,8 @@
 
 const SITES = [
   { name: 'Spartanburg, SC', floors: ['dc-spartanburg', 'dc-site-3', 'dc-site-4'] },
-  { name: 'North Carolina (simulated site)', floors: ['dc-north-carolina', 'dc-site-5', 'dc-site-6'] },
-  { name: 'Dallas, TX (simulated site)', floors: ['dc-site-7', 'dc-site-8'] },
+  { name: 'North Carolina', floors: ['dc-north-carolina', 'dc-site-5', 'dc-site-6'] },
+  { name: 'Dallas, TX', floors: ['dc-site-7', 'dc-site-8'] },
 ]
 
 export interface ConsoleName {
@@ -30,3 +30,12 @@ export function consoleNames(rackIds: string[]): Map<string, ConsoleName> {
 
 export const describeRack = (rackId: string, n: ConsoleName | undefined) =>
   n ? `${rackId} (console: ${n.site} · Floor ${n.floor} · blocks ${n.blocks})` : rackId
+
+/** "dc-site-3" → "Spartanburg, SC · Floor 2" (the console's name for that telemetry feed) */
+export function placeName(datacenterId: string) {
+  for (const site of SITES) {
+    const i = site.floors.indexOf(datacenterId)
+    if (i >= 0) return `${site.name} · Floor ${i + 1}`
+  }
+  return datacenterId
+}

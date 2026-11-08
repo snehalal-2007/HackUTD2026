@@ -23,4 +23,8 @@ export default __t.row({
   source: __t.string(),
   peakValue: __t.f64().name("peak_value"),
   closedReason: __t.string().name("closed_reason"),
+  owner: __t.string(),
+  ownerName: __t.string().name("owner_name"),
+  claimedAtMicros: __t.u64().name("claimed_at_micros"),
+  handedFrom: __t.string().name("handed_from"),
 });

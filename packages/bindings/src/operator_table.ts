@@ -16,4 +16,6 @@ export default __t.row({
   role: __t.string(),
   onShift: __t.bool().name("on_shift"),
   online: __t.bool(),
+  shiftStartedMicros: __t.u64().name("shift_started_micros"),
+  shiftEndsMicros: __t.u64().name("shift_ends_micros"),
 });

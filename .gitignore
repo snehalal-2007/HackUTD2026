@@ -19,3 +19,6 @@ __pycache__/
 # Replayer feed identities (tokens) and full dataset downloads
 .replayer-tokens.json
 services/replayer/data/*.parquet
+# Demo sign-in accounts (tokens) for the local database: scripts/demo-accounts.ts
+.demo-accounts.json
+apps/console/public/demo-accounts.local.json
