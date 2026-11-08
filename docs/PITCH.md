@@ -46,9 +46,10 @@ One-liner for the DevPost tagline: **MESA keeps the world's compute running: one
 
 Use the setup in [DEMO-VIDEO.md section 3](DEMO-VIDEO.md#3-recording-setup-tested): a freshly wiped local database, two console windows on two ports, the replayer typed but not started. Differences for this script:
 
-- **Sign in.** Each window starts at the sign-in page. Window A signs in as the incoming operator, window B as a second operator who is on shift. Signing in opens the console on **Floor**.
-- **Leftovers to greet window A.** Beat 2 needs unfinished tasks from an earlier shift. Before recording: start the replayer, let incidents open, start a shift in window B (**My Queue**, pick a length such as **8 hours**), let B claim tasks, then **End shift & hand over** in B. Those tasks go back to the pool marked "left by" B's name. Start B's shift again so A has someone to reassign to. Then sign in window A.
-- **Speed.** Replay at 4x (`--speed 4`, a batch every 2.5 s), the same as production. The two-minute throttle window is wall-clock time, so plan beat 4 around it (see DEMO-VIDEO.md's timeline; at 4x, re-time it once before recording).
+- **Demo accounts and leftovers.** Beat 2 needs an operator coming on shift to find work left by the last one. Start the replayer, wait about 10 s for incidents, then run `SPACETIME_DB=mesa-video pnpm demo:accounts` (see [DEMO-VIDEO.md, Demo accounts](DEMO-VIDEO.md#demo-accounts-optional-for-the-queue-scenes-in-pitchmd)). It creates **Marcus**, **Priya** and **Daniel** and starts their shifts. Wait about 2 minutes: Marcus's night shift ends and his two tasks become leftovers marked "left by Marcus". Priya stays on shift.
+- **Sign in.** Window A is **Daniel / Daniel**, the incoming operator. Window B is **Priya / Priya**, on shift, left open on **My Queue**. A demo account opens the console on **My Queue**. Sign window A in on camera in beat 2.
+- **Timing.** The automatic live migration fires about 2 minutes after the replayer starts, so it will already be in **Remediation runs** when you reach beat 4. Point at it there, and do a hand migration on camera.
+- **Speed.** Replay at 4x (`--speed 4`, a batch every 2.5 s), the same as production, so beat 3's "every two and a half seconds" is true. DEMO-VIDEO.md's timeline is for 10x; at 4x, re-time it once before recording. The two-minute throttle window is wall-clock time at any speed.
 - **The agent.** The AI Agent page needs `services/agent` running with an `ANTHROPIC_API_KEY` and its identity allow-listed (`.env.example`). It isn't deployed on Railway today. If it isn't running, cut beat 5.
 - **Theme.** Dark, in both windows.
 
@@ -84,7 +85,7 @@ About 140 spoken words per minute. Target 2:55, hard stop 3:00.
 
 ### Beat 2. The problem, sign-in and My Queue (0:22 to 0:55)
 
-**On screen:** window A's sign-in page. Sign in. The console opens on Floor. Click **My Queue** and start an **8 hours** shift. The leftover tasks arrive first, each marked **left by** the previous operator. On one task, open **Give to someone on shift** and pick the operator in window B. The task leaves A's list; in window B it appears without a reload.
+**On screen:** window A's sign-in page. Sign in as **Daniel / Daniel**. The console opens on **My Queue**. Start an **8 hours** shift. Marcus's unfinished tasks arrive first, each marked **left by Marcus**. On one task, open **Give to someone on shift** and pick **Priya**. The task leaves Daniel's list; in window B, Priya's queue shows it without a reload.
 
 **Say:**
 
