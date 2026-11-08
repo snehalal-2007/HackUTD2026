@@ -34,12 +34,6 @@ export function ClusterView() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>
-            {totals.services} services placed on the real racks. Temperatures are recorded telemetry, so moving a service does not cool them; cooling figures are a simulated effect.
-          </span>
-        </div>
-
         <section aria-labelledby="cluster-3d" className="flex flex-col gap-2">
           <h2 id="cluster-3d" className="text-sm font-medium">Live placement</h2>
           <Placement3D racks={racks} runs={runs} services={services} ready={ready} />

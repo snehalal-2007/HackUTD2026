@@ -61,15 +61,15 @@ export function HandoffView() {
   return (
     <Tabs.Root value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2" data-noprint>
-        <Tabs.List aria-label="Choose a shift" className="flex max-w-full gap-1 overflow-x-auto">
+        <Tabs.List aria-label="Choose a shift" className="flex max-w-full gap-0.5 overflow-x-auto rounded-lg bg-muted p-1" /* one segmented control; the inner padding keeps the first and last edges from being clipped */>
           {shifts.map(s => (
             <Tabs.Trigger
               key={s.id}
               value={s.id}
               className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap outline-none transition-colors',
-                'hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
-                'data-[state=active]:bg-muted data-[state=active]:font-medium',
+                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm whitespace-nowrap text-muted-foreground outline-none transition-colors',
+                'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset',
+                'data-[state=active]:bg-card data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border data-[state=active]:ring-inset',
               )}
             >
               {s.tabLabel.replace(' (live)', '')}
