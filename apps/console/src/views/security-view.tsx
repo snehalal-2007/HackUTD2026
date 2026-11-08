@@ -151,8 +151,8 @@ export function SecurityView() {
         {/* status: one banner, the totals inline */}
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-lg bg-card px-5 py-4 lg:col-span-2">
           <div className="flex min-w-[280px] flex-1 items-center gap-4">
-            <span className={cn('grid size-12 shrink-0 place-items-center rounded-full', breached ? 'bg-destructive text-white' : 'bg-success/15 text-success')}>
-              {breached ? <ShieldAlertIcon className="size-6" aria-hidden="true" /> : <ShieldCheckIcon className="size-6" aria-hidden="true" />}
+            <span className={cn('grid shrink-0 place-items-center', breached ? 'text-destructive' : 'text-success')} /* just the icon: no circle, no fill */>
+              {breached ? <ShieldAlertIcon className="size-9" aria-hidden="true" /> : <ShieldCheckIcon className="size-9" aria-hidden="true" />}
             </span>
             <div className="min-w-0">
               <h1 className="text-xl font-semibold">{!s.ready ? 'Connecting to the honeypot…' : breached ? 'Intrusion detected' : 'All clear'}</h1>
