@@ -1,0 +1,63 @@
+/* Scroll reveals: elements start hidden and settle in when they enter the viewport. */
+.reveal {
+  opacity: 0;
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.9s ease;
+  transition-delay: var(--d, 0ms);
+}
+.reveal[data-v='up'] { transform: translateY(2rem); }
+.reveal[data-v='left'] { transform: translateX(-3rem); }
+.reveal[data-v='right'] { transform: translateX(3rem); }
+.reveal[data-v='scale'] { transform: scale(0.92); }
+.reveal[data-v='blur'] { transform: translateY(0.75rem); filter: blur(12px); }
+.reveal[data-shown] { opacity: 1; transform: none; filter: none; }
+
+/* Headline words rising one after another. */
+@keyframes intro-rise { from { opacity: 0; transform: translateY(0.6em) rotate(2deg); } to { opacity: 1; transform: none; } }
+.rise > span { display: inline-block; animation: intro-rise 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Endless capability ticker. */
+@keyframes intro-marquee { to { transform: translateX(-50%); } }
+.marquee { animation: intro-marquee 40s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+
+@keyframes intro-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse { animation: intro-pulse 1.6s ease-in-out infinite; }
+
+@keyframes intro-scroll-hint { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(14px); opacity: 0; } }
+.scroll-hint { animation: intro-scroll-hint 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; filter: none; transition: none; }
+  .rise > span, .marquee, .pulse, .scroll-hint { animation: none; }
+}
+
+/* What-if palettes (see WhatIf in pages/grid.tsx). */
+.tone-blueprint {
+  --wi-panel: #081426;
+  --wi-line: rgb(103 232 249 / 0.15);
+  --wi-line-strong: rgb(103 232 249 / 0.3);
+  --wi-text: #ecfeff;
+  --wi-muted: rgb(207 250 254 / 0.7);
+  --wi-faint: rgb(207 250 254 / 0.5);
+  --wi-accent: #a5f3fc;
+  --wi-accent-ink: #081426;
+  --wi-cool: rgb(34 211 238 / 0.15);
+  --wi-cool-text: #cffafe;
+  --wi-mild: rgb(103 232 249 / 0.5);
+}
+.tone-neutral {
+  --wi-panel: rgb(255 255 255 / 0.04);
+  --wi-line: rgb(255 255 255 / 0.1);
+  --wi-line-strong: rgb(255 255 255 / 0.22);
+  --wi-text: #ffffff;
+  --wi-muted: rgb(255 255 255 / 0.7);
+  --wi-faint: rgb(255 255 255 / 0.5);
+  --wi-accent: #ffffff;
+  --wi-accent-ink: #0b0c0f;
+  --wi-cool: rgb(255 255 255 / 0.06);
+  --wi-cool-text: rgb(255 255 255 / 0.85);
+  --wi-mild: rgb(255 255 255 / 0.2);
+}
