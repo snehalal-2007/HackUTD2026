@@ -4,6 +4,7 @@ import {
   InboxIcon,
   LayoutGridIcon,
   ScrollTextIcon,
+  ShieldAlertIcon,
   SirenIcon,
   UsersIcon,
   ArrowLeftRightIcon,
@@ -32,6 +33,8 @@ import {
 import { BrandMark } from './brand-mark'
 import { ShiftClock } from './shift-clock'
 import { ThemeToggle } from './theme-toggle'
+import { IntrusionBanner } from '@/components/security/intrusion-banner'
+import { useSecurity } from '@/components/security/use-security'
 import { VIEW_TITLES, type ViewId } from './nav'
 
 interface Item {
@@ -53,6 +56,7 @@ const WORK: Item[] = [
 const SYSTEM: Item[] = [
   { id: 'events', label: 'Event log', icon: <ScrollTextIcon aria-hidden="true" /> },
   { id: 'operators', label: 'Operators', view: 'operators', icon: <UsersIcon aria-hidden="true" /> },
+  { id: 'security', label: 'Security', view: 'security', icon: <ShieldAlertIcon aria-hidden="true" /> },
 ]
 
 function NavGroup({
@@ -85,12 +89,20 @@ function NavGroup({
                 <span>{item.label}</span>
               </SidebarMenuButton>
               {!item.view && <SidebarMenuBadge className="text-muted-foreground">Soon</SidebarMenuBadge>}
+              {item.id === 'security' && <SecurityCount />}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
   )
+}
+
+/** Red count of decoy calls next to the Security nav item; nothing while the honeypot is quiet. */
+function SecurityCount() {
+  const { events } = useSecurity()
+  if (!events.length) return null
+  return <SidebarMenuBadge className="rounded-full bg-destructive text-white peer-hover/menu-button:text-white peer-data-active/menu-button:text-white">{events.length}</SidebarMenuBadge>
 }
 
 /** Connection status + theme toggle + shift clock: the prototype keeps these at the bottom of the nav. */
@@ -209,6 +221,7 @@ function ShellBody({
             <h1 className="truncate text-sm font-medium">{VIEW_TITLES[view]}</h1>
           </header>
         )}
+        {view !== 'security' && <IntrusionBanner onOpen={() => onNavigate('security')} />}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </>

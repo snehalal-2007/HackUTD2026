@@ -15,7 +15,9 @@
     "dev:sim": "pnpm --filter @mesa/simulator dev",
     "dev:agent": "pnpm --filter @mesa/agent dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "demo:attack": "pnpm --filter @mesa/agent exec tsx ../../security/attack-scripts/attack-demo.ts",
+    "demo:honeypot": "bash scripts/demo-honeypot.sh"
   },
   "devDependencies": {
     "@vercel/config": "^0.14.1",
