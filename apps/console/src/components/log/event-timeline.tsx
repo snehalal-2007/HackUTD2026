@@ -8,7 +8,7 @@ const time = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: '2-digi
 const SYSTEM_ACTORS: Record<string, string> = { rules: 'Rules', agent: 'AI agent', shifts: 'Shifts' }
 
 /** Event actor → a readable name: the system actors by name, operators by their registered name (the log stores an id prefix). */
-function useActorName() {
+export function useActorName() {
   const [operators] = useTable(tables.operator)
   return (actor: string) =>
     SYSTEM_ACTORS[actor] ?? operators.find(o => o.identity.toHexString().startsWith(actor))?.name ?? `Operator ${actor.slice(0, 6)}`
