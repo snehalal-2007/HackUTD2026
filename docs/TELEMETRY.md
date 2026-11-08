@@ -74,7 +74,7 @@ pnpm replay -- --sites dc-spartanburg,dc-north-carolina --feed us-southeast
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--speed` | `1` | 1 = real time (one batch per data center about every 10 s) |
+| `--speed` | `REPLAY_SPEED`, else `1` | 1 = real time (one batch per data center about every 10 s); 4 = every 2.5 s |
 | `--sites` | all | Comma-separated data center IDs to stream |
 | `--loops` | `0` | Times to play the hour; 0 = forever, timestamps keep moving forward |
 | `--feed` | `all` | Name of the stored identity. Run one process per site with different `--feed` names to model separate facilities |
@@ -84,7 +84,20 @@ Each feed's identity token is saved in `.replayer-tokens.json` at the repo root 
 
 Point it at Maincloud with `SPACETIME_URI=wss://maincloud.spacetimedb.com` and `SPACETIME_DB=hackutd2026-0nef9`, after the release manager publishes this module there.
 
-**Maincloud budget:** at 1× the replay sends about 29 readings per second in 8 batches every 10 s. Higher speeds multiply that; use them locally.
+Readings are stamped with the wall-clock time they are sent, so at any speed they arrive as "now". A faster speed compresses the recorded hour: at 4× it plays in about 15 minutes and loops.
+
+### Speed on Railway
+
+The Railway replayer reads `REPLAY_SPEED` (default `1`). At `4` each data center sends a batch every 2.5 s, so temperature incidents open and close four times as often:
+
+| Speed | Batch every | Rack temperature incidents | Recorded hour plays in |
+|---|---|---|---|
+| 1 | 10 s | about 4 an hour, plus 2 racks that stay open | 59 min |
+| 4 | 2.5 s | about 16 an hour (one every ~4 min) | 15 min |
+
+Rules count batches, not seconds, so at 4× an incident opens after about 7.5 s over the limit and closes after about 30 s under it. The recording has one 90-second gap (at 17:05 in the source data). At 1× that silence trips the feed watchdog and opens 8 `feed_stale` incidents every loop; at 4× the gap is 22.5 s, under the 30 s limit, so those no longer appear. Stop a feed to show the watchdog instead.
+
+**Maincloud budget:** at 1× the replay sends about 29 readings per second in 8 batches every 10 s; at 4× about 115 per second in 8 batches every 2.5 s. Keep higher speeds local.
 
 ## Tested
 
