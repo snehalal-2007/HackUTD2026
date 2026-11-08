@@ -24,7 +24,7 @@ function NextHint({ to, label }: { to: string; label: string }) {
  * The public home page (#/), one color scheme throughout (near-black, white, grays):
  *   1. "No alert left unowned." over the data-hall walkthrough
  *   2. "See the heat before it becomes an outage." over racks that warm under the cursor
- *   3. The cooling-failure story, auto-playing on the 3D floor (CoolingDemo)
+ *   3. The cooling-failure story, auto-playing on the cluster scene: three floors, services moving off hot blocks (CoolingDemo)
  * "Get started" and the Sign in button in the scroll bar both lead to the sign-in page.
  */
 export function HomePage() {
@@ -82,7 +82,7 @@ export function HomePage() {
         <Reveal variant="left">
           <p className="font-mono text-sm text-white/55">what_if(cooling_failure)</p>
           <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">Fail a cooling unit. Watch it recover.</h2>
-          <p className="mt-4 max-w-2xl text-white/65">A sample hall of eight blocks. One cooling unit fails, the nearest blocks heat up, MESA raises the alerts and gives them an owner, and the hall cools back down.</p>
+          <p className="mt-4 max-w-2xl text-white/65">Three sample floors. A cooling unit fails beside Spartanburg, the nearest blocks heat up, MESA raises the alerts and gives them an owner, then moves the services to North Carolina and Dallas so the hot blocks can cool.</p>
         </Reveal>
         <Reveal variant="scale" delay={150} className="mt-12"><CoolingDemo /></Reveal>
       </section>
