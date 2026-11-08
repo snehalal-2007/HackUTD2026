@@ -13,7 +13,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DB="${SPACETIME_DB:-mesa}"
-sql() { spacetime sql "$DB" --server local "$1" 2>/dev/null; }
+# --no-config: spacetime.local.json names a database ("mesa"), and the CLI would send these queries there instead of $DB.
+sql() { spacetime sql --no-config --server local "$DB" "$1" 2>/dev/null; }
 
 # The accounts are real identities made by scripts/demo-accounts.ts (sign in with first name / first name).
 [[ -f .demo-accounts.json ]] || { echo "Run pnpm demo:accounts first (it creates the accounts, then runs this)." >&2; exit 1; }
