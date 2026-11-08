@@ -17,7 +17,7 @@ export function useBlockTasks(hall: Hall, row: Hall[] = []) {
   const rack = rackOf(hall)
   const tasks = incidents
     .filter(i => i.rackId === rack && i.status !== 'closed')
-    .sort((a, b) => (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9))
+    .sort((a, b) => (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9) || (a.openedAt.microsSinceUnixEpoch < b.openedAt.microsSinceUnixEpoch ? -1 : 1)) // most urgent first, then oldest
   const cause = row.length ? [...row].sort((a, b) => b.temp - a.temp)[0] : hall
   return cause.id === hall.id ? { here: tasks, elsewhere: [], cause } : { here: [], elsewhere: tasks, cause }
 }

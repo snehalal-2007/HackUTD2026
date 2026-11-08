@@ -11,7 +11,8 @@ import { AddressBlock } from './address-block'
 import { makeNamer } from './names'
 import { useBlockTasks } from './use-block-tasks'
 
-// The Tasks tab on a block: the active incidents (tasks) this block is causing, who owns each one, and a way to take one,
+// The Tasks tab on a block: the active incidents (tasks) this block is causing. The most urgent one is shown in full, with
+// who owns it and a way to take it; the rest wait underneath as "Up next" and move up as tasks are resolved,
 // plus the block's risks. Incidents are opened per rack (a row of three blocks); the hottest block in the row owns
 // them, and the other blocks just point to it. Claiming goes through claim_incident, which refuses a task someone owns.
 
@@ -67,12 +68,13 @@ export function BlockTasks({ hall, row, onPick }: { hall: Hall; row: Hall[]; onP
       {!tasks.length ? (
         !elsewhere.length && <p className="text-[14px] text-muted-foreground">No open tasks on block {hall.tag}. The rules open one when a GPU stays at or over {GPU_WARN_C} °C.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {tasks.map(i => {
+        <>
+        {/* the most urgent task, in full; when it's resolved it leaves the list and the next one takes its place */}
+        {tasks.slice(0, 1).map(i => {
             const id = String(i.incidentId)
             const mine = i.owner === myId
             return (
-              <li key={id}>
+              <div key={id} className="enter-rise">
                 <div className="rounded-lg bg-muted px-3.5 py-3">
                   <div className="flex gap-3.5">
                   <AddressBlock block={hall.tag} floor={hall.floor} site={SITES.find(x => x.id === hall.site)?.name ?? ''} severity={i.severity} />
@@ -107,10 +109,25 @@ export function BlockTasks({ hall, row, onPick }: { hall: Hall; row: Hall[]; onP
                   </div>
                   </div>
                 </div>
-              </li>
+              </div>
             )
           })}
-        </ul>
+        {tasks.length > 1 && (
+          <>
+            <h5 className="mt-4 mb-1 text-[12px] font-semibold text-muted-foreground">Up next · {tasks.length - 1}</h5>
+            <ol className="flex flex-col">
+              {tasks.slice(1).map((i, n) => (
+                <li key={String(i.incidentId)} className="flex items-center gap-2.5 border-t py-2 text-[13.5px] first:border-t-0">
+                  <span className="w-4 shrink-0 text-[12px] text-muted-foreground tabular-nums">{n + 2}</span>
+                  <span className={cn('shrink-0 text-[12.5px] font-semibold capitalize', i.severity === 'critical' ? 'text-destructive' : i.severity === 'high' ? 'text-warning' : 'text-muted-foreground')}>{i.severity}</span>
+                  <span className="min-w-0 flex-1 truncate">{names.text(i.title).split(': ').slice(1).join(': ') || names.text(i.title)}</span>
+                  <span className="shrink-0 text-[12.5px] text-muted-foreground">{i.owner ? (i.owner === myId ? 'You' : i.ownerName || 'Owned') : 'Unassigned'}</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+        </>
       )}
 
       <h4 className="mt-5 mb-1.5 text-[13px] font-semibold tracking-[.06em] text-muted-foreground uppercase">Risks in block {hall.tag}</h4>
