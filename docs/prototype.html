@@ -118,17 +118,29 @@ table.tbl td.r,table.tbl th.r{text-align:right}
 .scroll{overflow:auto}
 
 /* ═════════ 12 BENTO — tiles ═════════ */
-.d12{--bg:#ebe8e2;--ink:#18181b;--muted:#5b5b63;--line:#e7e5e0;--card:#fff;--accent:#ff6a3d;--chart:#ff6a3d;--ok:#2f9e6b;--warn:#d48806;--crit:#e5484d;--sel:#18181b;--sel-ink:#fff;--hl:#f5f3ef;--radius:24px;--font:'Lexend',sans-serif}
+.d12{--bg:#ebe8e2;--ink:#18181b;--muted:#5b5b63;--line:#e7e5e0;--card:#fff;--accent:#ff6a3d;--chart:#ff6a3d;--ok:#2f9e6b;--warn:#d48806;--crit:#e5484d;--sel:#18181b;--sel-ink:#fff;--hl:#f5f3ef;--radius:12px;--font:'Lexend',sans-serif}
 .d12#stage{display:grid;grid-template-columns:370px 310px 1fr 310px;grid-template-rows:1fr 1fr 236px;gap:14px;padding:14px}
 .d12 .t{background:var(--card);border-radius:var(--radius);position:relative;min-height:0;overflow:hidden}
-.d12 .t-det{grid-row:1/4;padding:22px;overflow:auto;display:flex;flex-direction:column;gap:16px}
-.d12 .tabs{background:var(--hl);padding:4px;border-radius:14px}
+.d12 .t-detwrap{grid-row:1/4;display:flex;flex-direction:column;gap:12px;min-height:0}
+.d12 .brandbar{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 0}
+.d12 .t-det{flex:1;padding:22px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.d12 .t-detwrap{gap:0} .d12 .brandbar{margin-bottom:12px}
+/* folder tabs: the selected tab is part of the detail card; the others sit on the page background */
+.ftabs .tabs{gap:0;align-items:flex-end}
+.ftabs .tab{flex:1 1 0;min-width:0;padding:12px 4px;border-radius:12px 12px 0 0;font-size:15px;color:var(--muted);background:none;position:relative}
+.ftabs .tab:hover{color:var(--ink)}
+.ftabs .tab[aria-selected=true]{background:var(--card);color:var(--ink);font-weight:700}
+.ftabs .tab[aria-selected=true]::before,.ftabs .tab[aria-selected=true]::after{content:'';position:absolute;bottom:0;width:12px;height:12px;pointer-events:none}
+.ftabs .tab[aria-selected=true]::before{left:-12px;background:radial-gradient(circle at 0 0,transparent 11.5px,var(--card) 12px)} /* concave curve where the tab meets the card */
+.ftabs .tab[aria-selected=true]::after{right:-12px;background:radial-gradient(circle at 100% 0,transparent 11.5px,var(--card) 12px)}
+.ftabs .tab:first-child[aria-selected=true]::before,.ftabs .tab:last-child[aria-selected=true]::after{display:none}
+.d12 .t-det.first{border-top-left-radius:0} .d12 .t-det.last{border-top-right-radius:0} /* first tab selected: the card's corner becomes the tab's edge */
 .d12 .t-scene{grid-column:2/4;grid-row:1/3;background:linear-gradient(#f7f5f1,#efece6)}
 .d12 .t-scene .over{position:absolute;left:20px;top:18px;z-index:2;display:flex;flex-direction:column;gap:4px}
-.d12 .t-scene .over{flex-direction:row;align-items:center;gap:14px;top:16px}
-.d12 .t-scene .over .eyebrow{font-size:15px;font-weight:600;color:var(--ink)}
+.d12 .t-scene .over{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 14px;top:16px;right:72px} /* right:72px keeps clear of the zoom buttons; the floor bar drops under the title when the tile is narrow */
+.d12 .t-scene .over .eyebrow{white-space:nowrap;font-size:15px;font-weight:600;color:var(--ink)}
 .floors{display:inline-flex;gap:2px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
-.floors button{display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:10px;font-size:14.5px;font-weight:600;color:var(--muted)}
+.floors button{white-space:nowrap;display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:10px;font-size:14.5px;font-weight:600;color:var(--muted)}
 .floors button:hover{color:var(--ink);background:var(--hl)}
 .floors button{border:2px solid transparent}
 .floors button[aria-pressed=true]{border-color:var(--ink);color:var(--ink);background:var(--card)}
@@ -140,7 +152,7 @@ table.tbl td.r,table.tbl th.r{text-align:right}
 .d12 .t-rank .rh{padding:0 12px 8px;font-weight:600}
 .d12 .t-chart{grid-column:3/5;grid-row:3;padding:18px 22px}
 .d12 .t-kpis{grid-column:2;grid-row:3;background:none;display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.d12 .t-kpis .kpi{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+.d12 .t-kpis .kpi{background:var(--card);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
 .d12 .t-kpis .kpi.hot{background:#18181b;color:#fff} .d12 .t-kpis .kpi.hot .k{color:#a1a1aa}
 .d12 .ctrls{right:16px;top:16px;border-radius:14px}
 .d12 .hint{left:16px;bottom:14px;z-index:2;background:rgba(255,255,255,.88);padding:5px 10px;border-radius:99px;color:var(--ink)}
@@ -286,12 +298,12 @@ const C = {
   pill: (s, l) => `<span class="pill s-${s}">${ST[s].g} ${l || ST[s].l}</span>`,
   tabs(o = {}) {
     const b = sel();
-    return `<div class="tabs" role="tablist">${TABS.map(t => {
+    return `<div class="ftabs"><div class="tabs" role="tablist">${TABS.map(t => {
       const items = t.k === 'overview' ? [] : b[t.k];
       const crit = items.filter(x => x.s === 'crit').length, warn = items.filter(x => x.s === 'warn').length;
       const ct = crit ? `<span class="ct">${crit + warn}</span>` : warn ? `<span class="ct w">${warn}</span>` : '';
       return `<button class="tab" role="tab" data-tab="${t.k}" aria-selected="${state.tab === t.k}" title="${t.f}">${o.icons ? ic(t.k) : ''}<span>${o.full ? t.f : t.l}</span>${ct}</button>`;
-    }).join('')}</div>`;
+    }).join('')}</div></div>`;
   },
   head: (b, o = {}) => `<div class="head"><div class="eyebrow">${o.eyebrow || `Floor ${state.floor} · Data hall`}</div><h2>Hall ${b.id}</h2>${C.pill(b.status)}<p>${b.headline}</p></div>`,
   stat: (k, v, u) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`,
@@ -349,7 +361,7 @@ const S = (o) => Object.assign({ plinth: '#e6dcc4', block: '#fbf7ec', roof: '#ef
 
 const DESIGNS = [
   { cls: 'd12', name: 'Bento', blurb: 'Tile grid: model, detail, ranking, chart and KPI tiles', scene: S({ plinth: '#dedbd4', block: '#ffffff', roof: '#f3f1ec', rack: '#222', unit: '#e7e4dd', edge: '#222', edgeOp: .18, ok: '#2f9e6b', warn: '#e59a1a', crit: '#e5484d', gnd: '#c8c3b8', dist: 36 }),
-    html: b => `<section class="t t-det"><div style="display:flex;justify-content:space-between;align-items:center">${C.brand()}${C.live()}</div>${C.tabs()}${C.head(b)}<div>${C.body(b)}</div></section>
+    html: b => `<section class="t-detwrap"><div class="brandbar">${C.brand()}${C.live()}</div>${C.tabs()}<div class="t t-det ${state.tab === TABS[0].k ? 'first' : state.tab === TABS[TABS.length - 1].k ? 'last' : ''}">${C.head(b)}<div>${C.body(b)}</div></div></section>
       <section class="t t-scene">${C.slot()}<div class="over"><span class="eyebrow">Dallas DC-2</span>${C.floors()}</div>${C.ctrls()}${C.hint()}</section>
       <section class="t t-rank"><div class="rh">Halls by risk</div>${C.rank()}</section>
       <section class="t t-chart">${C.chartHead(b)}${C.chart(b, { h: 150 })}</section>
@@ -426,10 +438,10 @@ function buildWorld(t) {
       const fan = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .05, 18), lidMat); fan.position.set(-1.3 + 1.3 * k, HH + .6, -1.3); lid.add(fan);
     }
     box(2.4, .3, .7, lidUnit, -.6, HH + .3, 1.6, lid, true, lidEdge);
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 12), new THREE.MeshBasicMaterial({ color: t[b.status] }));
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 12), new THREE.MeshBasicMaterial({ color: t[b.status], transparent: true }));
     beacon.position.set(1.75, HH + .55, 1.95); g.add(beacon);
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .4, 6), new THREE.MeshBasicMaterial({ color: t.edge })); mast.position.set(1.75, HH + .3, 1.95); g.add(mast);
-    halls.push({ b, g, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, beacon, mast });
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .4, 6), new THREE.MeshBasicMaterial({ color: t.edge, transparent: true })); mast.position.set(1.75, HH + .3, 1.95); g.add(mast);
+    halls.push({ b, g, shell, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, beacon, mast });
   });
   orbit.distT = t.dist; orbit.el = t.el;
 }
@@ -482,12 +494,22 @@ function tick(now) {
   halls.forEach(H => {
     const on = H.b.id === state.sel;
     H.g.position.y += ((on ? .3 : 0) - H.g.position.y) * k;
-    H.lid.position.y += ((on ? 1.8 : 0) - H.lid.position.y) * k;
-    const lo = on ? 0 : T.face; H.lidMats.forEach(m => { m.opacity += (lo - m.opacity) * k; });
-    H.lidEdge.opacity += ((on ? 0 : T.edgeOp) - H.lidEdge.opacity) * k;
-    H.lid.visible = H.lidMats[0].opacity > .02 || H.lidEdge.opacity > .02;
+    if (H.on !== on) { // selection changed: drop this hall's shadows at once, so no dark roof shadow lingers and then pops off
+      H.on = on;
+      H.lid.traverse(o => { if (o.isMesh) o.castShadow = !on && T.shadow; });
+      H.shell.castShadow = !on && T.shadow;
+    }
+    const f = .2; // fade speed: quick, but still visibly animated
+    H.lid.position.y += ((on ? 1.4 : 0) - H.lid.position.y) * f;
+    const lo = on ? 0 : T.face;
+    H.lidMats.forEach(m => { m.opacity += (lo - m.opacity) * f; m.depthWrite = !on && m.opacity > .97 && T.face >= .5; }); // see-through parts never write depth, which stops the flicker
+    H.lidEdge.opacity += ((on ? 0 : T.edgeOp) - H.lidEdge.opacity) * f;
+    H.lid.visible = H.lidMats[0].opacity > .01 || H.lidEdge.opacity > .01;
     const so = on ? Math.min(T.face, .13) : (hovered === H.b.id && T.face === 1 ? .92 : T.face);
-    H.shellMat.opacity += (so - H.shellMat.opacity) * k; H.shellMat.depthWrite = H.shellMat.opacity > .6;
+    H.shellMat.opacity += (so - H.shellMat.opacity) * f; H.shellMat.depthWrite = !on && H.shellMat.opacity > .97 && T.face >= .5;
+    const po = on ? 0 : 1; // the status pin fades out with the roof
+    H.beacon.material.opacity += (po - H.beacon.material.opacity) * f; H.mast.material.opacity = H.beacon.material.opacity;
+    H.beacon.visible = H.mast.visible = H.beacon.material.opacity > .01;
     const p = H.b.status === 'crit' ? 1 + .35 * Math.sin(t * 5) : H.b.status === 'warn' ? 1 + .15 * Math.sin(t * 2.5) : 1;
     H.beacon.scale.setScalar(p);
   });
