@@ -20,9 +20,14 @@ export const DARK_PALETTE: ScenePalette = {
 }
 
 const HH = 2.2 // hall height
-const DIST = 36 // default camera distance
 const HOME = { az: -0.62, el: 0.72 }
-const POS: [number, number][] = Array.from({ length: 8 }, (_, i) => [-7.5 + 5 * (i % 4), i < 4 ? -3.6 : 3.6])
+
+/** Two rows of halls (one data center per row when there are 4). Returns positions and the half-width of the block. */
+function layout(n: number) {
+  const cols = Math.max(1, Math.ceil(n / 2))
+  const pos: [number, number][] = Array.from({ length: n }, (_, i) => [-(cols - 1) * 2.5 + 5 * (i % cols), i < cols ? -3.6 : 3.6])
+  return { pos, half: (cols - 1) * 2.5 + 2.15, dist: cols >= 4 ? 36 : cols === 3 ? 33 : cols === 2 ? 31 : 27 } // camera distance shrinks with the block
+}
 
 interface HallObj {
   hall: Hall
@@ -31,6 +36,7 @@ interface HallObj {
   lid: THREE.Group
   lidMats: THREE.MeshLambertMaterial[]
   lidEdge: THREE.LineBasicMaterial
+  band: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>
   beacon: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>
   mast: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>
   label: HTMLDivElement
@@ -54,7 +60,8 @@ export class FloorScene {
   private hallData: Hall[] = []
   private selected = ''
   private hovered: string | null = null
-  private orbit = { az: HOME.az, el: HOME.el, dist: 40, distT: DIST, target: new THREE.Vector3(0, 1, 0) }
+  private orbit = { az: HOME.az, el: HOME.el, dist: 40, distT: 36, target: new THREE.Vector3(0, 1, 0) }
+  private home = layout(8)
   private view = { x: 0, y: 0 }
   private frameReq = 0
   private homing = false
@@ -103,10 +110,27 @@ export class FloorScene {
 
   /** Swap in a floor's halls. `drop` animates them falling into place (used on floor switches). */
   setHalls(halls: Hall[], drop = false) {
+    const same = !drop && halls.length === this.halls.length && halls.every((h, i) => h.id === this.halls[i].hall.id)
     this.hallData = halls
+    if (same) return this.refresh() // live update: recolour in place, no rebuild
+    const first = !this.halls.length && !this.world
     this.build()
+    if (first) this.orbit.dist = this.home.dist + 4 // settle in from slightly further out
+    this.orbit.distT = this.home.dist
     if (drop) this.halls.forEach((H, i) => (H.g.position.y = 3 + i * 0.25)) // staggered drop
     this.frameReq = 3
+  }
+
+  /** Recolour status strips, pins and labels after a live update. */
+  private refresh() {
+    this.halls.forEach((H, i) => {
+      const hall = this.hallData[i]
+      H.hall = hall
+      H.band.material.color.set(this.palette[hall.status])
+      H.beacon.material.color.set(this.palette[hall.status])
+      H.label.className = `floor-label s-${hall.status}${hall.id === this.selected ? ' is-on' : ''}${this.hovered === hall.id ? ' is-hover' : ''}`
+      H.label.lastChild!.textContent = hall.tag
+    })
   }
 
   setPalette(p: ScenePalette) {
@@ -122,7 +146,7 @@ export class FloorScene {
 
   zoom(dir: 'in' | 'out') {
     this.homing = false
-    this.orbit.distT = dir === 'in' ? Math.max(16, this.orbit.distT * 0.82) : Math.min(70, this.orbit.distT * 1.2)
+    this.orbit.distT = dir === 'in' ? Math.max(12, this.orbit.distT * 0.82) : Math.min(70, this.orbit.distT * 1.2)
     this.lastInteract = performance.now()
   }
 
@@ -186,22 +210,25 @@ export class FloorScene {
       return mesh
     }
 
-    box(38, 0.5, 18, mat(t.plinth), 0, -0.25, 0, world) // plinth
-    box(19.8, 1.1, 1.5, mat(t.roof), 0, 0.55, 0, world) // spine corridor
+    const L = layout(this.hallData.length)
+    this.home = L
+    const W = L.half
+    box(2 * W + 19.3, 0.5, 18, mat(t.plinth), 0, -0.25, 0, world) // plinth
+    box(2 * W + 0.5, 1.1, 1.5, mat(t.roof), 0, 0.55, 0, world) // spine corridor
     const unitM = mat(t.unit)
     for (let k = 0; k < 4; k++) { // generator yard
       const z = -5.1 + k * 3.4
-      box(1.3, 1, 2.4, unitM, -14.6, 0.5, z, world)
-      cyl(0.14, 1.2, unitM, -14.2, 1.5, z - 0.7, world)
+      box(1.3, 1, 2.4, unitM, -(W + 4.95), 0.5, z, world)
+      cyl(0.14, 1.2, unitM, -(W + 4.55), 1.5, z - 0.7, world)
     }
     for (const z of [-3.4, 3.4]) { // cooling towers
-      cyl(1.2, 1.8, unitM, 14.4, 0.9, z, world)
-      cyl(0.9, 0.15, mat(t.rack), 14.4, 1.85, z, world)
+      cyl(1.2, 1.8, unitM, W + 4.75, 0.9, z, world)
+      cyl(0.9, 0.15, mat(t.rack), W + 4.75, 1.85, z, world)
     }
-    box(2.2, 1.3, 2.6, unitM, 14.4, 0.65, 0, world) // substation
+    box(2.2, 1.3, 2.6, unitM, W + 4.75, 0.65, 0, world) // substation
 
     this.hallData.forEach((hall, i) => {
-      const [x, z] = POS[i]
+      const [x, z] = L.pos[i]
       const g = new THREE.Group()
       g.position.set(x, 0, z)
       world.add(g)
@@ -241,10 +268,11 @@ export class FloorScene {
 
       const label = document.createElement('div')
       label.className = `floor-label s-${hall.status}${hall.id === this.selected ? ' is-on' : ''}`
-      label.innerHTML = `<i></i>${hall.id}`
+      label.innerHTML = '<i></i>'
+      label.append(hall.tag)
       label.addEventListener('click', () => this.opts.onSelect(hall.id))
       this.labels.append(label)
-      this.halls.push({ hall, g, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, beacon, mast, label })
+      this.halls.push({ hall, g, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, band, beacon, mast, label })
     })
   }
 
@@ -268,7 +296,8 @@ export class FloorScene {
     this.camera.updateMatrixWorld()
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9
     const pts: [number, number, number, number][] = []
-    for (const x of [-9.7, 9.7]) for (const z of [-6.2, 6.2]) for (const y of [0, HH + 0.6]) pts.push([x, y, z, 0])
+    const W = this.home.half + 0.05
+    for (const x of [-W, W]) for (const z of [-6.2, 6.2]) for (const y of [0, HH + 0.6]) pts.push([x, y, z, 0])
     this.halls.forEach(H => pts.push([H.g.position.x, HH + (H.hall.id === this.selected ? 2.9 : 1.3), H.g.position.z, 36])) // labels stand ~36px above their anchor
     for (const [x, y, z, lift] of pts) {
       this.v.set(x, y, z).project(this.camera)
@@ -291,8 +320,8 @@ export class FloorScene {
       const da = Math.atan2(Math.sin(HOME.az - o.az), Math.cos(HOME.az - o.az)) // shortest way round
       o.az += da * 0.09
       o.el += (HOME.el - o.el) * 0.09
-      o.distT = DIST
-      if (Math.abs(da) < 0.002 && Math.abs(HOME.el - o.el) < 0.002 && Math.abs(o.dist - DIST) < 0.02) { this.homing = false; this.frameReq = 2 }
+      o.distT = this.home.dist
+      if (Math.abs(da) < 0.002 && Math.abs(HOME.el - o.el) < 0.002 && Math.abs(o.dist - this.home.dist) < 0.02) { this.homing = false; this.frameReq = 2 }
       this.lastInteract = now // no idle spin while gliding home
     } else if (now - this.lastInteract > 4000 && !this.drag) o.az += 0.0006 // slow idle turn
     o.dist += (o.distT - o.dist) * (this.homing ? 0.09 : 0.12)
@@ -370,7 +399,7 @@ export class FloorScene {
   private onWheel = (e: WheelEvent) => {
     e.preventDefault()
     this.homing = false
-    this.orbit.distT = Math.max(16, Math.min(70, this.orbit.distT * (1 + e.deltaY * 0.0012)))
+    this.orbit.distT = Math.max(12, Math.min(70, this.orbit.distT * (1 + e.deltaY * 0.0012)))
     this.lastInteract = performance.now()
   }
 }

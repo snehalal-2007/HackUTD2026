@@ -10,6 +10,53 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const AgentIdentity = __t.object("AgentIdentity", {
+  identity: __t.identity(),
+});
+export type AgentIdentity = __Infer<typeof AgentIdentity>;
+
+export const Datacenter = __t.object("Datacenter", {
+  datacenterId: __t.string(),
+  name: __t.string(),
+  region: __t.string(),
+  feed: __t.identity(),
+  lastIngestAt: __t.timestamp(),
+});
+export type Datacenter = __Infer<typeof Datacenter>;
+
+export const EventLog = __t.object("EventLog", {
+  seq: __t.u64(),
+  at: __t.timestamp(),
+  actor: __t.string(),
+  action: __t.string(),
+  target: __t.string(),
+  incidentId: __t.option(__t.u64()),
+  prevHash: __t.string(),
+  hash: __t.string(),
+});
+export type EventLog = __Infer<typeof EventLog>;
+
+export const Incident = __t.object("Incident", {
+  incidentId: __t.u64(),
+  status: __t.string(),
+  title: __t.string(),
+  severity: __t.string(),
+  datacenterId: __t.string(),
+  openedAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Incident = __Infer<typeof Incident>;
+
+export const IncidentReport = __t.object("IncidentReport", {
+  reportId: __t.u64(),
+  incidentId: __t.u64(),
+  kind: __t.string(),
+  reportJson: __t.string(),
+  source: __t.string(),
+  writtenAt: __t.timestamp(),
+});
+export type IncidentReport = __Infer<typeof IncidentReport>;
+
 export const Operator = __t.object("Operator", {
   identity: __t.identity(),
   name: __t.string(),
@@ -19,6 +66,12 @@ export const Operator = __t.object("Operator", {
 });
 export type Operator = __Infer<typeof Operator>;
 
+export const PruneTimer = __t.object("PruneTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type PruneTimer = __Infer<typeof PruneTimer>;
+
 export const Quarantine = __t.object("Quarantine", {
   identity: __t.identity(),
   reason: __t.string(),
@@ -26,6 +79,97 @@ export const Quarantine = __t.object("Quarantine", {
   hits: __t.u32(),
 });
 export type Quarantine = __Infer<typeof Quarantine>;
+
+export const Rack = __t.object("Rack", {
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  servers: __t.u32(),
+  gpuTempMaxC: __t.f64(),
+  cpuTempMaxC: __t.f64(),
+  powerKw: __t.f64(),
+  updatedAt: __t.timestamp(),
+});
+export type Rack = __Infer<typeof Rack>;
+
+export const ReadingIn = __t.object("ReadingIn", {
+  region: __t.string(),
+  datacenterName: __t.string(),
+  rackId: __t.string(),
+  serverId: __t.string(),
+  sourceHostname: __t.string(),
+  seq: __t.u64(),
+  measuredAt: __t.timestamp(),
+  nodeState: __t.string(),
+  jobActive: __t.bool(),
+  gpuFailure: __t.bool(),
+  gpuTempC: __t.f64(),
+  cpuTempC: __t.f64(),
+  gpuPowerW: __t.f64(),
+  cpuPowerW: __t.f64(),
+  nodePowerW: __t.f64(),
+  gpuUtilPct: __t.f64(),
+  cpuUtilPct: __t.f64(),
+  source: __t.string(),
+});
+export type ReadingIn = __Infer<typeof ReadingIn>;
+
+export const Server = __t.object("Server", {
+  serverId: __t.string(),
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  region: __t.string(),
+  sourceHostname: __t.string(),
+});
+export type Server = __Infer<typeof Server>;
+
+export const ServerLatest = __t.object("ServerLatest", {
+  serverId: __t.string(),
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  seq: __t.u64(),
+  measuredAt: __t.timestamp(),
+  receivedAt: __t.timestamp(),
+  nodeState: __t.string(),
+  jobActive: __t.bool(),
+  gpuFailure: __t.bool(),
+  gpuTempC: __t.f64(),
+  cpuTempC: __t.f64(),
+  gpuPowerW: __t.f64(),
+  cpuPowerW: __t.f64(),
+  nodePowerW: __t.f64(),
+  gpuUtilPct: __t.f64(),
+  cpuUtilPct: __t.f64(),
+  source: __t.string(),
+});
+export type ServerLatest = __Infer<typeof ServerLatest>;
+
+export const ServerReading = __t.object("ServerReading", {
+  id: __t.u64(),
+  serverId: __t.string(),
+  measuredAt: __t.timestamp(),
+  receivedAt: __t.timestamp(),
+  gpuTempC: __t.f64(),
+  cpuTempC: __t.f64(),
+  nodePowerW: __t.f64(),
+  gpuUtilPct: __t.f64(),
+  cpuUtilPct: __t.f64(),
+});
+export type ServerReading = __Infer<typeof ServerReading>;
+
+export const Shift = __t.object("Shift", {
+  shiftId: __t.u64(),
+  status: __t.string(),
+  startedAt: __t.timestamp(),
+});
+export type Shift = __Infer<typeof Shift>;
+
+export const ShiftReport = __t.object("ShiftReport", {
+  shiftId: __t.u64(),
+  reportJson: __t.string(),
+  source: __t.string(),
+  writtenAt: __t.timestamp(),
+});
+export type ShiftReport = __Infer<typeof ShiftReport>;
 
 export const ThreatEvent = __t.object("ThreatEvent", {
   id: __t.u64(),

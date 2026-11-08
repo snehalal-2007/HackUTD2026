@@ -1,0 +1,21 @@
+{
+  "name": "@mesa/replayer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Replays real OLCF Summit telemetry into SpacetimeDB as live data-center feeds",
+  "scripts": {
+    "start": "tsx --env-file-if-exists=../../.env src/index.ts",
+    "dev": "tsx --env-file-if-exists=../../.env src/index.ts --speed 10",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@mesa/bindings": "workspace:*",
+    "spacetimedb": "2.14.*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "tsx": "^4.21.0",
+    "typescript": "~7.0.2"
+  }
+}

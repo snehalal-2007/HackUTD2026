@@ -17,7 +17,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "demo:attack": "pnpm --filter @mesa/agent exec tsx ../../security/attack-scripts/attack-demo.ts",
-    "demo:honeypot": "bash scripts/demo-honeypot.sh"
+    "demo:honeypot": "bash scripts/demo-honeypot.sh",
+    "replay": "pnpm --filter @mesa/replayer start"
   },
   "devDependencies": {
     "@vercel/config": "^0.14.1",

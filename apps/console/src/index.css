@@ -232,12 +232,11 @@
 .folder-tab {
     position: relative;
     display: flex;
-    flex: 1 1 0;
-    min-width: 0;
+    flex: none; /* each tab is as wide as its label */
     align-items: center;
     justify-content: center;
     gap: 5px;
-    padding: 12px 4px;
+    padding: 12px 15px;
     border-radius: var(--radius) var(--radius) 0 0;
     font-size: 15px;
     font-weight: 550;
@@ -257,8 +256,7 @@
 }
 .folder-tab[aria-selected="true"]::before { left: calc(var(--radius) * -1); background: radial-gradient(circle at 0 0, transparent calc(var(--radius) - .5px), var(--card) var(--radius)); }
 .folder-tab[aria-selected="true"]::after { right: calc(var(--radius) * -1); background: radial-gradient(circle at 100% 0, transparent calc(var(--radius) - .5px), var(--card) var(--radius)); }
-.folder-tab:first-child[aria-selected="true"]::before,
-.folder-tab:last-child[aria-selected="true"]::after { display: none; }
+.folder-tab:first-child[aria-selected="true"]::before { display: none; } /* the first tab lines up with the card's left edge */
 
 /* Hall labels floating over the 3D floor; positioned every frame by FloorScene. */
 .floor-label {

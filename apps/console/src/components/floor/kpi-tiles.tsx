@@ -1,13 +1,14 @@
-import { cn } from '@/lib/utils'
-import { fmtHours, floorTotals, type Hall } from './data'
+import type { ReactNode } from 'react'
+import { GPU_WARN_C, floorTotals, type Hall } from './data'
 
-/** Four compact floor totals stacked down the right edge of the 3D tile. */
-export function KpiTiles({ halls }: { halls: Hall[] }) {
+/** Compact floor totals stacked down the right edge of the 3D tile (live), with a last tile for extra content (the site map). */
+export function KpiTiles({ halls, children }: { halls: Hall[]; children?: ReactNode }) {
   const t = floorTotals(halls)
+  const empty = !halls.length
   const tiles = [
-    { k: 'IT load', v: t.loadMW.toFixed(2), u: 'MW' },
-    { k: 'Open issues', v: String(t.issues), u: '' },
-    { k: 'Avg inlet', v: t.avgTemp.toFixed(1), u: '°C' },
+    { k: 'Floor power', v: empty ? '—' : t.loadKW.toFixed(1), u: empty ? '' : 'kW' },
+    { k: `Servers ≥ ${GPU_WARN_C} °C`, v: empty ? '—' : String(t.hot), u: empty ? '' : `of ${t.servers}` },
+    { k: 'Hottest GPU', v: empty ? '—' : t.maxTemp.toFixed(1), u: empty ? '' : '°C' },
   ]
   return (
     <div className="flex h-full min-h-0 flex-col gap-2.5">
@@ -20,17 +21,7 @@ export function KpiTiles({ halls }: { halls: Hall[] }) {
           </span>
         </div>
       ))}
-      <div className={cn('flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-center', 'bg-[#18181b] text-white dark:bg-[#f4f4f5] dark:text-[#18181b]')}>
-        <span className="text-[12.5px] opacity-70">Next breach</span>
-        {t.next ? (
-          <span className="text-xl font-semibold tabular-nums">
-            {t.next.id}
-            <span className="ml-1 text-[13px] font-normal opacity-70">{fmtHours(t.next.breachH!)}</span>
-          </span>
-        ) : (
-          <span className="text-base font-semibold whitespace-nowrap">None expected</span>
-        )}
-      </div>
+      {children}
     </div>
   )
 }
