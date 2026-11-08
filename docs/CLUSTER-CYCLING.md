@@ -71,6 +71,7 @@ All three executor reducers reject the agent identity and quarantined identities
 
 - **Totals:** instances (constant), instances moved, duplicates avoided, downtime, active runs.
 - **Services per rack:** one card per rack with its live status (Ready, Not Ready: warm, Incident, Feed silent; color, icon and text), hottest GPU from telemetry, slots used, and its instances with draw and a Throttled or Patching badge.
+- **Rolling updates:** one card per service being patched (and the last few finished ones). Each instance is a cell with its version and state: **Serving** (still on the old version, waiting its turn), **Updating** (highlighted, in place, not restarted) or **Updated** (new version). The version flips as each step lands, and the card ends as **Completed** with every instance on the new version. A strip under the cells reads the live rows to show capacity never drops: instances present vs. the count when the run started, how many are updating now (at most 1), and how many are on the new version. Built only from `service`, `instance` and `remediation_run`; motion only on genuine changes (a new card, a step landing), none on load.
 - **Remediation runs:** newest first. Action, status, instance, from → to, a countdown while a throttle window is open, patch progress, whether it was automatic, the incident, "Simulated effect", duplicates avoided, downtime and warning lead time.
 - **Services:** version and placement; a **Patch to vX** button when a known patch exists (needs a registered operator).
 

@@ -63,6 +63,29 @@ export interface ServiceVM {
   rolling: RunVM | undefined
 }
 
+/** Where one instance is in a rolling update: still on the old version, being updated now, or on the new one. */
+export type RolloutPhase = 'waiting' | 'updating' | 'updated'
+
+export interface RolloutCell {
+  id: string
+  rack: string
+  version: string
+  throttled: boolean
+  phase: RolloutPhase
+}
+
+/** One service's rolling in-place patch, read from `remediation_run` plus the live `instance` rows. */
+export interface RolloutVM {
+  run: RunVM
+  service: string
+  running: boolean
+  fromVersion: string
+  toVersion: string
+  cells: RolloutCell[]
+  updating: number
+  updated: number
+}
+
 const ms = (ts: { microsSinceUnixEpoch: bigint }) => Number(ts.microsSinceUnixEpoch / 1000n)
 export const cabOf = (rackId: string) => rackId.split('/')[1] ?? rackId
 
@@ -165,6 +188,43 @@ export function useCluster() {
       })
       .sort((a, b) => a.id.localeCompare(b.id))
 
+    // The latest patch run per service: running ones first, then the few most recent finished ones.
+    const rackLabel = new Map(rackVMs.map(r => [r.id, `${r.datacenter} · ${r.cab}`]))
+    const latestPatch = new Map<string, RunVM>()
+    for (const r of runVMs) {
+      if (r.action === 'patch_in_place' && (r.status === 'running' || r.status === 'succeeded') && !latestPatch.has(r.service)) {
+        latestPatch.set(r.service, r)
+      }
+    }
+    const rolloutFor = (run: RunVM): RolloutVM => {
+      const running = run.status === 'running'
+      const cells = instances
+        .filter(i => i.serviceId === run.service)
+        .sort((a, b) => (a.instanceId < b.instanceId ? -1 : 1))
+        .map(i => ({
+          id: i.instanceId,
+          rack: rackLabel.get(i.rackId) ?? i.rackId,
+          version: i.version,
+          throttled: i.state === 'throttled',
+          phase: (i.state === 'patching' ? 'updating' : i.version === run.version ? 'updated' : 'waiting') as RolloutPhase,
+        }))
+      return {
+        run,
+        service: run.service,
+        running,
+        fromVersion: running ? (services.find(s => s.serviceId === run.service)?.version ?? '') : (/^(\S+) →/.exec(run.detail)?.[1] ?? ''),
+        toVersion: run.version,
+        cells,
+        updating: cells.filter(c => c.phase === 'updating').length,
+        updated: cells.filter(c => c.phase === 'updated').length,
+      }
+    }
+    const patchRuns = [...latestPatch.values()].sort((a, b) => Number(b.id) - Number(a.id))
+    const rollouts = [
+      ...patchRuns.filter(r => r.status === 'running'),
+      ...patchRuns.filter(r => r.status === 'succeeded').slice(0, 3),
+    ].map(rolloutFor)
+
     const totals = {
       services: services.length,
       instances: instances.length,
@@ -174,6 +234,6 @@ export function useCluster() {
       active: runVMs.filter(r => r.status === 'running').length,
     }
 
-    return { ready, racks: rackVMs, runs: runVMs, services: serviceVMs, totals, warn }
+    return { ready, racks: rackVMs, runs: runVMs, services: serviceVMs, rollouts, totals, warn }
   }, [ready, services, instances, runs, stats, racks, dcs, incidents, feeds, thresholds])
 }
