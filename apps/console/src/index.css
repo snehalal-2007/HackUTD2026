@@ -156,6 +156,31 @@
   html {
     @apply font-sans;
     }
+  /* Tailwind v4 leaves buttons with the default arrow. Anything that acts on a click shows the
+     hand on hover; disabled controls show "not allowed" so they don't look clickable. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  [role='menuitem']:not([aria-disabled='true']),
+  [role='menuitemradio']:not([aria-disabled='true']),
+  [role='menuitemcheckbox']:not([aria-disabled='true']),
+  [role='option']:not([aria-disabled='true']),
+  [role='checkbox']:not([aria-disabled='true']),
+  [role='switch']:not([aria-disabled='true']),
+  [role='radio']:not([aria-disabled='true']),
+  summary,
+  select:not(:disabled),
+  label[for],
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  input[type='file']:not(:disabled) {
+    cursor: pointer;
+    }
+  button:disabled,
+  [role='button'][aria-disabled='true'],
+  select:disabled {
+    cursor: not-allowed;
+    }
 }
 /* MESA theme, taken from docs/prototype.html: warm grey page, white cards, near-black ink, Lexend.
    Light is the default to match the prototype; dark keeps the same neutrals and status colours. */
