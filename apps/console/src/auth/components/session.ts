@@ -5,8 +5,8 @@
 const KEY = 'mesa:session'
 let memory: string | null = null // fallback when sessionStorage is blocked
 
-export const HOME_ROUTE = '#/'
-export const CONSOLE_ROUTE = '#/console'
+export const HOME_ROUTE = '/'
+export const CONSOLE_ROUTE = '/console'
 
 export function signedInAs(): string | null {
   try {

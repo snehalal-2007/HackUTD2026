@@ -45,6 +45,7 @@ import EndMyShiftReducer from "./end_my_shift_reducer";
 import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
 import IngestReadingsReducer from "./ingest_readings_reducer";
 import OpenIncidentReducer from "./open_incident_reducer";
+import ReassignIncidentReducer from "./reassign_incident_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
 import ReleaseIncidentReducer from "./release_incident_reducer";
 import ResolveIncidentReducer from "./resolve_incident_reducer";
@@ -305,6 +306,7 @@ const reducersSchema = __reducers(
   __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),
   __reducerSchema("ingest_readings", IngestReadingsReducer),
   __reducerSchema("open_incident", OpenIncidentReducer),
+  __reducerSchema("reassign_incident", ReassignIncidentReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
   __reducerSchema("release_incident", ReleaseIncidentReducer),
   __reducerSchema("resolve_incident", ResolveIncidentReducer),

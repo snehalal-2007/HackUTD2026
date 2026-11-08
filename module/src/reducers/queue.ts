@@ -16,7 +16,7 @@ import { assertAllowed } from '../honeypot/guard';
 //   - When a shift ends (you end it, or its time runs out), your unfinished tasks go back to the
 //     pool as leftovers, marked with your name, for the next person coming in.
 // Rules: only a registered operator can claim; nobody takes a task someone else owns;
-// only the owner can release or resolve (a task is never resolved without an owner).
+// only the owner can release, reassign (to someone on shift) or resolve (a task is never resolved without an owner).
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 type Incident = NonNullable<ReturnType<Ctx['db']['incident']['incidentId']['find']>>;
@@ -111,6 +111,20 @@ export const releaseIncident = spacetimedb.reducer({ incidentId: t.u64() }, (ctx
   const status = row.status === 'acknowledged' ? 'open' : row.status;
   ctx.db.incident.incidentId.update({ ...row, status, owner: '', ownerName: '', claimedAtMicros: 0n, updatedAt: ctx.timestamp });
   appendEvent(ctx, id.slice(0, 16), 'released incident', `incident ${incidentId} · ${op.name}`, incidentId);
+});
+
+/** Hand a task you own to a teammate who is on shift. */
+export const reassignIncident = spacetimedb.reducer({ incidentId: t.u64(), to: t.identity() }, (ctx, { incidentId, to }) => {
+  const op = me(ctx);
+  const row = activeIncident(ctx, incidentId);
+  const id = hex(op);
+  if (row.owner !== id) throw new SenderError('you can only reassign a task you own');
+  const target = ctx.db.operator.identity.find(to);
+  if (!target) throw new SenderError('no such operator');
+  if (hex(target) === id) return;
+  if (!target.onShift) throw new SenderError(`${target.name} is not on shift`);
+  ctx.db.incident.incidentId.update({ ...row, owner: hex(target), ownerName: target.name, claimedAtMicros: now(ctx), handedFrom: '', updatedAt: ctx.timestamp });
+  appendEvent(ctx, id.slice(0, 16), 'reassigned incident', `incident ${incidentId} · ${op.name} → ${target.name}`, incidentId);
 });
 
 export const resolveIncident = spacetimedb.reducer({ incidentId: t.u64(), note: t.string() }, (ctx, { incidentId, note }) => {

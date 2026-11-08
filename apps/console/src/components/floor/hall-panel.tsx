@@ -16,7 +16,7 @@ const TONE: Record<ItemState, string> = {
 export function StatusPill({ state, label }: { state: ItemState; label?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full border border-current px-2 py-0.5 text-[13px] leading-tight font-semibold whitespace-nowrap', TONE[state])}>
-      <span aria-hidden="true">{STATUS[state].glyph}</span>
+      <span aria-hidden="true" className={cn(state === 'crit' && 'text-[16px] leading-none')}>{STATUS[state].glyph}</span> {/* the ◆ renders small; bump it */}
       {label ?? STATUS[state].label}
     </span>
   )
@@ -55,8 +55,8 @@ function Rows({ items, empty }: { items: Item[]; empty: string }) {
   )
 }
 
-function Body({ hall, tab, onTab, taskCount }: { hall: Hall; tab: TabId; onTab: (t: TabId) => void; taskCount: number }) {
-  if (tab === 'tasks') return <BlockTasks hall={hall} />
+function Body({ hall, row, onPick, tab, onTab, taskCount }: { hall: Hall; row: Hall[]; onPick: (id: string) => void; tab: TabId; onTab: (t: TabId) => void; taskCount: number }) {
+  if (tab === 'tasks') return <BlockTasks hall={hall} row={row} onPick={onPick} />
   if (tab === 'overview') {
     return (
       <>
@@ -75,7 +75,7 @@ function Body({ hall, tab, onTab, taskCount }: { hall: Hall; tab: TabId; onTab: 
         )}
         <button type="button" onClick={() => onTab('tasks')} className="mt-4 flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-[14.5px] hover:bg-muted">
           <span>
-            <b className="font-semibold">{taskCount} task{taskCount === 1 ? '' : 's'}</b> on this row · <b className="font-semibold">{hall.risks.length} risk{hall.risks.length === 1 ? '' : 's'}</b> in this block
+            <b className="font-semibold">{taskCount} task{taskCount === 1 ? '' : 's'}</b> on {hall.tag} · <b className="font-semibold">{hall.risks.length} risk{hall.risks.length === 1 ? '' : 's'}</b> in this block
           </span>
           <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
         </button>
@@ -117,9 +117,9 @@ function Body({ hall, tab, onTab, taskCount }: { hall: Hall; tab: TabId; onTab: 
 }
 
 /** Folder-style tabs joined to the details card, then the selected hall's details. */
-export function HallPanel({ hall, siteName, floor, tab, onTab }: { hall: Hall; siteName: string; floor: number; tab: TabId; onTab: (t: TabId) => void }) {
+export function HallPanel({ hall, row, onPick, siteName, floor, tab, onTab }: { hall: Hall; row: Hall[]; onPick: (id: string) => void; siteName: string; floor: number; tab: TabId; onTab: (t: TabId) => void }) {
   const first = tab === TABS[0].id
-  const tasks = useBlockTasks(hall)
+  const tasks = useBlockTasks(hall, row).here
   const unowned = tasks.filter(i => !i.owner)
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={`${hall.label} details`}>
@@ -150,7 +150,7 @@ export function HallPanel({ hall, siteName, floor, tab, onTab }: { hall: Hall; s
           </div>
           <p className="mt-2.5 text-[15.5px] leading-normal">{hall.headline}</p>
         </div>
-        <Body hall={hall} tab={tab} onTab={onTab} taskCount={tasks.length} />
+        <Body hall={hall} row={row} onPick={onPick} tab={tab} onTab={onTab} taskCount={tasks.length} />
       </div>
     </section>
   )

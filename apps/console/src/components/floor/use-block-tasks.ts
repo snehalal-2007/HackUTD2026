@@ -7,11 +7,17 @@ import type { Hall } from './data'
 const SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 export const rackOf = (hall: Hall) => hall.id.split('#')[0]
 
-/** Active tasks on this block's rack, most urgent first. */
-export function useBlockTasks(hall: Hall) {
+/**
+ * A block's tasks. Incidents are opened per rack (one row of 3 blocks), but the heat comes from one block: the hottest
+ * in the row. That block owns the row's tasks (`here`); the other blocks in the row only point to it (`elsewhere`).
+ * `row` is the block's row (all blocks on its rack); without it every rack task counts as `here`.
+ */
+export function useBlockTasks(hall: Hall, row: Hall[] = []) {
   const [incidents] = useTable(tables.incident)
   const rack = rackOf(hall)
-  return incidents
+  const tasks = incidents
     .filter(i => i.rackId === rack && i.status !== 'closed')
     .sort((a, b) => (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9))
+  const cause = row.length ? [...row].sort((a, b) => b.temp - a.temp)[0] : hall
+  return cause.id === hall.id ? { here: tasks, elsewhere: [], cause } : { here: [], elsewhere: tasks, cause }
 }

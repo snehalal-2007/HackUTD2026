@@ -28,6 +28,7 @@ export function FloorSceneTile(props: {
   const hostRef = useRef<HTMLDivElement>(null)
   const labelsRef = useRef<HTMLDivElement>(null)
   const barRef = useRef<HTMLDivElement>(null)
+  const filterRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<FloorScene | null>(null)
   const onSelectRef = useRef(onSelect)
   const shownFloor = useRef<string | null>(null)
@@ -36,7 +37,7 @@ export function FloorSceneTile(props: {
   useEffect(() => { // create the scene once; it lives as long as the tile
     const scene = new FloorScene(hostRef.current!, labelsRef.current!, {
       onSelect: id => onSelectRef.current(id),
-      topInset: () => (barRef.current ? barRef.current.offsetTop + barRef.current.offsetHeight : 0),
+      topInset: () => Math.max(barRef.current ? barRef.current.offsetTop + barRef.current.offsetHeight : 0, filterRef.current ? filterRef.current.offsetTop + filterRef.current.offsetHeight : 0), // keep the building below the name and the floor filter
     })
     scene.setPalette(isDark() ? DARK_PALETTE : LIGHT_PALETTE)
     sceneRef.current = scene
@@ -80,9 +81,9 @@ export function FloorSceneTile(props: {
         ))}
       </div>
 
-      {/* floor filter, bottom right */}
-      <div role="group" aria-label="Floor" className="absolute right-4 bottom-3.5 z-[2] inline-flex items-center gap-0.5 rounded-[10px] border bg-card px-1 py-0.5 shadow-[0_4px_14px_rgba(0,0,0,.06)]">
-        <span className="px-2 text-[14.5px] font-semibold text-muted-foreground">Floor</span>
+      {/* floor filter, top right, just left of the zoom controls */}
+      <div ref={filterRef} role="group" aria-label="Floor" className="absolute top-4 right-[66px] z-[2] inline-flex items-center gap-1 rounded-xl border bg-card px-2 py-1.5 shadow-[0_4px_14px_rgba(0,0,0,.06)]">
+        <span className="px-2 text-[16px] font-semibold text-muted-foreground">Floor</span>
         {floors.map((list, i) => {
           const f = i + 1, w = worstOf(list), ct = hotOn(list)
           return (
@@ -94,13 +95,15 @@ export function FloorSceneTile(props: {
               title={`Floor ${f}: ${ct} server${ct === 1 ? '' : 's'} running hot`}
               onClick={() => onFloor(f)}
               className={cn(
-                'relative flex min-w-8 items-center justify-center gap-1.5 px-2 py-1 text-[14.5px] font-semibold tabular-nums whitespace-nowrap text-muted-foreground hover:text-foreground',
-                f === floor && 'text-foreground after:absolute after:inset-x-2 after:bottom-[3px] after:h-0.5 after:rounded-full after:bg-foreground', // selected floor: one line just under the number (and its badge)
+                'relative flex h-10 min-w-10 items-center justify-center rounded-lg px-3 text-[16px] font-semibold tabular-nums whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground',
+                ct > 0 && 'pr-6', // room on the right for the count, so it never covers the number
+                f === floor && 'text-foreground',
               )}
             >
-              {f}
+              <span className={cn('relative', f === floor && 'after:absolute after:-inset-x-1 after:-bottom-1.5 after:h-0.5 after:rounded-full after:bg-foreground')}>{f}</span> {/* selected floor: a line under the number */}
               {ct > 0 && (
-                <span className={cn('inline-grid h-[19px] min-w-[19px] place-items-center rounded-full px-1.5 text-[11.5px]', w === 'crit' ? 'bg-destructive text-white' : 'bg-warning text-[#1a1a1a]')}>
+                // notification badge on the number's top-right corner
+                <span className={cn('absolute top-1 right-1 inline-grid h-[17px] min-w-[17px] place-items-center rounded-full px-1 text-[10.5px] leading-none', w === 'crit' ? 'bg-destructive text-white' : 'bg-warning text-[#1a1a1a]')}>
                   {ct}
                 </span>
               )}

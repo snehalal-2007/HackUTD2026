@@ -43,3 +43,21 @@ export async function leaveDemoAccount(): Promise<boolean> {
   write(OWN_KEY, null)
   return true
 }
+
+/** The demo accounts on this machine (lowercase first names), and which one this browser is now (null: its own identity). */
+export async function demoAccounts(): Promise<{ names: string[]; current: string | null }> {
+  const accounts = await load()
+  const token = read(TOKEN_KEY)
+  return { names: Object.keys(accounts), current: Object.keys(accounts).find(k => accounts[k] === token) ?? null }
+}
+
+/** Switches this browser to a demo account without the sign-in form (the sidebar's operator switcher). Needs a reload. */
+export async function switchToDemo(key: string): Promise<boolean> {
+  const accounts = await load()
+  const token = accounts[key]
+  if (!token) return false
+  const current = read(TOKEN_KEY)
+  if (!Object.values(accounts).includes(current ?? '')) write(OWN_KEY, current) // remember who this browser was
+  write(TOKEN_KEY, token)
+  return true
+}

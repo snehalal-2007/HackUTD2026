@@ -19,6 +19,9 @@ export function Toaster() {
       theme={theme}
       closeButton
       visibleToasts={4}
+      expand={false} // pile up as a stack; hovering the pile fans them out
+      gap={10} // space between toasts once fanned out
+      offset={20} // clear of the page edge
       toastOptions={{
         unstyled: true,
         classNames: { toast: 'mesa-toast', title: 'mesa-toast-title', description: 'mesa-toast-desc', actionButton: 'mesa-toast-action', closeButton: 'mesa-toast-close' },

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { takeFloorTarget, type FloorTarget } from '@/components/floor/floor-link'
 import { CREDIT, GPU_CRIT_C, GPU_WARN_C, SITES, floorTotals, hotOn, worstOf, type Hall, type Site, type TabId } from '@/components/floor/data'
 import { FloorSceneTile } from '@/components/floor/floor-scene'
 import { HallPanel } from '@/components/floor/hall-panel'
@@ -9,19 +10,20 @@ import { useLiveSites, type SiteFloors } from '@/components/floor/use-live-floor
 // Live from SpacetimeDB telemetry (docs/UI-LIVE-DATA.md): one NMC² site at a time in 3D; the small map tile switches sites.
 export function FloorView() {
   const { sites, ready } = useLiveSites({ withHistory: true })
-  const [siteId, setSiteId] = useState(SITES[0].id)
+  const [target] = useState<FloorTarget | null>(takeFloorTarget) // opened from Alerts on a specific block
+  const [siteId, setSiteId] = useState(target?.site ?? SITES[0].id)
   const site = SITES.find(s => s.id === siteId) ?? SITES[0]
   const pins = SITES.map(s => {
     const halls = (sites[s.id] ?? []).flat()
     return { site: s, status: worstOf(halls), hot: hotOn(halls) }
   })
   // key: switching site resets its floor, selection and tab
-  return <SiteView key={site.id} site={site} floors={sites[site.id] ?? []} ready={ready} pins={pins} onSite={setSiteId} />
+  return <SiteView key={site.id} site={site} floors={sites[site.id] ?? []} ready={ready} pins={pins} onSite={setSiteId} target={target?.site === site.id ? target : null} />
 }
 
-function SiteView({ site, floors, ready, pins, onSite }: { site: Site; floors: SiteFloors[string]; ready: boolean; pins: SitePin[]; onSite: (id: string) => void }) {
-  const [floor, setFloor] = useState(1)
-  const [picked, setPicked] = useState<string | null>(null)
+function SiteView({ site, floors, ready, pins, onSite, target }: { site: Site; floors: SiteFloors[string]; ready: boolean; pins: SitePin[]; onSite: (id: string) => void; target: FloorTarget | null }) {
+  const [floor, setFloor] = useState(target?.floor ?? 1)
+  const [picked, setPicked] = useState<string | null>(target?.block ?? null)
   const [tab, setTab] = useState<TabId>('overview')
   const halls = floors[floor - 1] ?? []
   const hall = halls.find(h => h.id === picked) ?? halls[0] // halls are sorted A1, A2, …: the first is the top-left block
@@ -43,7 +45,7 @@ function SiteView({ site, floors, ready, pins, onSite }: { site: Site; floors: S
       {/* top right: the selected block's details */}
       <div className="min-h-[520px] lg:col-start-2 lg:row-start-1 lg:min-h-0">
         {hall ? (
-          <HallPanel hall={hall} siteName={site.name} floor={floor} tab={tab} onTab={setTab} />
+          <HallPanel hall={hall} row={halls.filter(h => h.id.split('#')[0] === hall.id.split('#')[0])} onPick={setPicked} siteName={site.name} floor={floor} tab={tab} onTab={setTab} />
         ) : (
           <div className="grid h-full place-items-center rounded-lg bg-card p-6 text-center text-[15px] text-muted-foreground">
             {ready ? 'No racks on this floor yet.' : 'Connecting to live telemetry…'}

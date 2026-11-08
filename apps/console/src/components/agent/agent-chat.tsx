@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { BotIcon, FileTextIcon, SendHorizontalIcon } from 'lucide-react'
+import { FileTextIcon, SendHorizontalIcon } from 'lucide-react'
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from '@/components/ui/attachment'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker'
+import { MesaGlyph } from '@/components/shell/brand-mark'
 import { Message, MessageAvatar, MessageContent, MessageFooter } from '@/components/ui/message'
 import { Spinner } from '@/components/ui/spinner'
 import { useArrivals } from '@/lib/use-arrivals'
@@ -45,12 +45,8 @@ function AnswerText({ text, className }: { text: string; className?: string }) {
 
 function AgentAvatar() {
   return (
-    <MessageAvatar>
-      <Avatar className="size-7">
-        <AvatarFallback className="bg-primary text-primary-foreground">
-          <BotIcon className="size-4" aria-hidden="true" />
-        </AvatarFallback>
-      </Avatar>
+    <MessageAvatar className="rounded-none bg-transparent text-black dark:text-white"> {/* no circle or border: just the MESA mark, black (white in dark mode so it stays visible) */}
+      <MesaGlyph className="size-7" />
     </MessageAvatar>
   )
 }

@@ -155,7 +155,7 @@ export function SignInPage() {
           value={password}
           onChange={e => setPassword(e.target.value)}
           error={errors.password}
-          aside={<a href="#/auth/sign-in" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Forgot password?</a>}
+          aside={<a href="/auth/sign-in" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Forgot password?</a>}
         />
         <div className="flex flex-col gap-2">
           <Button type="submit" size="lg" className="h-10 w-full" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>

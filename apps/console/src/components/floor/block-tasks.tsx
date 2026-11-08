@@ -6,17 +6,18 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { requestView } from '@/components/notify/navigate'
 import { cn } from '@/lib/utils'
-import { GPU_WARN_C, type Hall } from './data'
+import { GPU_WARN_C, SITES, type Hall } from './data'
+import { AddressBlock } from './address-block'
 import { makeNamer } from './names'
-import { rackOf, useBlockTasks } from './use-block-tasks'
+import { useBlockTasks } from './use-block-tasks'
 
-// The Tasks tab on a block: the active incidents (tasks) on its rack, who owns each one, and a way to take one,
-// plus the block's risks. Incidents are opened per rack by the threshold rules, and a rack is one row of three
-// blocks, so a task covers the whole row. Claiming goes through claim_incident, which refuses a task someone owns.
+// The Tasks tab on a block: the active incidents (tasks) this block is causing, who owns each one, and a way to take one,
+// plus the block's risks. Incidents are opened per rack (a row of three blocks); the hottest block in the row owns
+// them, and the other blocks just point to it. Claiming goes through claim_incident, which refuses a task someone owns.
 
-export function BlockTasks({ hall }: { hall: Hall }) {
+export function BlockTasks({ hall, row, onPick }: { hall: Hall; row: Hall[]; onPick: (id: string) => void }) {
   const conn = useSpacetimeDB()
-  const tasks = useBlockTasks(hall)
+  const { here: tasks, elsewhere, cause } = useBlockTasks(hall, row)
   const [operators] = useTable(tables.operator)
   const [dcs] = useTable(tables.datacenter)
   const [racks] = useTable(tables.rack)
@@ -27,7 +28,6 @@ export function BlockTasks({ hall }: { hall: Hall }) {
   const myId = conn.identity?.toHexString() ?? ''
   const me = operators.find(o => o.identity.toHexString() === myId)
   const onShift = (id: string) => operators.find(o => o.identity.toHexString() === id)?.onShift ?? false
-  const row = names.blocks(rackOf(hall)).replace(/^blocks /, '')
 
   async function work(incidentId: bigint) {
     setBusy(incidentId)
@@ -46,19 +46,38 @@ export function BlockTasks({ hall }: { hall: Hall }) {
   return (
     <>
       <h4 className="mb-1.5 text-[13px] font-semibold tracking-[.06em] text-muted-foreground uppercase">Tasks</h4>
-      <p className="-mt-0.5 mb-2.5 text-[12.5px] text-muted-foreground">Tasks are opened per rack, so these cover the whole row ({row}).</p>
+      {elsewhere.length > 0 && (
+        <div className="mb-2 flex flex-col gap-1.5">
+          {elsewhere.map(i => (
+            <button
+              key={String(i.incidentId)}
+              type="button"
+              onClick={() => onPick(cause.id)}
+              className="flex items-center gap-2 rounded-lg bg-muted px-3.5 py-2.5 text-left text-[13.5px] hover:bg-accent"
+            >
+              <span className="min-w-0 flex-1">
+                Task #{String(i.incidentId)} on this row is about <b className="font-semibold">{cause.tag}</b>
+                <span className="text-muted-foreground"> · GPU at {cause.temp.toFixed(1)} °C</span>
+              </span>
+              <span className="shrink-0 font-semibold">View {cause.tag} ›</span>
+            </button>
+          ))}
+        </div>
+      )}
       {!tasks.length ? (
-        <p className="text-[14px] text-muted-foreground">No open tasks on this row. The rules open one when a GPU stays at or over {GPU_WARN_C} °C.</p>
+        !elsewhere.length && <p className="text-[14px] text-muted-foreground">No open tasks on block {hall.tag}. The rules open one when a GPU stays at or over {GPU_WARN_C} °C.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {tasks.map(i => {
             const id = String(i.incidentId)
             const mine = i.owner === myId
-            const strip = i.severity === 'critical' ? 'bg-destructive/65' : i.severity === 'high' ? 'bg-warning/65' : 'bg-muted-foreground/30'
             return (
-              <li key={id} className={cn('rounded-lg pl-1.5', strip)}>
+              <li key={id}>
                 <div className="rounded-lg bg-muted px-3.5 py-3">
-                  <p className="text-[14.5px] leading-snug font-semibold">{names.text(i.title)}</p>
+                  <div className="flex gap-3.5">
+                  <AddressBlock block={hall.tag} floor={hall.floor} site={SITES.find(x => x.id === hall.site)?.name ?? ''} severity={i.severity} />
+                  <div className="min-w-0 flex-1">
+                  <p className="text-[15px] leading-snug font-semibold">{names.text(i.title).split(': ').slice(1).join(': ') || names.text(i.title)}</p>
                   <p className="mt-0.5 text-[13px] text-muted-foreground">
                     <span className={cn('font-semibold capitalize', i.severity === 'critical' ? 'text-destructive' : i.severity === 'high' ? 'text-warning' : '')}>{i.severity}</span>
                     {' · '}#{id} · {i.status}{i.handedFrom && !i.owner ? ` · left by ${i.handedFrom}` : ''}
@@ -85,6 +104,8 @@ export function BlockTasks({ hall }: { hall: Hall }) {
                     )}
                   </div>
                   {!mine && !i.owner && blockedWhy && <p className="mt-1.5 text-[12.5px] text-muted-foreground">{blockedWhy}.</p>}
+                  </div>
+                  </div>
                 </div>
               </li>
             )

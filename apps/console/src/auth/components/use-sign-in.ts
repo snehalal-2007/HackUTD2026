@@ -1,5 +1,6 @@
 import { reducers } from '@mesa/bindings'
 import { useReducer, useSpacetimeDB } from 'spacetimedb/react'
+import { navigateTo } from '@/lib/route'
 import { CONSOLE_ROUTE, startSession } from './session'
 import { demoSignIn, leaveDemoAccount } from './demo-accounts'
 
@@ -28,16 +29,14 @@ export function useSignIn() {
     if (demo.kind === 'demo') {
       startSession(demo.name)
       remember('queue')
-      window.location.hash = `${CONSOLE_ROUTE}/queue`
-      window.location.reload() // reconnect as that identity
+      window.location.assign(`${CONSOLE_ROUTE}/queue`) // full load: reconnect as that identity
       return null
     }
     if (await leaveDemoAccount()) {
       // Back to this browser's own identity; it keeps the name it already had.
       startSession(display)
       remember('floor')
-      window.location.hash = `${CONSOLE_ROUTE}/floor`
-      window.location.reload()
+      window.location.assign(`${CONSOLE_ROUTE}/floor`) // full load: reconnect as this browser's own identity
       return null
     }
     if (conn.isActive) {
@@ -49,7 +48,7 @@ export function useSignIn() {
     }
     startSession(display)
     remember('floor')
-    window.location.hash = `${CONSOLE_ROUTE}/floor`
+    navigateTo(`${CONSOLE_ROUTE}/floor`)
     return null
   }
 }

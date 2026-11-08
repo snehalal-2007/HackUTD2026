@@ -1,15 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { reducers, tables } from '@mesa/bindings'
-import { CrosshairIcon, HandIcon, UserIcon } from 'lucide-react'
+import { HandIcon, UserIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
-import { SITES, type Hall } from '@/components/floor/data'
-import { makeNamer } from '@/components/floor/names'
-import { DARK_PALETTE, FloorScene, LIGHT_PALETTE } from '@/components/floor/scene'
+import { GPU_CRIT_C, GPU_WARN_C, SITES, type Hall } from '@/components/floor/data'
+import { PLACE } from '@/components/floor/names'
+import { AddressBlock } from '@/components/floor/address-block'
+import { typeOf } from '@/components/floor/alert-types'
+import { StatusGlyph } from '@/components/floor/status-glyph'
+import { BlockTable, OpenedTimeline } from '@/components/floor/alert-charts'
+import { useIncidentPlace } from '@/components/floor/incident-place'
 import { useLiveSites } from '@/components/floor/use-live-floors'
 import { requestView } from '@/components/notify/navigate'
+import { PageActions } from '@/components/shell/page-actions'
+import { setFloorTarget } from '@/components/floor/floor-link'
 import { ago, useNow } from '@/lib/snapshot'
 import { cn } from '@/lib/utils'
 
@@ -28,15 +34,26 @@ interface IncidentRow {
   ownerName: string
   handedFrom: string
   openedAt: { microsSinceUnixEpoch: bigint }
+  peakValue: number // the reading the rule recorded when it opened or escalated
+  kind: string // gpu_temp | gpu_failure | feed_stale | manual
 }
 
 const SEV: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 }
+const SEVERITIES = [
+  { id: 'critical', label: 'Critical', glyph: 'diamond', tone: 'text-destructive' },
+  { id: 'high', label: 'High', glyph: 'triangle', tone: 'text-warning' },
+  { id: 'medium', label: 'Medium', glyph: 'triangle', tone: 'text-warning/70' },
+  { id: 'low', label: 'Low', glyph: 'dot', tone: 'text-muted-foreground' },
+] as const
 const ms = (ts: { microsSinceUnixEpoch: bigint }) => Number(ts.microsSinceUnixEpoch / 1000n)
-const isDark = () => document.documentElement.classList.contains('dark')
 
-/** Higher is more urgent: escalated, then severity, then nobody on it, then oldest. */
-function urgency(i: IncidentRow) {
-  return (i.status === 'escalated' ? 100 : 0) + (SEV[i.severity] ?? 0) * 10 + (i.owner ? 0 : 5) - ms(i.openedAt) / 1e13
+/**
+ * Higher is more urgent. What the row reads *now* comes first (critical heat, then warning heat, then a row that has
+ * cooled but whose alert the rules haven't closed yet), then escalation, the recorded severity, nobody on it, oldest.
+ */
+function urgency(i: IncidentRow, nowC: number | undefined) {
+  const live = nowC == null ? 1 : nowC >= GPU_CRIT_C ? 3 : nowC >= GPU_WARN_C ? 2 : 0
+  return live * 1000 + (i.status === 'escalated' ? 100 : 0) + (SEV[i.severity] ?? 0) * 10 + (i.owner ? 0 : 5) - ms(i.openedAt) / 1e13
 }
 
 function Tile({ k, v, sub, tone }: { k: string; v: ReactNode; sub?: string; tone?: 'crit' | 'warn' }) {
@@ -49,73 +66,61 @@ function Tile({ k, v, sub, tone }: { k: string; v: ReactNode; sub?: string; tone
   )
 }
 
-/** The floor with the focused block, turning on its own. Not interactive: it only shows where to look. */
-function FocusFloor({ halls, focus }: { halls: Hall[]; focus: string }) {
-  const hostRef = useRef<HTMLDivElement>(null)
-  const labelsRef = useRef<HTMLDivElement>(null)
-  const sceneRef = useRef<FloorScene | null>(null)
-  const floorKey = useRef('')
-
-  useEffect(() => {
-    const scene = new FloorScene(hostRef.current!, labelsRef.current!, { onSelect: () => {}, topInset: () => 0, spin: 0.0028 })
-    scene.setPalette(isDark() ? DARK_PALETTE : LIGHT_PALETTE)
-    sceneRef.current = scene
-    const mo = new MutationObserver(() => scene.setPalette(isDark() ? DARK_PALETTE : LIGHT_PALETTE))
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => { mo.disconnect(); scene.dispose(); sceneRef.current = null }
-  }, [])
-
-  useEffect(() => {
-    const scene = sceneRef.current
-    if (!scene || !halls.length) return
-    const key = `${halls[0].site}/${halls[0].floor}`
-    scene.setSelected(focus)
-    const changed = floorKey.current !== key
-    scene.setHalls(halls, floorKey.current !== '' && changed) // a different floor drops in
-    if (changed) { scene.zoom('out'); scene.zoom('out') } // each new floor resets the camera; pull back so it fits this half-width panel
-    floorKey.current = key
-  }, [halls, focus])
-
-  return (
-    <div ref={hostRef} className="pointer-events-none absolute inset-0" aria-hidden="true">
-      <div ref={labelsRef} className="absolute inset-0" />
-    </div>
-  )
-}
-
 export function AlertsView() {
   const conn = useSpacetimeDB()
   const now = useNow(15_000)
   const { sites, ready: floorsReady } = useLiveSites({ withHistory: false })
   const [incidents, ready] = useTable(tables.incident)
   const [operators] = useTable(tables.operator)
-  const [dcs] = useTable(tables.datacenter)
-  const [racks] = useTable(tables.rack)
   const claim = useReducer(reducers.claimIncident)
   const [picked, setPicked] = useState<string | null>(null) // an alert the operator clicked; null = follow the most urgent
   const [busy, setBusy] = useState<bigint | null>(null)
-  const names = useMemo(() => makeNamer(dcs, racks.map(r => r.rackId)), [dcs, racks])
+  const [site, setSite] = useState<string>(SITES[0].id) // the one data center the whole page shows, so no two panels disagree
+  const [floorsSel, setFloorsSel] = useState<number[]>([]) // floors picked; none = every floor
+  const [sevSel, setSevSel] = useState<string[]>([]) // severities picked; none = every severity
+  const placeOf = useIncidentPlace()
 
   const myId = conn.identity?.toHexString() ?? ''
   const me = operators.find(o => o.identity.toHexString() === myId)
-  const active: IncidentRow[] = incidents.filter(i => i.status !== 'closed').sort((a, b) => urgency(b) - urgency(a))
-  const allHalls = useMemo(() => Object.values(sites).flat(2), [sites])
+  // Location + floor filter: applies to the totals, the list and the 3D.
+  const here = (dc: string) => {
+    const p = PLACE.get(dc)
+    return !!p && p.site === site && (!floorsSel.length || floorsSel.includes(p.floor))
+  }
+  const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter(x => x !== v) : [...list, v])
+  const floorNums = (SITES.find(x => x.id === site)?.floors ?? []).map((_, i) => i + 1)
+  const hottestOf = (hs: Hall[]) => [...hs].sort((a, b) => b.temp - a.temp)[0] as Hall | undefined
+  const allHalls = useMemo(() => Object.values(sites).flat(2), [sites]).filter(h => here(h.datacenter))
+  // The live reading behind each alert: the hottest block on its rack right now (feed alerts: none).
+  const rowNow = (i: IncidentRow) => (i.rackId ? hottestOf(allHalls.filter(h => h.id.startsWith(`${i.rackId}#`)))?.temp : undefined)
+  const active: IncidentRow[] = incidents.filter(i => i.status !== 'closed' && here(i.datacenterId) && (!sevSel.length || sevSel.includes(i.severity))).sort((a, b) => urgency(b, rowNow(b)) - urgency(a, rowNow(a)))
+  const pick = (on: boolean) =>
+    cn('flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[14px] font-medium whitespace-nowrap transition-colors', on ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:bg-card/60 hover:text-foreground')
 
   // The block to look at: the picked alert's (or the most urgent one's) hottest block; with no alerts, the hottest block.
   const focusIncident = active.find(i => String(i.incidentId) === picked) ?? active[0]
   const blocksOf = (rackId: string) => allHalls.filter(h => h.id.startsWith(`${rackId}#`))
-  const hottestOf = (hs: Hall[]) => [...hs].sort((a, b) => b.temp - a.temp)[0] as Hall | undefined
   const focusHall =
     (focusIncident?.rackId ? hottestOf(blocksOf(focusIncident.rackId)) : undefined) ??
     (focusIncident ? hottestOf(allHalls.filter(h => h.datacenter === focusIncident.datacenterId)) : undefined) ??
     hottestOf(allHalls)
-  const floorHalls = focusHall ? (sites[focusHall.site]?.[focusHall.floor - 1] ?? []) : []
-  const siteName = SITES.find(s => s.id === focusHall?.site)?.name ?? ''
+  // Chart data, all live and under the same filters as the list.
+  const chartRow = (i: IncidentRow) => ({ severity: i.severity, status: i.status, datacenterId: i.datacenterId, openedMs: ms(i.openedAt) })
+  const chartAll = incidents
+    .filter(i => here(i.datacenterId) && (!sevSel.length || sevSel.includes(i.severity)))
+    .map(chartRow)
+
 
   const crit = active.filter(i => i.severity === 'critical').length
   const unowned = active.filter(i => !i.owner).length
   const hottest = hottestOf(allHalls)
   const blockedWhy = !me ? 'Register as an operator first' : !me.onShift ? 'Start your shift in My Queue to take alerts' : null
+
+  /** Opens the Floor page on this block. */
+  function openOnFloor(h: Hall) {
+    setFloorTarget({ site: h.site, floor: h.floor, block: h.id })
+    requestView('floor')
+  }
 
   async function take(i: IncidentRow) {
     setBusy(i.incidentId)
@@ -131,7 +136,37 @@ export function AlertsView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
-      <div className="grid gap-3.5 p-3.5 lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
+      <div className="grid gap-3.5 p-3.5 lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
+        <PageActions>
+          <div className="flex items-center gap-1" role="group" aria-label="Filter by location">
+            <span className="mr-1.5 text-[13px] font-semibold">Location</span>
+            {SITES.map(x => (
+              <button key={x.id} type="button" aria-pressed={site === x.id} onClick={() => { setSite(x.id); setFloorsSel([]); setPicked(null) }} className={cn(pick(site === x.id), 'h-8')}>
+                {x.name}
+              </button>
+            ))}
+          </div>
+        </PageActions>
+        {/* filter */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:col-span-2">
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter by floor">
+            <span className="mr-1.5 text-[13.5px] font-semibold">Floor</span>
+            {floorNums.map(n => (
+              <button key={n} type="button" aria-pressed={floorsSel.includes(n)} onClick={() => { setFloorsSel(l => toggle(l, n)); setPicked(null) }} className={cn(pick(floorsSel.includes(n)), 'min-w-9 justify-center')}>{n}</button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter by severity">
+            <span className="mr-1.5 text-[13.5px] font-semibold">Severity</span>
+            {SEVERITIES.map(x => (
+              <button key={x.id} type="button" aria-pressed={sevSel.includes(x.id)} onClick={() => { setSevSel(l => toggle(l, x.id)); setPicked(null) }} className={pick(sevSel.includes(x.id))}>
+                <StatusGlyph shape={x.glyph} className={x.tone} />
+                {x.label}
+              </button>
+            ))}
+          </div>
+          {!floorsSel.length && !sevSel.length && <span className="text-[12.5px] text-muted-foreground">All floors and severities · pick to narrow</span>}
+        </div>
+
         {/* totals */}
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4 lg:col-span-2">
           <Tile k="Active alerts" v={active.length} sub={active.length ? `${active.filter(i => i.status === 'escalated').length} escalated` : 'All clear'} />
@@ -144,7 +179,7 @@ export function AlertsView() {
         <section aria-labelledby="focus" className="flex min-h-0 flex-col rounded-lg bg-card p-5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h2 id="focus" className="text-[15.5px] font-semibold">Focus now</h2>
-            <span className="text-[13px] text-muted-foreground">Most urgent first · click one to see it on the right</span>
+            <span className="text-[13px] text-muted-foreground">Most urgent first · click one to highlight its block</span>
           </div>
           {!ready ? (
             <p className="text-[15px] text-muted-foreground">Loading alerts…</p>
@@ -152,37 +187,44 @@ export function AlertsView() {
             <p className="text-[15px] text-muted-foreground">No active alerts. The rules open one when a GPU stays over 50 °C or a feed goes silent.</p>
           ) : (
             <ol className="-mr-2 flex min-h-0 flex-col gap-2 overflow-y-auto pr-2">
-              {active.map((i, n) => {
+              {active.map(i => {
                 const id = String(i.incidentId)
                 const on = focusIncident?.incidentId === i.incidentId
-                const strip = i.severity === 'critical' ? 'bg-destructive/65' : i.severity === 'high' ? 'bg-warning/65' : 'bg-muted-foreground/30'
-                const where = i.rackId ? `${names.place(i.datacenterId)} · ${names.blocks(i.rackId)}` : names.place(i.datacenterId)
+                const at = placeOf(i)
                 return (
-                  <li key={id} className={cn('shrink-0 rounded-lg pl-1.5', strip)}>
+                  <li key={id} className="shrink-0">
                     <div
                       role="button"
                       tabIndex={0}
                       aria-pressed={on}
                       onClick={() => setPicked(id)}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPicked(id) } }}
-                      className={cn('cursor-pointer rounded-lg px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-ring', on ? 'bg-[#e6e2da] dark:bg-[#303035]' : 'bg-muted hover:bg-accent')}
+                      className={cn('flex cursor-pointer gap-3.5 rounded-lg px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring', on ? 'bg-[#eeebe5] ring-1 ring-inset ring-foreground/20 dark:bg-[#2a2a2e]' : 'bg-muted/60 hover:bg-muted')} // lighter fills; the picked one gets a thin outline drawn inside, so the scrolling list can't clip it
                     >
+                      <AddressBlock block={at.block} floor={at.floor} site={at.site} severity={i.severity} />
+                      <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="w-5 text-[13px] font-semibold text-muted-foreground tabular-nums">{n + 1}</span>
                         <span className={cn('text-[13px] font-semibold capitalize', i.severity === 'critical' ? 'text-destructive' : i.severity === 'high' ? 'text-warning' : 'text-muted-foreground')}>{i.severity}</span>
+                        <Badge size="sm" variant="outline">{(() => { const T = typeOf(i.kind); const Icon = T.icon; return <><Icon aria-hidden="true" />{T.label}</> })()}</Badge>
                         <Badge size="sm" variant={i.status === 'escalated' ? 'destructive-light' : i.status === 'open' ? 'warning-light' : 'info-light'} className="capitalize">{i.status}</Badge>
                         {i.owner ? <Badge size="sm" variant="secondary"><UserIcon aria-hidden="true" />{i.owner === myId ? 'You' : i.ownerName}</Badge> : <Badge size="sm" variant="outline">Unassigned</Badge>}
-                        {on && <span className="inline-flex items-center gap-1 text-[12.5px] font-medium"><CrosshairIcon className="size-3.5" aria-hidden="true" /> on the map</span>}
+                        {rowNow(i) != null && rowNow(i)! < GPU_WARN_C && <Badge size="sm" variant="success-light" title="The row is back under 50 °C; the rule closes the alert after 12 good readings in a row">Cooling down</Badge>}
                         <span className="ml-auto text-[12.5px] text-muted-foreground tabular-nums">open {ago(ms(i.openedAt), now)}</span>
                       </div>
-                      <p className="mt-1 text-[14.5px] leading-snug font-semibold">{names.text(i.title)}</p>
+                      <p className="mt-1 text-[15px] leading-snug font-semibold">{at.what}</p>
                       <div className="mt-1.5 flex items-center justify-between gap-2">
-                        <span className="truncate text-[13px] text-muted-foreground">{where}{i.handedFrom && !i.owner ? ` · left by ${i.handedFrom}` : ''}</span>
+                        <span className="truncate text-[13px] text-muted-foreground">
+                          {rowNow(i) != null && (
+                            <>opened at {Math.round(i.peakValue * 10) / 10} °C · <b className={cn('font-semibold', rowNow(i)! >= GPU_CRIT_C ? 'text-destructive' : rowNow(i)! >= GPU_WARN_C ? 'text-warning' : 'text-success')}>now {rowNow(i)!.toFixed(1)} °C</b></>
+                          )}
+                          {i.handedFrom && !i.owner ? ` · left by ${i.handedFrom}` : ''}
+                        </span>
                         {!i.owner && (
                           <Button size="sm" disabled={!!blockedWhy || busy !== null} title={blockedWhy ?? undefined} onClick={e => { e.stopPropagation(); void take(i) }}>
                             <HandIcon aria-hidden="true" /> {busy === i.incidentId ? 'Taking…' : 'Take it'}
                           </Button>
                         )}
+                      </div>
                       </div>
                     </div>
                   </li>
@@ -193,28 +235,18 @@ export function AlertsView() {
           {!!active.length && blockedWhy && <p className="mt-2 text-[12.5px] text-muted-foreground">{blockedWhy}.</p>}
         </section>
 
-        {/* the floor to look at */}
-        <section aria-label="Where to look" className="relative min-h-[420px] overflow-hidden rounded-lg bg-gradient-to-b from-[#f7f5f1] to-[#efece6] dark:from-[#1a1a1d] dark:to-[#141416]">
-          {floorHalls.length ? <FocusFloor halls={floorHalls} focus={focusHall?.id ?? ''} /> : (
-            <p className="grid h-full place-items-center text-[15px] text-muted-foreground">{floorsReady ? 'No racks report yet.' : 'Connecting to live telemetry…'}</p>
-          )}
-          {focusHall && (
-            <div className="absolute inset-x-4 top-4 flex flex-wrap items-start justify-between gap-2">
-              <div className="rounded-lg bg-card/90 px-3.5 py-2.5 shadow-sm backdrop-blur">
-                <p className="text-[12.5px] text-muted-foreground">{focusIncident ? (picked ? 'Selected alert' : 'Look here first') : 'Hottest block (no alerts)'}</p>
-                <p className="text-[16px] font-semibold">Block {focusHall.tag} · {siteName} · Floor {focusHall.floor}</p>
-                <p className={cn('text-[13.5px] font-medium tabular-nums', focusHall.status === 'crit' ? 'text-destructive' : focusHall.status === 'warn' ? 'text-warning' : 'text-success')}>
-                  Hottest GPU {focusHall.temp.toFixed(1)} °C · {focusHall.hot} of {focusHall.servers} servers ≥ 50 °C
-                </p>
-              </div>
-              {picked && <Button size="sm" variant="outline" className="bg-card/90" onClick={() => setPicked(null)}>Back to most urgent</Button>}
-            </div>
-          )}
-          {focusHall && (
-            <Button size="sm" variant="outline" className="absolute right-4 bottom-4 bg-card/90" onClick={() => requestView('floor')}>
-              Open on the Floor page
-            </Button>
-          )}
+        {/* the picture: where the heat is, where the alerts are, and whether it's getting worse */}
+        <section aria-label="Overview" className="no-scrollbar flex min-h-0 flex-col gap-3.5 lg:overflow-y-auto">
+          <BlockTable
+            sites={sites}
+            site={site}
+            floorsSel={floorsSel}
+            openOn={rack => incidents.filter(i => i.rackId === rack && i.status !== 'closed').length}
+            focus={focusHall?.id}
+            onOpen={openOnFloor}
+          />
+          <OpenedTimeline all={chartAll} now={now} />
+          {!floorsReady && <p className="text-[13px] text-muted-foreground">Connecting to live telemetry…</p>}
         </section>
       </div>
     </div>

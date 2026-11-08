@@ -1,10 +1,13 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { reducers, tables } from '@mesa/bindings'
-import { CheckIcon, ClockIcon, HandIcon, LogOutIcon, PlayIcon, UndoIcon } from 'lucide-react'
+import { ArrowRightLeftIcon, CheckIcon, HandIcon, LogOutIcon, PlayIcon, ThermometerSnowflakeIcon, UndoIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { DropdownMenu } from 'radix-ui'
 import { Button } from '@/components/ui/button'
-import { makeNamer } from '@/components/floor/names'
+import { AddressBlock } from '@/components/floor/address-block'
+import { useIncidentPlace, type IncidentPlace } from '@/components/floor/incident-place'
+import { CharacterAvatar } from '@/components/shell/character-avatar'
 import { ago, useNow } from '@/lib/snapshot'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +23,11 @@ const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit
 const span = (msLeft: number) => {
   const m = Math.max(0, Math.round(msLeft / 60_000))
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`
+}
+const MENU_ITEM = 'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[13.5px] outline-none data-[highlighted]:bg-accent data-[highlighted]:text-foreground' // one row of the Reassign menu
+const doneSummary = (list: { closedReason: string }[]) => { // "4 resolved · 2 recovered"
+  const auto = list.filter(i => i.closedReason === 'recovered').length
+  return [list.length - auto && `${list.length - auto} resolved`, auto && `${auto} recovered`].filter(Boolean).join(' · ')
 }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -46,11 +54,12 @@ function Card({ title, aside, children, className }: { title: string; aside?: Re
 }
 
 /** The severity strip from the Security feed: a coloured card with the row laid over it. */
-function Strip({ severity, children }: { severity: string; children: ReactNode }) {
-  const tone = severity === 'critical' ? 'bg-destructive/65' : severity === 'high' ? 'bg-warning/65' : 'bg-muted-foreground/30'
+/** A task card: the address block (where) on the left, the task on the right. */
+function Strip({ severity, at, children }: { severity: string; at: IncidentPlace; children: ReactNode }) {
   return (
-    <div className={cn('rounded-lg pl-1.5', tone)}>
-      <div className="rounded-lg bg-muted px-3.5 py-3">{children}</div>
+    <div className="flex gap-3.5 rounded-lg bg-muted px-3.5 py-3">
+      <AddressBlock block={at.block} floor={at.floor} site={at.site} severity={severity} />
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
 }
@@ -79,10 +88,9 @@ export function QueueView() {
   const now = useNow(15_000)
   const [operators, opsReady] = useTable(tables.operator)
   const [incidents, incReady] = useTable(tables.incident)
-  const [dcs] = useTable(tables.datacenter)
-  const [racks] = useTable(tables.rack)
   const claim = useReducer(reducers.claimIncident)
   const release = useReducer(reducers.releaseIncident)
+  const reassign = useReducer(reducers.reassignIncident)
   const resolve = useReducer(reducers.resolveIncident)
   const startShift = useReducer(reducers.startMyShift)
   const endShift = useReducer(reducers.endMyShift)
@@ -90,7 +98,7 @@ export function QueueView() {
 
   const myId = conn.identity?.toHexString() ?? ''
   const me = operators.find(o => o.identity.toHexString() === myId)
-  const names = useMemo(() => makeNamer(dcs, racks.map(r => r.rackId)), [dcs, racks])
+  const placeOf = useIncidentPlace()
 
   const shiftStart = me?.onShift ? microsToMs(me.shiftStartedMicros) : 0
   const shiftEnd = me?.onShift ? microsToMs(me.shiftEndsMicros) : 0
@@ -105,6 +113,7 @@ export function QueueView() {
     : []
   const total = mine.length + doneThisShift.length
   const pool = { leftovers: unclaimed.filter(i => i.handedFrom).length }
+  const teammates = operators.filter(o => o.onShift && o.role !== 'agent' && o.identity.toHexString() !== myId).sort((a, b) => a.name.localeCompare(b.name))
   const team = operators
     .filter(o => o.role !== 'agent')
     .map(o => ({ o, open: incidents.filter(i => i.owner === o.identity.toHexString() && i.status !== 'closed').length }))
@@ -140,9 +149,7 @@ export function QueueView() {
         {/* who, shift status, totals */}
         <div className="grid gap-3.5 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_repeat(3,150px)]">
           <div className="flex items-center gap-4 rounded-lg bg-card px-5 py-4">
-            <span className={cn('grid size-12 shrink-0 place-items-center rounded-full', me.onShift ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground')}>
-              <ClockIcon className="size-6" aria-hidden="true" />
-            </span>
+            <CharacterAvatar identity={myId} size={52} title={`${me.name}'s profile character`} />
             <div className="min-w-0">
               <h1 className="text-xl font-semibold">{me.onShift ? `On shift, ${first}` : `Hi ${first}, you're off shift`}</h1>
               <p className="text-[15px] text-muted-foreground">
@@ -168,18 +175,45 @@ export function QueueView() {
                   const id = String(i.incidentId)
                   return (
                     <li key={id}>
-                      <Strip severity={i.severity}>
+                      <Strip severity={i.severity} at={placeOf(i)}>
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-[15px] font-semibold">{names.text(i.title)}</p>
+                            <p className="text-[15px] font-semibold">{placeOf(i).what}</p>
                             <p className="text-[13.5px] text-muted-foreground">
                               <SevText severity={i.severity} /> · #{id} · {i.status === 'escalated' ? 'escalated · ' : ''}{i.handedFrom ? `left by ${i.handedFrom} · ` : ''}yours since {ago(microsToMs(i.claimedAtMicros), now)}
                             </p>
                           </div>
                           <div className="flex shrink-0 gap-1.5">
-                            <Button size="sm" variant="outline" disabled={!!busy} onClick={() => run(`rel${id}`, () => release({ incidentId: i.incidentId }), `Released #${id}`)}>
-                              <UndoIcon aria-hidden="true" /> Release
-                            </Button>
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger asChild>
+                                <Button size="sm" variant="outline" disabled={!!busy}>
+                                  <ArrowRightLeftIcon aria-hidden="true" /> Reassign
+                                </Button>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Portal>
+                                <DropdownMenu.Content align="end" sideOffset={6} aria-label={`Reassign task #${id}`} className="z-50 min-w-[200px] rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-border">
+                                  <DropdownMenu.Label className="px-2 py-1 text-[12px] text-muted-foreground">Give to someone on shift</DropdownMenu.Label>
+                                  {teammates.map(o => (
+                                    <DropdownMenu.Item
+                                      key={o.identity.toHexString()}
+                                      onSelect={() => void run(`re${id}`, () => reassign({ incidentId: i.incidentId, to: o.identity }), `#${id} reassigned to ${o.name}`)}
+                                      className={MENU_ITEM}
+                                    >
+                                      <CharacterAvatar identity={o.identity.toHexString()} size={20} />
+                                      {o.name}
+                                    </DropdownMenu.Item>
+                                  ))}
+                                  {!teammates.length && <p className="px-2 py-1 text-[13px] text-muted-foreground">Nobody else is on shift</p>}
+                                  <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                                  <DropdownMenu.Item
+                                    onSelect={() => void run(`rel${id}`, () => release({ incidentId: i.incidentId }), `#${id} is back in Up for grabs`)}
+                                    className={cn(MENU_ITEM, 'text-muted-foreground')}
+                                  >
+                                    <UndoIcon className="size-3.5" aria-hidden="true" /> Back to the pool
+                                  </DropdownMenu.Item>
+                                </DropdownMenu.Content>
+                              </DropdownMenu.Portal>
+                            </DropdownMenu.Root>
                             <Button size="sm" disabled={!!busy} onClick={() => run(`res${id}`, () => resolve({ incidentId: i.incidentId, note: '' }), `Resolved #${id}`)}>
                               <CheckIcon aria-hidden="true" /> Resolve
                             </Button>
@@ -204,10 +238,10 @@ export function QueueView() {
                   const id = String(i.incidentId)
                   return (
                     <li key={id}>
-                      <Strip severity={i.severity}>
+                      <Strip severity={i.severity} at={placeOf(i)}>
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold">{names.text(i.title)}</p>
+                            <p className="truncate text-[15px] font-semibold">{placeOf(i).what}</p>
                             <p className="truncate text-[13.5px] text-muted-foreground">
                               <SevText severity={i.severity} /> · #{id} · {i.handedFrom ? <span className="font-medium text-foreground">left by {i.handedFrom}</span> : i.status} · opened {ago(ms(i.openedAt), now)}
                             </p>
@@ -270,7 +304,8 @@ export function QueueView() {
                 const end = microsToMs(o.shiftEndsMicros)
                 return (
                   <li key={o.identity.toHexString()} className="flex items-center justify-between gap-3 py-2.5">
-                    <div className="min-w-0">
+                    <CharacterAvatar identity={o.identity.toHexString()} size={36} />
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-[14.5px] font-semibold">{o.name}{you && <span className="ml-1.5 font-normal text-muted-foreground">(you)</span>}</p>
                       <p className="truncate text-[13px] text-muted-foreground">
                         {o.onShift ? `On shift · until ${clock(end)} · ${now < end ? `${span(end - now)} left` : 'ending'}` : 'Off shift'}
@@ -286,18 +321,31 @@ export function QueueView() {
           </Card>
 
           {/* done this shift */}
-          <Card title="Done this shift" aside={doneThisShift.length ? `${doneThisShift.length} resolved` : undefined}>
+          <Card title="Done this shift" aside={doneThisShift.length ? doneSummary(doneThisShift) : undefined}>
             {!doneThisShift.length ? (
               <p className="text-[15px] text-muted-foreground">{me.onShift ? 'Incidents you resolve this shift show up here.' : 'No shift running.'}</p>
             ) : (
-              <ul className="flex flex-col gap-2">
-                {doneThisShift.map(i => (
-                  <li key={String(i.incidentId)} className="rounded-lg bg-muted px-3.5 py-2.5">
-                    <p className="truncate text-[14.5px] font-semibold">{names.text(i.title)}</p>
-                    <p className="truncate text-[13px] text-muted-foreground">#{String(i.incidentId)} · {i.closedReason} · {clock(ms(i.updatedAt))}</p>
-                    <div className="mt-2"><Track step={2} /></div>
-                  </li>
-                ))}
+              <ul className="flex flex-col divide-y divide-border">
+                {doneThisShift.map(i => {
+                  const at = placeOf(i)
+                  const auto = i.closedReason === 'recovered' // closed by the rules when the GPU cooled, not by a person
+                  return (
+                    <li key={String(i.incidentId)} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <span className={cn('grid size-7 shrink-0 place-items-center rounded-full', auto ? 'bg-muted text-muted-foreground' : 'bg-success/15 text-success')} aria-hidden="true">
+                        {auto ? <ThermometerSnowflakeIcon className="size-3.5" /> : <CheckIcon className="size-3.5" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-semibold">
+                          <span className={cn(i.severity === 'critical' ? 'text-destructive' : i.severity === 'high' ? 'text-warning' : 'text-muted-foreground')}>{at.block}</span> · {at.what}
+                        </p>
+                        <p className="truncate text-[12.5px] text-muted-foreground">
+                          {auto ? 'Cooled down on its own' : i.closedReason.replace(/^resolved by /, 'Resolved by ')} · took {ago(ms(i.openedAt), ms(i.updatedAt)).replace(/ ago$/, '')}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[12.5px] text-muted-foreground tabular-nums">{clock(ms(i.updatedAt))}</span>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </Card>

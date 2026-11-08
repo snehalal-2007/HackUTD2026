@@ -138,7 +138,7 @@ export function SiteFooter({ tone }: { tone: Tone }) {
         <span className="flex flex-wrap gap-4">
           <a href={AUTH_ROUTES.quickSignIn} className="hover:underline">Sign in</a>
           <a href={`mailto:${CONTACT_EMAIL}`} className="hover:underline">{CONTACT_EMAIL}</a>
-          <a href="#/intro" className="hover:underline">All intro samples</a>
+          <a href="/intro" className="hover:underline">All intro samples</a>
         </span>
       </div>
     </footer>

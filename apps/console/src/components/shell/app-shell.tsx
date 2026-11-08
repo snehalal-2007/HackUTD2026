@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { DropdownMenu } from 'radix-ui'
+import { PageActionsContext } from './page-actions-context'
 import {
   BotIcon,
   InboxIcon,
@@ -9,8 +11,12 @@ import {
   UsersIcon,
   ArrowLeftRightIcon,
   LogOutIcon,
+  CheckIcon,
+  ChevronsUpDownIcon,
 } from 'lucide-react'
-import { endSession, HOME_ROUTE } from '@/auth/components/session'
+import { endSession, HOME_ROUTE, startSession } from '@/auth/components/session'
+import { demoAccounts, leaveDemoAccount, switchToDemo } from '@/auth/components/demo-accounts'
+import { navigateTo } from '@/lib/route'
 import { useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { tables } from '@mesa/bindings'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -33,6 +39,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { BrandMark } from './brand-mark'
+import { CharacterAvatar } from './character-avatar'
 import { ShiftClock } from './shift-clock'
 import { ThemeToggle } from './theme-toggle'
 import { IntrusionBanner } from '@/components/security/intrusion-banner'
@@ -50,15 +57,15 @@ interface Item {
 const WORK: Item[] = [
   { id: 'queue', label: 'My Queue', view: 'queue', icon: <InboxIcon aria-hidden="true" /> },
   { id: 'floor', label: 'Floor', view: 'floor', icon: <LayoutGridIcon aria-hidden="true" /> },
-  { id: 'agent', label: 'AI Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
   { id: 'alerts', label: 'Alerts', view: 'alerts', icon: <SirenIcon aria-hidden="true" /> },
+  { id: 'agent', label: 'AI Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
   { id: 'handoff', label: 'Shift Handoff', icon: <ArrowLeftRightIcon aria-hidden="true" /> },
 ]
 
 const SYSTEM: Item[] = [
   { id: 'events', label: 'Log', view: 'log', icon: <ScrollTextIcon aria-hidden="true" /> },
-  { id: 'operators', label: 'Operators', view: 'operators', icon: <UsersIcon aria-hidden="true" /> },
   { id: 'security', label: 'Security', view: 'security', icon: <ShieldAlertIcon aria-hidden="true" /> },
+  { id: 'operators', label: 'Operators', view: 'operators', icon: <UsersIcon aria-hidden="true" /> },
 ]
 
 function NavGroup({
@@ -109,7 +116,7 @@ function SignOutButton() {
           tooltip="Sign out"
           onClick={() => {
             endSession()
-            window.location.hash = HOME_ROUTE
+            navigateTo(HOME_ROUTE)
           }}
         >
           <LogOutIcon aria-hidden="true" />
@@ -156,28 +163,73 @@ function AccountButton({ onNavigate }: { onNavigate: (v: ViewId) => void }) {
   const initials = me ? me.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'
   const status = conn.isActive ? 'Connected' : conn.connectionError ? 'Connection failed' : 'Connecting'
 
+  const [demo, setDemo] = useState<{ names: string[]; current: string | null }>({ names: [], current: null })
+  useEffect(() => { void demoAccounts().then(setDemo) }, []) // only a machine that ran pnpm demo:accounts has any
+  const title = (k: string) => k[0].toUpperCase() + k.slice(1)
+  const become = async (key: string | null) => { // reconnect as another operator, staying on this page
+    if (key === demo.current) return
+    const ok = key ? await switchToDemo(key) : await leaveDemoAccount()
+    if (!ok) return
+    if (key) startSession(title(key))
+    window.location.reload()
+  }
+
+  const button = (
+    <SidebarMenuButton size="lg" tooltip={`${name}, ${status}`} onClick={demo.names.length ? undefined : () => onNavigate('operators')}>
+      {me ? (
+        <CharacterAvatar identity={me.identity.toHexString()} size={32} className="size-8!" /* the sidebar shrinks icons to 16px; keep the character full size */ />
+      ) : (
+        <Avatar>
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+      )}
+      <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
+        <span className="truncate text-sm font-medium">{name}</span>
+        <span className="flex items-center gap-1.5 truncate text-xs text-sidebar-foreground/70">
+          <span
+            aria-hidden="true"
+            className={`size-1.5 rounded-full ${conn.isActive ? 'bg-success' : conn.connectionError ? 'bg-destructive' : 'bg-warning'}`}
+          />
+          {me ? `${me.role} · ${status}` : status}
+        </span>
+      </span>
+      {demo.names.length > 0 && <ChevronsUpDownIcon className="ml-auto size-4 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden" aria-hidden="true" />}
+    </SidebarMenuButton>
+  )
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" tooltip={`${name}, ${status}`} onClick={() => onNavigate('operators')}>
-          <Avatar>
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
-            <span className="truncate text-sm font-medium">{name}</span>
-            <span className="flex items-center gap-1.5 truncate text-xs text-sidebar-foreground/70">
-              <span
-                aria-hidden="true"
-                className={`size-1.5 rounded-full ${conn.isActive ? 'bg-success' : conn.connectionError ? 'bg-destructive' : 'bg-warning'}`}
-              />
-              {me ? `${me.role} · ${status}` : status}
-            </span>
-          </span>
-        </SidebarMenuButton>
+        {!demo.names.length ? button : ( // no demo accounts here: the button just opens Operators, as before
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>{button}</DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content side="top" align="start" sideOffset={6} className="z-50 min-w-[220px] rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-border">
+                <DropdownMenu.Label className="px-2 py-1 text-[12px] text-muted-foreground">Switch operator (demo)</DropdownMenu.Label>
+                {demo.names.map(k => (
+                  <DropdownMenu.Item key={k} onSelect={() => void become(k)} className={SWITCH_ITEM}>
+                    {title(k)}
+                    {demo.current === k && <CheckIcon className="ml-auto size-4" aria-hidden="true" />}
+                  </DropdownMenu.Item>
+                ))}
+                <DropdownMenu.Item onSelect={() => void become(null)} className={SWITCH_ITEM}>
+                  This browser's own account
+                  {demo.current === null && <CheckIcon className="ml-auto size-4" aria-hidden="true" />}
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                <DropdownMenu.Item onSelect={() => onNavigate('operators')} className={SWITCH_ITEM}>
+                  <UsersIcon className="size-4 text-muted-foreground" aria-hidden="true" /> Operators page
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        )}
       </SidebarMenuItem>
     </SidebarMenu>
   )
 }
+
+const SWITCH_ITEM = 'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[13.5px] outline-none data-[highlighted]:bg-accent' // one row of the operator switcher
 
 export function AppShell(props: { view: ViewId; title?: string; onNavigate: (v: ViewId) => void; children: ReactNode }) {
   return (
@@ -199,6 +251,7 @@ function ShellBody({
   children: ReactNode
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const [actionsEl, setActionsEl] = useState<HTMLElement | null>(null) // the header's right-hand slot (PageActions)
   // On phones the sidebar is a drawer; close it once a view is picked.
   const onNavigate = (v: ViewId) => {
     navigate(v)
@@ -210,7 +263,8 @@ function ShellBody({
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="MESA" className="group-data-[collapsible=icon]:h-12!" /* same height collapsed, so the mark doesn't jump up */ onClick={() => onNavigate('agent')}>
+              <SidebarMenuButton asChild size="lg" className="cursor-default group-data-[collapsible=icon]:h-12! hover:bg-transparent active:bg-transparent" /* just the logo, not a link; same height collapsed so the mark doesn't jump up */>
+                <div>
                 <BrandMark />
                 <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
                   <span className="truncate font-brand leading-none">
@@ -218,6 +272,7 @@ function ShellBody({
                     <span className="text-[30px]">esa</span>
                   </span>
                 </span>
+              </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -243,10 +298,11 @@ function ShellBody({
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
             <SidebarTrigger />
             <h1 className="truncate text-sm font-medium">{title ?? VIEW_TITLES[view]}</h1>
+            <div ref={setActionsEl} className="ml-auto flex min-w-0 items-center gap-2" /> {/* views put controls here through <PageActions> */}
           </header>
         )}
         {view !== 'security' && <IntrusionBanner onOpen={() => onNavigate('security')} />}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col"><PageActionsContext.Provider value={actionsEl}>{children}</PageActionsContext.Provider></div>
       </SidebarInset>
     </>
   )
