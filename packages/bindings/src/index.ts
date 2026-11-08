@@ -34,7 +34,10 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AddAgentStepReducer from "./add_agent_step_reducer";
 import AdminOverrideAlarmReducer from "./admin_override_alarm_reducer";
+import AnswerAgentReducer from "./answer_agent_reducer";
+import AskAgentReducer from "./ask_agent_reducer";
 import AttachReportReducer from "./attach_report_reducer";
 import AttachShiftReportReducer from "./attach_shift_report_reducer";
 import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
@@ -48,6 +51,8 @@ import StartShiftReducer from "./start_shift_reducer";
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import AgentChatRow from "./agent_chat_table";
+import AgentStepRow from "./agent_step_table";
 import DatacenterRow from "./datacenter_table";
 import EventLogRow from "./event_log_table";
 import FeedHealthRow from "./feed_health_table";
@@ -68,6 +73,31 @@ import ThresholdRow from "./threshold_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  agentChat: __table({
+    name: 'agent_chat',
+    indexes: [
+      { accessor: 'chatId', name: 'agent_chat_chat_id_idx_btree', algorithm: 'btree', columns: [
+        'chatId',
+      ] },
+    ],
+    constraints: [
+      { name: 'agent_chat_chat_id_key', constraint: 'unique', columns: ['chatId'] },
+    ],
+  }, AgentChatRow),
+  agentStep: __table({
+    name: 'agent_step',
+    indexes: [
+      { accessor: 'by_chat', name: 'agent_step_chat_id_idx_btree', algorithm: 'btree', columns: [
+        'chatId',
+      ] },
+      { accessor: 'stepId', name: 'agent_step_step_id_idx_btree', algorithm: 'btree', columns: [
+        'stepId',
+      ] },
+    ],
+    constraints: [
+      { name: 'agent_step_step_id_key', constraint: 'unique', columns: ['stepId'] },
+    ],
+  }, AgentStepRow),
   datacenter: __table({
     name: 'datacenter',
     indexes: [
@@ -259,7 +289,10 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("add_agent_step", AddAgentStepReducer),
   __reducerSchema("admin_override_alarm", AdminOverrideAlarmReducer),
+  __reducerSchema("answer_agent", AnswerAgentReducer),
+  __reducerSchema("ask_agent", AskAgentReducer),
   __reducerSchema("attach_report", AttachReportReducer),
   __reducerSchema("attach_shift_report", AttachShiftReportReducer),
   __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),

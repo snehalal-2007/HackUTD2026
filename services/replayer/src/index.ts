@@ -49,7 +49,7 @@ function readTokens(): Record<string, string> {
     return {}
   }
 }
-const token = process.env.REPLAYER_TOKEN ?? readTokens()[tokenKey]
+const token = process.env.REPLAYER_TOKEN || readTokens()[tokenKey] // || not ??: an empty REPLAYER_TOKEN= in .env must fall back to the saved token
 
 function toReading(row: SampleRow, measuredAtMs: number, seq: bigint): ReadingIn {
   return {

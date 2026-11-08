@@ -8,6 +8,7 @@ export default spacetimedb;
 
 export { ingestReadings, pruneReadings, watchFeeds } from './reducers/telemetry';
 export { attachReport, attachShiftReport } from './reducers/reports';
+export { askAgent, addAgentStep, answerAgent } from './reducers/chat';
 export { openIncident, setIncidentStatus, startShift, setShiftStatus } from './reducers/incidents';
 
 export const init = spacetimedb.init(_ctx => {
