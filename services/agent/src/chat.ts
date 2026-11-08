@@ -5,7 +5,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { config } from './config.js'
 import { FALLBACK, client, describeError, takeBudget } from './llm.js'
 import { CHAT_ROLE } from './prompts.js'
-import { consoleNames, describeRack, type ConsoleName } from './names.js'
+import { consoleNames, describeRack, placeName, type ConsoleName } from './names.js'
 import { writeIncidentReport } from './reports.js'
 import * as db from './stdb.js'
 
@@ -44,15 +44,15 @@ async function runTool(name: string, input: Record<string, unknown>): Promise<{ 
       updated: ago(db.ms(r.updatedAt)),
     }))
     const feeds = new Map(db.feeds().map(f => [f.datacenterId, f]))
-    const dcs = db.datacenters().map(d => ({ id: d.datacenterId, name: d.name, region: d.region, last_batch: feeds.get(d.datacenterId) ? ago(db.ms(feeds.get(d.datacenterId)!.lastIngestAt)) : 'never', feed_silent: feeds.get(d.datacenterId)?.stale ?? false }))
+    const dcs = db.datacenters().map(d => ({ id: d.datacenterId, name: placeName(d.datacenterId), region: d.region, last_batch: feeds.get(d.datacenterId) ? ago(db.ms(feeds.get(d.datacenterId)!.lastIngestAt)) : 'never', feed_silent: feeds.get(d.datacenterId)?.stale ?? false }))
     const hot = racks.filter(r => r.hottest_gpu_c >= 50).length
-    return { title: 'Read floor status', summary: `${dcs.length} data centers, ${racks.length} racks; ${hot} rack(s) at or over 50 °C`, result: { data_centers: dcs, racks, thresholds: db.thresholds() } }
+    return { title: 'Read floor status', summary: `${dcs.length} floors, ${racks.length} racks; ${hot} rack(s) at or over 50 °C`, result: { data_centers: dcs, racks, thresholds: db.thresholds() } }
   }
   if (name === 'list_incidents') {
     const active = input.status !== 'all'
     const list = db.incidents().filter(i => !active || i.status !== 'closed').sort((a, b) => (a.incidentId < b.incidentId ? 1 : -1)).slice(0, 25)
     const rows = list.map(i => ({
-      id: i.incidentId.toString(), title: i.title, kind: i.kind, severity: i.severity, status: i.status,
+      id: i.incidentId.toString(), title: i.title, where: placeName(i.datacenterId), kind: i.kind, severity: i.severity, status: i.status,
       rack: i.rackId ? describeRack(i.rackId, names.get(i.rackId)) : null, peak: i.peakValue, opened: ago(db.ms(i.openedAt)),
       closed_reason: i.closedReason || null, reports: db.reports().filter(r => r.incidentId === i.incidentId).map(r => r.kind),
     }))
@@ -95,10 +95,10 @@ async function runTool(name: string, input: Record<string, unknown>): Promise<{ 
   return { title: `Unknown tool ${name}`, summary: 'not available', result: { error: 'unknown tool' } }
 }
 
-/** Earlier answered questions, so follow-ups ("and the second one?") make sense. Shared floor chat: everyone's history. */
-function history(before: bigint): Anthropic.Beta.BetaMessageParam[] {
+/** This operator's earlier answered questions, so follow-ups ("and the second one?") make sense. Each operator has their own conversation. */
+function history(before: bigint, askedBy: db.ChatRow['askedBy']): Anthropic.Beta.BetaMessageParam[] {
   return db.chats()
-    .filter(c => c.chatId < before && c.status === 'answered')
+    .filter(c => c.chatId < before && c.status === 'answered' && c.askedBy.isEqual(askedBy))
     .sort((a, b) => (a.chatId < b.chatId ? -1 : 1))
     .slice(-4)
     .flatMap(c => [
@@ -118,7 +118,7 @@ export async function answerQuestion(chat: db.ChatRow) {
   }
 
   const messages: Anthropic.Beta.BetaMessageParam[] = [
-    ...history(chat.chatId),
+    ...history(chat.chatId, chat.askedBy),
     { role: 'user', content: `<question from="${chat.askerName.replace(/[<>"]/g, '')}">${chat.question}</question>` },
   ]
   try {

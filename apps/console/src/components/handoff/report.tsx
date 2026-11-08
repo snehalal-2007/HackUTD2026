@@ -1,5 +1,4 @@
 import { forwardRef } from 'react'
-import { Badge } from '@/components/reui/badge'
 import { ActionsSection } from './actions-section'
 import { LiveBadge, SampleBadge } from './badges'
 import { BreakdownSection } from './breakdown-section'
@@ -12,7 +11,7 @@ import './handoff.css'
 
 /**
  * The report itself: the one element that "Download PDF" prints. Everything inside carries its own labels
- * (Estimate, Sample shift, Simulated cluster) so a printed copy cannot be mistaken for live data.
+ * (Estimate, Sample shift) so a printed copy cannot be mistaken for live data.
  */
 export const ShiftReport = forwardRef<HTMLElement, { report: ShiftReportData; assumptions: ReturnType<typeof useCostAssumptions> }>(function ShiftReport({ report, assumptions }, ref) {
   const costs = computeCosts(report, assumptions.values)
@@ -23,11 +22,6 @@ export const ShiftReport = forwardRef<HTMLElement, { report: ShiftReportData; as
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold">Shift report: {report.title}</h2>
           {sample ? <SampleBadge /> : <LiveBadge />}
-          {!sample && (
-            <Badge variant="info-light" size="default">
-              Simulated cluster
-            </Badge>
-          )}
         </div>
         <p className="text-sm text-muted-foreground tabular-nums">{report.windowLabel}</p>
         <p className="print-only text-xs text-muted-foreground">Printed {new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })} from the MESA console.</p>

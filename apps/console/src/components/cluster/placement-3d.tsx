@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MinusIcon, MoveRightIcon, PlusIcon } from 'lucide-react'
 import { useReducer, useSpacetimeDB } from 'spacetimedb/react'
 import { reducers } from '@mesa/bindings'
-import { Badge } from '@/components/reui/badge'
 import { cabOf, RACK_SLOTS, type RackVM, type RunVM } from './use-cluster'
 import { DARK_PALETTE, LIGHT_PALETTE, PlacementScene } from './placement-scene'
 
@@ -78,7 +77,6 @@ export function Placement3D({ racks, runs, ready }: { racks: RackVM[]; runs: Run
       </div>
 
       <div className="absolute top-3 left-3 z-[2] flex flex-wrap items-center gap-2">
-        <Badge variant="info" size="sm">Simulated cluster</Badge>
         <span className="rounded-full bg-card/90 px-2.5 py-1 text-xs tabular-nums">{total} instances on {racks.length} racks</span>
       </div>
 

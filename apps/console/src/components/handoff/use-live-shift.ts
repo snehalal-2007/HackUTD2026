@@ -172,13 +172,13 @@ export function useLiveShift(enabled: boolean) {
     for (const r of runs) {
       const at = minOf(ms(r.startedAt))
       if (r.action === 'live_migrate' && r.status === 'succeeded') {
-        moments.push({ min: at, text: `Moved ${r.instanceId || r.serviceId} from ${cabOf(r.fromRack)} to ${cabOf(r.toRack)} with no downtime (simulated cluster).`, tone: 'ok' })
+        moments.push({ min: at, text: `Moved ${r.instanceId || r.serviceId} from ${cabOf(r.fromRack)} to ${cabOf(r.toRack)} with no downtime.`, tone: 'ok' })
       } else if (r.status === 'needs_approval') {
         moments.push({ min: at, text: `A failover for ${r.instanceId || r.serviceId} is waiting for a lead’s approval.`, tone: 'bad' })
       } else if (r.action === 'patch_in_place') {
-        moments.push({ min: at, text: `Rolling patch of ${r.serviceId} to ${r.version} started (simulated cluster).`, tone: 'info' })
+        moments.push({ min: at, text: `Rolling patch of ${r.serviceId} to ${r.version} started.`, tone: 'info' })
       } else if (r.action === 'throttle_in_place') {
-        moments.push({ min: at, text: `Lowered the power cap on ${cabOf(r.rackId)} (simulated cluster).`, tone: 'info' })
+        moments.push({ min: at, text: `Lowered the power cap on ${cabOf(r.rackId)}.`, tone: 'info' })
       }
     }
     moments.sort((a, b) => a.min - b.min)

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { BotIcon, BrainIcon, FileTextIcon, SendHorizontalIcon } from 'lucide-react'
+import { FileTextIcon, SendHorizontalIcon } from 'lucide-react'
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from '@/components/ui/attachment'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker'
+import { MesaGlyph } from '@/components/shell/brand-mark'
 import { Message, MessageAvatar, MessageContent, MessageFooter } from '@/components/ui/message'
 import { Spinner } from '@/components/ui/spinner'
 import { useArrivals } from '@/lib/use-arrivals'
 import { cn } from '@/lib/utils'
-import { ThoughtPanel } from './thought-panel'
+import { ReportView } from './report-view'
 import { ms, useAgentChat, type ThreadItem } from './use-agent-chat'
 
 // The operator ↔ agent chat, live from SpacetimeDB. Questions go through ask_agent; the agent service
@@ -45,26 +45,13 @@ function AnswerText({ text, className }: { text: string; className?: string }) {
 
 function AgentAvatar() {
   return (
-    <MessageAvatar>
-      <Avatar className="size-7">
-        <AvatarFallback className="bg-primary text-primary-foreground">
-          <BotIcon className="size-4" aria-hidden="true" />
-        </AvatarFallback>
-      </Avatar>
+    <MessageAvatar className="rounded-none bg-transparent text-black group-has-data-[slot=message-footer]/message:-translate-y-6 dark:text-white"> {/* lifted a little less than the default (-8), so the mark sits lower */} {/* no circle or border: just the MESA mark, black (white in dark mode so it stays visible) */}
+      <MesaGlyph className="size-7" />
     </MessageAvatar>
   )
 }
 
-function ThoughtLink({ selected, onSelect }: { selected: boolean; onSelect: () => void }) {
-  return (
-    <Button type="button" variant="ghost" size="xs" onClick={onSelect} aria-pressed={selected} className={cn(selected && 'bg-muted')}>
-      <BrainIcon aria-hidden="true" />
-      {selected ? 'Showing thought process' : 'Thought process'}
-    </Button>
-  )
-}
-
-function ChatEntry({ item, selected, onSelect, className, hideThought }: { item: Extract<ThreadItem, { type: 'chat' }>; selected: boolean; onSelect: () => void; className?: string; hideThought?: boolean }) {
+function ChatEntry({ item, className }: { item: Extract<ThreadItem, { type: 'chat' }>; className?: string }) {
   const { chat, steps } = item
   const live = chat.status === 'pending' || chat.status === 'thinking'
   return (
@@ -104,7 +91,6 @@ function ChatEntry({ item, selected, onSelect, className, hideThought }: { item:
           <MessageFooter className="gap-2">
             {!live && <span className="tabular-nums">{clock(ms(chat.answeredAt))}</span>}
             {chat.status === 'answered' && <span>AI drafted · {secs(chat.durationMs)}</span>}
-            {!hideThought && <ThoughtLink selected={selected} onSelect={onSelect} />}
           </MessageFooter>
         </MessageContent>
       </Message>
@@ -112,8 +98,9 @@ function ChatEntry({ item, selected, onSelect, className, hideThought }: { item:
   )
 }
 
-function ReportEntry({ item, selected, onSelect, className }: { item: Extract<ThreadItem, { type: 'report' }>; selected: boolean; onSelect: () => void; className?: string }) {
+function ReportEntry({ item, className }: { item: Extract<ThreadItem, { type: 'report' }>; className?: string }) {
   const { report, body, incident } = item
+  const [open, setOpen] = useState(false)
   const name = `${report.kind === 'final' ? 'Final' : 'Interim'} report · incident #${String(report.incidentId)}`
   return (
     <Message className={className}>
@@ -124,8 +111,8 @@ function ReportEntry({ item, selected, onSelect, className }: { item: Extract<Th
             <p>{body?.summary ?? `I wrote the ${report.kind} report for ${incident?.title ?? `incident #${String(report.incidentId)}`}.`}</p>
           </BubbleContent>
         </Bubble>
-        <button type="button" onClick={onSelect} aria-pressed={selected} className="w-full max-w-sm rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <Attachment className={cn('w-full transition-colors hover:border-foreground/30', selected && 'border-foreground/60')}>
+        <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full max-w-sm rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Attachment className={cn('w-full transition-colors hover:border-foreground/30', open && 'border-foreground/60')}>
             <AttachmentMedia>
               <FileTextIcon aria-hidden="true" />
             </AttachmentMedia>
@@ -139,6 +126,11 @@ function ReportEntry({ item, selected, onSelect, className }: { item: Extract<Th
             </AttachmentContent>
           </Attachment>
         </button>
+        {open && (
+          <div className="w-full rounded-lg border bg-card p-4">
+            <ReportView item={item} />
+          </div>
+        )}
         <MessageFooter>
           <span className="tabular-nums">{clock(ms(report.writtenAt))}</span>
         </MessageFooter>
@@ -148,18 +140,16 @@ function ReportEntry({ item, selected, onSelect, className }: { item: Extract<Th
 }
 
 /**
- * `compact` drops the thought-process column so the chat fits a side panel (Shift Handoff uses it that way);
+ * `compact` marks the side-panel use (Shift Handoff); the chat has no thought-process column any more, so it needs no change.
  * `suggestions` replaces the starter questions. The agent's rules are unchanged: it reads, it never acts.
  */
-export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { compact?: boolean; suggestions?: string[] } = {}) {
+export function AgentChat({ suggestions = SUGGESTIONS }: { compact?: boolean; suggestions?: string[] } = {}) {
   const { items, myPending, ready, ask } = useAgentChat()
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
-  const [picked, setPicked] = useState<string | null>(null) // null = follow the newest entry
   const scrollRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
-  const selected = items.find(i => i.key === picked) ?? items[items.length - 1]
 
   // Stay pinned to the newest message while answers arrive, unless the operator has scrolled up to read something.
   useEffect(() => {
@@ -187,7 +177,6 @@ export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { comp
     try {
       await ask(q)
       setDraft('')
-      setPicked(null) // follow the new question in the panel
       pinned.current = true
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -199,9 +188,9 @@ export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { comp
 
   const busy = myPending >= MAX_PENDING
   return (
-    <div className={cn('grid min-h-0 flex-1', !compact && 'lg:grid-cols-[minmax(0,1fr)_420px]')}>
-      {/* left: the conversation, floating on the page background */}
-      <div className={cn('flex min-w-0 flex-col', compact ? 'min-h-0' : 'min-h-[520px] lg:min-h-0')}>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* the conversation, floating on the page background */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
           <div ref={listRef} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
             {!ready ? (
@@ -212,7 +201,7 @@ export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { comp
                 <MessageContent>
                   <Bubble variant="ghost">
                     <BubbleContent>
-                      <p>I read live telemetry, incidents and the audit log to answer. I can’t change anything, and I write a report whenever an incident escalates or closes.</p>
+                      <p>I read live telemetry, incidents and the audit log to answer. I can’t change anything, and I write an incident report when you ask for one.</p>
                     </BubbleContent>
                   </Bubble>
                   <div className="flex flex-wrap gap-2">
@@ -225,9 +214,9 @@ export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { comp
             ) : (
               items.map(item =>
                 item.type === 'chat' ? (
-                  <ChatEntry key={item.key} item={item} hideThought={compact} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ChatEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} />
                 ) : (
-                  <ReportEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ReportEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} />
                 ),
               )
             )}
@@ -263,12 +252,6 @@ export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { comp
         </form>
       </div>
 
-      {/* right: how the agent worked out the selected answer */}
-      {!compact && (
-        <div className="min-h-[420px] p-3.5 lg:min-h-0 lg:pl-0">
-          <ThoughtPanel item={selected} />
-        </div>
-      )}
     </div>
   )
 }

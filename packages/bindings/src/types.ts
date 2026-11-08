@@ -84,6 +84,10 @@ export const Incident = __t.object("Incident", {
   source: __t.string(),
   peakValue: __t.f64(),
   closedReason: __t.string(),
+  owner: __t.string(),
+  ownerName: __t.string(),
+  claimedAtMicros: __t.u64(),
+  handedFrom: __t.string(),
 });
 export type Incident = __Infer<typeof Incident>;
 
@@ -120,6 +124,8 @@ export const Operator = __t.object("Operator", {
   role: __t.string(),
   onShift: __t.bool(),
   online: __t.bool(),
+  shiftStartedMicros: __t.u64(),
+  shiftEndsMicros: __t.u64(),
 });
 export type Operator = __Infer<typeof Operator>;
 
@@ -291,6 +297,12 @@ export const ShiftReport = __t.object("ShiftReport", {
   writtenAt: __t.timestamp(),
 });
 export type ShiftReport = __Infer<typeof ShiftReport>;
+
+export const ShiftTimer = __t.object("ShiftTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type ShiftTimer = __Infer<typeof ShiftTimer>;
 
 export const ThreatEvent = __t.object("ThreatEvent", {
   id: __t.u64(),

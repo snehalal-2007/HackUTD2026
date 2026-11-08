@@ -10,6 +10,7 @@ export { ingestReadings, pruneReadings, watchFeeds } from './reducers/telemetry'
 export { attachReport, attachShiftReport } from './reducers/reports';
 export { askAgent, addAgentStep, answerAgent } from './reducers/chat';
 export { openIncident, setIncidentStatus, startShift, setShiftStatus } from './reducers/incidents';
+export { claimIncident, releaseIncident, reassignIncident, resolveIncident, startMyShift, endMyShift, shiftTick } from './reducers/queue';
 export { liveMigrateInstance, setPowerCap, applyPatch, advanceRemediation } from './reducers/cluster';
 
 export const init = spacetimedb.init(_ctx => {
@@ -36,5 +37,5 @@ export const registerOperator = spacetimedb.reducer({ name: t.string() }, (ctx, 
     ctx.db.operator.identity.update({ ...existing, name: trimmed });
     return;
   }
-  ctx.db.operator.insert({ identity: ctx.sender, name: trimmed, role: 'operator', onShift: false, online: true });
+  ctx.db.operator.insert({ identity: ctx.sender, name: trimmed, role: 'operator', onShift: false, online: true, shiftStartedMicros: 0n, shiftEndsMicros: 0n });
 });

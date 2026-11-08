@@ -1,5 +1,4 @@
 import type { ReactNode, RefObject } from 'react'
-import { Badge } from '@/components/reui/badge'
 import { BrandMark } from '@/components/shell/brand-mark'
 import { ThemeToggle } from '@/components/shell/theme-toggle'
 import { cn } from '@/lib/utils'
@@ -11,22 +10,12 @@ import { WalkthroughBackdrop } from './walkthrough-backdrop'
 function Wordmark() {
   return (
     <a href={HOME_ROUTE} aria-label="MESA home" className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-      <BrandMark className="bg-foreground text-background" />
+      <BrandMark className="text-foreground" />
       <span className="flex flex-col leading-none">
         <span className="font-brand text-2xl tracking-wide">mesa</span>
         <span className="text-xs text-muted-foreground">No alert left unowned</span>
       </span>
     </a>
-  )
-}
-
-/** Says plainly that the form is a sample: the module has no password accounts yet. */
-export function PreviewNote() {
-  return (
-    <div className="flex items-start gap-2 text-xs text-muted-foreground">
-      <Badge variant="warning" size="sm">Preview</Badge>
-      <span>Demo: accounts aren't connected to MESA yet. Signing in opens the console without checking the password, and sign-up details aren't sent or saved.</span>
-    </div>
   )
 }
 
@@ -78,7 +67,6 @@ export function AuthCard({
             <div className="mt-6">{children}</div>
           </section>
           {below}
-          <PreviewNote />
         </div>
       </main>
       <div className="px-4 pb-6"><Footer /></div>
@@ -94,7 +82,7 @@ export function AuthSplit({ aside, children }: { aside: ReactNode; children: Rea
         <WalkthroughBackdrop />
         <div className="relative z-10 flex h-full min-h-svh flex-col justify-between gap-10 p-10 xl:p-14">
           <a href={HOME_ROUTE} aria-label="MESA home" className="flex items-center gap-2.5">
-            <BrandMark className="bg-white text-[#0b0c0f]" />
+            <BrandMark className="text-white" />
             <span className="font-brand text-2xl tracking-wide">mesa</span>
           </a>
           {aside}
@@ -112,7 +100,6 @@ export function AuthSplit({ aside, children }: { aside: ReactNode; children: Rea
         <main className="flex flex-1 items-start justify-center px-4 pt-6 pb-10 sm:items-center sm:px-8 sm:pt-0">
           <div className="flex w-full max-w-sm flex-col gap-6">
             {children}
-            <PreviewNote />
           </div>
         </main>
         <div className="px-4 pb-6"><Footer /></div>

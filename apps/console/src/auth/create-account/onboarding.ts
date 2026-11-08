@@ -1,6 +1,6 @@
 import { EMAIL_RE, phoneOk } from '../components/validation'
 
-// What a new organization tells MESA during sign-up. Kept in memory only (see PreviewNote).
+// What a new organization tells MESA during sign-up. Kept in memory only: nothing is sent or saved yet.
 
 export const TIERS = ['Tier I', 'Tier II', 'Tier III', 'Tier IV', 'Not certified'] as const
 export const COOLING = ['Air (CRAC/CRAH)', 'In-row', 'Liquid / direct-to-chip', 'Hybrid'] as const

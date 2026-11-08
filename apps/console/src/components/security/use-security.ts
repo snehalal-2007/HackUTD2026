@@ -7,8 +7,8 @@ import { tables } from '@mesa/bindings'
 
 /** The decoy reducers in module/src/honeypot/decoys.ts and what each one pretends to be. */
 export const DECOYS = [
-  { name: 'admin_override_alarm', bait: 'Looks like a maintenance override that silences alarms' },
-  { name: 'export_operator_tokens', bait: 'Looks like an export of every operator login token' },
+  { name: 'admin_override_alarm', label: 'Alarm override', bait: 'Looks like a maintenance override that silences alarms' },
+  { name: 'export_operator_tokens', label: 'Token export', bait: 'Looks like an export of every operator login token' },
 ] as const
 
 export function useSecurity() {

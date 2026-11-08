@@ -71,7 +71,6 @@ export function ContactButton({ tone, className }: { tone: Tone; className?: str
           <a href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('MESA enquiry')}`} className="mt-2 flex h-9 items-center justify-center rounded-lg bg-neutral-900 text-sm font-medium text-white hover:bg-neutral-700">
             Open in your email app
           </a>
-          <p className="mt-2 text-[0.65rem] text-neutral-400">Sample address for this preview.</p>
         </div>
       )}
     </div>
@@ -94,12 +93,12 @@ export function SiteHeader({ tone, links }: { tone: Tone; links: { href: string;
     >
       <div
         className={cn(
-          'mx-auto mt-3 flex max-w-6xl items-center gap-4 rounded-full border px-3 py-2 shadow-lg backdrop-blur-xl sm:mx-4 lg:mx-auto',
+          'mx-3 mt-3 flex items-center gap-4 rounded-xl border px-3 py-2 shadow-lg backdrop-blur-xl sm:mx-6', // full width, gentle corners
           tone === 'dark' ? 'border-white/10 bg-neutral-950/70 text-white' : 'border-black/5 bg-white/80 text-neutral-900',
         )}
       >
         <a href="#top" onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="flex items-center gap-2 pl-1">
-          <BrandMark className={tone === 'dark' ? 'bg-white text-neutral-950' : 'bg-neutral-950 text-white'} />
+          <BrandMark className={tone === 'dark' ? 'text-white' : 'text-neutral-950'} />
           <span className="font-brand text-xl tracking-wide">mesa</span>
         </a>
         <nav aria-label="Sections" className="hidden flex-1 justify-center gap-1 md:flex">
@@ -139,7 +138,7 @@ export function SiteFooter({ tone }: { tone: Tone }) {
         <span className="flex flex-wrap gap-4">
           <a href={AUTH_ROUTES.quickSignIn} className="hover:underline">Sign in</a>
           <a href={`mailto:${CONTACT_EMAIL}`} className="hover:underline">{CONTACT_EMAIL}</a>
-          <a href="#/intro" className="hover:underline">All intro samples</a>
+          <a href="/intro" className="hover:underline">All intro samples</a>
         </span>
       </div>
     </footer>

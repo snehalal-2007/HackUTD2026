@@ -19,6 +19,7 @@
     "typecheck": "pnpm -r typecheck",
     "demo:attack": "pnpm --filter @mesa/agent exec tsx ../../security/attack-scripts/attack-demo.ts",
     "demo:honeypot": "bash scripts/demo-honeypot.sh",
+    "demo:accounts": "pnpm --filter @mesa/agent exec tsx ../../scripts/demo-accounts.ts && bash scripts/demo-shifts.sh",
     "replay": "pnpm --filter @mesa/replayer start"
   },
   "devDependencies": {

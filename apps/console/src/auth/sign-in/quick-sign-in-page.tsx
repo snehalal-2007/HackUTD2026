@@ -27,9 +27,11 @@ export function QuickSignInPage() {
     if (!password) errs.password = 'Enter your password.'
     setErrors(errs)
     if (Object.keys(errs).length === 0) {
-      setPassword('')
       setBusy(true)
-      void finishSignIn(login.includes('@') ? login.split('@')[0] : login)
+      void finishSignIn(login.includes('@') ? login.split('@')[0] : login, password).then(err => {
+        setPassword('')
+        if (err) { setErrors({ password: err }); setBusy(false) }
+      })
     }
   }
 

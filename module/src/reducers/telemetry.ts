@@ -4,6 +4,7 @@ import spacetimedb, { ReadingIn, pruneTimer } from '../schema';
 import { watchdogTimer } from '../tables/rules';
 import { rejectAgent } from '../lib/agent';
 import { checkFeeds, ensureRules, evaluateRack, recordFeedBatch } from '../lib/rules';
+import { ensureShiftTimer } from './queue';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
@@ -38,6 +39,7 @@ export const ingestReadings = spacetimedb.reducer(
     if (readings.length === 0) return;
     if (readings.length > MAX_BATCH) throw new SenderError(`batch over ${MAX_BATCH} readings`);
     ensurePruneTimer(ctx);
+    ensureShiftTimer(ctx); // shift housekeeping starts with the first telemetry, like the other timers
     ensureRules(ctx);
 
     const first = readings[0];

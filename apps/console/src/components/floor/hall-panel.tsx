@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
-import { TimerIcon } from 'lucide-react'
+import { ChevronRightIcon, TimerIcon } from 'lucide-react'
+import { BlockTasks } from './block-tasks'
+import { useBlockTasks } from './use-block-tasks'
 import { cn } from '@/lib/utils'
 import { GPU_WARN_C, ITEM_LABEL, LIMIT, RACK_CAP_KW, STATUS, TABS, fmtHours, type Hall, type Item, type ItemState, type TabId } from './data'
 
@@ -14,7 +16,7 @@ const TONE: Record<ItemState, string> = {
 export function StatusPill({ state, label }: { state: ItemState; label?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full border border-current px-2 py-0.5 text-[13px] leading-tight font-semibold whitespace-nowrap', TONE[state])}>
-      <span aria-hidden="true">{STATUS[state].glyph}</span>
+      <span aria-hidden="true" className={cn(state === 'crit' && 'text-[16px] leading-none')}>{STATUS[state].glyph}</span> {/* the ◆ renders small; bump it */}
       {label ?? STATUS[state].label}
     </span>
   )
@@ -53,7 +55,8 @@ function Rows({ items, empty }: { items: Item[]; empty: string }) {
   )
 }
 
-function Body({ hall, tab }: { hall: Hall; tab: TabId }) {
+function Body({ hall, row, onPick, tab, onTab, taskCount }: { hall: Hall; row: Hall[]; onPick: (id: string) => void; tab: TabId; onTab: (t: TabId) => void; taskCount: number }) {
+  if (tab === 'tasks') return <BlockTasks hall={hall} row={row} onPick={onPick} />
   if (tab === 'overview') {
     return (
       <>
@@ -70,19 +73,12 @@ function Body({ hall, tab }: { hall: Hall; tab: TabId }) {
             {hall.breachH === 0 ? <>Hottest GPU is over {LIMIT} °C now</> : <>On the current trend, the hottest GPU reaches {LIMIT} °C in <b className="tabular-nums">{fmtHours(hall.breachH)}</b></>}
           </div>
         )}
-        <H4>Risks</H4>
-        {hall.risks.length ? (
-          <ul>
-            {hall.risks.map(r => (
-              <li key={r} className="relative my-2.5 pl-5 text-[15px] leading-normal">
-                <span aria-hidden="true" className={cn('absolute top-0.5 left-0 text-[10px]', hall.status === 'crit' ? 'text-destructive' : 'text-warning')}>▲</span>
-                {r}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-[14px] text-muted-foreground">No GPU in block {hall.tag} is at or over {GPU_WARN_C} °C.</p>
-        )}
+        <button type="button" onClick={() => onTab('tasks')} className="mt-4 flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-[14.5px] hover:bg-muted">
+          <span>
+            <b className="font-semibold">{taskCount} task{taskCount === 1 ? '' : 's'}</b> on {hall.tag} · <b className="font-semibold">{hall.risks.length} risk{hall.risks.length === 1 ? '' : 's'}</b> in this block
+          </span>
+          <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+        </button>
       </>
     )
   }
@@ -121,14 +117,18 @@ function Body({ hall, tab }: { hall: Hall; tab: TabId }) {
 }
 
 /** Folder-style tabs joined to the details card, then the selected hall's details. */
-export function HallPanel({ hall, siteName, floor, tab, onTab }: { hall: Hall; siteName: string; floor: number; tab: TabId; onTab: (t: TabId) => void }) {
+export function HallPanel({ hall, row, onPick, siteName, floor, tab, onTab }: { hall: Hall; row: Hall[]; onPick: (id: string) => void; siteName: string; floor: number; tab: TabId; onTab: (t: TabId) => void }) {
   const first = tab === TABS[0].id
+  const tasks = useBlockTasks(hall, row).here
+  const unowned = tasks.filter(i => !i.owner)
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={`${hall.label} details`}>
       <div role="tablist" aria-label="Block details" className="folder-tabs flex items-end">
         {TABS.map(t => {
-          const items = t.id === 'overview' ? [] : hall[t.id]
-          const crit = items.filter(x => x.state === 'crit').length, warn = items.filter(x => x.state === 'warn').length
+          // Tasks tab: unassigned tasks (red when one is critical). Other tabs: items over their limits.
+          const items = t.id === 'overview' || t.id === 'tasks' ? [] : hall[t.id]
+          const crit = t.id === 'tasks' ? unowned.filter(i => i.severity === 'critical').length : items.filter(x => x.state === 'crit').length
+          const warn = t.id === 'tasks' ? unowned.filter(i => i.severity !== 'critical').length : items.filter(x => x.state === 'warn').length
           return (
             <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} title={t.full} onClick={() => onTab(t.id)} className="folder-tab">
               <span>{t.label}</span>
@@ -144,11 +144,13 @@ export function HallPanel({ hall, siteName, floor, tab, onTab }: { hall: Hall; s
       <div role="tabpanel" className={cn('min-h-0 flex-1 overflow-auto rounded-lg bg-card p-5.5', first && 'rounded-tl-none')}>
         <div className="border-b-0 pb-4">
           <div className="text-[13px] text-muted-foreground" title={`Telemetry: Summit cabinet ${hall.cabinet}, servers ${hall.nodes} (${hall.datacenter})`}>{siteName} · Floor {floor}</div>
-          <h2 className="mt-1 mb-2 text-2xl leading-tight font-semibold tracking-tight">Block {hall.tag}</h2>
-          <StatusPill state={hall.status} />
+          <div className="mt-1 mb-2 flex items-center justify-between gap-3">
+            <h2 className="text-2xl leading-tight font-semibold tracking-tight">Block {hall.tag}</h2>
+            <span className="mr-3"><StatusPill state={hall.status} /></span>
+          </div>
           <p className="mt-2.5 text-[15.5px] leading-normal">{hall.headline}</p>
         </div>
-        <Body hall={hall} tab={tab} />
+        <Body hall={hall} row={row} onPick={onPick} tab={tab} onTab={onTab} taskCount={tasks.length} />
       </div>
     </section>
   )

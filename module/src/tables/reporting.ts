@@ -22,6 +22,11 @@ export const incident = table(
     source: t.string().default('manual'), // manual | rule
     peakValue: t.f64().default(0),
     closedReason: t.string().default(''),
+    // Ownership (My Queue). Appended with defaults so existing rows migrate without a reset.
+    owner: t.string().default(''), // owning operator's identity (hex); '' = nobody has claimed it
+    ownerName: t.string().default(''),
+    claimedAtMicros: t.u64().default(0n), // when the owner claimed it; 0 = never
+    handedFrom: t.string().default(''), // name of the operator whose shift ended with this unfinished; '' = not a leftover
   }
 );
 

@@ -7,6 +7,7 @@ import { AuthorizeStep } from './authorize-step'
 import { CompleteStep } from './complete-step'
 import { DetailsStep } from './details-step'
 import { EMPTY_ADMIN, type Onboarding } from './onboarding'
+import { navigateTo } from '@/lib/route'
 
 const STEPS = [
   { route: AUTH_ROUTES.createAccount, label: 'Organization details' },
@@ -40,7 +41,7 @@ function Stepper({ current }: { current: number }) {
   )
 }
 
-const go = (route: AuthRoute) => { window.location.hash = route }
+const go = (route: AuthRoute) => navigateTo(route)
 
 /**
  * Create-an-organization flow across three routes. One component stays mounted for all three,

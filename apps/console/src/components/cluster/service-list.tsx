@@ -26,7 +26,7 @@ export function ServiceList({ services }: { services: ServiceVM[] }) {
   }
 
   if (services.length === 0) {
-    return <p className="text-sm text-muted-foreground">The simulated cluster seeds once all 16 racks have reported telemetry.</p>
+    return <p className="text-sm text-muted-foreground">The cluster seeds once all 16 racks have reported telemetry.</p>
   }
   return (
     <ul className="flex flex-col divide-y rounded-lg border bg-card" aria-label="Services">

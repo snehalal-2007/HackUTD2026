@@ -1,7 +1,7 @@
 import { quarantine, threatEvent } from './honeypot/tables';
 import { schema, table, t } from 'spacetimedb/server';
 import { agentIdentity, eventLog, incident, incidentReport, shift, shiftReport } from './tables/reporting';
-import { feedHealth, rackProbe, threshold, watchdogTimer } from './tables/rules';
+import { feedHealth, rackProbe, shiftTimer, threshold, watchdogTimer } from './tables/rules';
 import { agentChat, agentStep } from './tables/chat';
 import { instance, remediationRun, remediationStats, remediationTimer, route, service } from './tables/cluster';
 
@@ -17,6 +17,9 @@ export const operator = table(
     role: t.string(), // operator | lead | observer | agent
     onShift: t.bool(),
     online: t.bool(),
+    // The operator's own shift (My Queue). Appended with defaults so existing rows migrate.
+    shiftStartedMicros: t.u64().default(0n), // 0 = not on shift
+    shiftEndsMicros: t.u64().default(0n), // planned end of the shift
   }
 );
 
@@ -152,6 +155,7 @@ const spacetimedb = schema({
   rackProbe,
   feedHealth,
   watchdogTimer,
+  shiftTimer, // My Queue: ends overdue shifts, tops up idle operators
   agentChat, // operator ↔ agent chat
   agentStep, // the agent's live working steps per question
   service, // simulated cluster (docs/CLUSTER-CYCLING.md)

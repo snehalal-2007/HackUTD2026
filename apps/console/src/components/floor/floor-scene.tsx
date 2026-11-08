@@ -28,6 +28,7 @@ export function FloorSceneTile(props: {
   const hostRef = useRef<HTMLDivElement>(null)
   const labelsRef = useRef<HTMLDivElement>(null)
   const barRef = useRef<HTMLDivElement>(null)
+  const filterRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<FloorScene | null>(null)
   const onSelectRef = useRef(onSelect)
   const shownFloor = useRef<string | null>(null)
@@ -36,7 +37,7 @@ export function FloorSceneTile(props: {
   useEffect(() => { // create the scene once; it lives as long as the tile
     const scene = new FloorScene(hostRef.current!, labelsRef.current!, {
       onSelect: id => onSelectRef.current(id),
-      topInset: () => (barRef.current ? barRef.current.offsetTop + barRef.current.offsetHeight : 0),
+      topInset: () => Math.max(barRef.current ? barRef.current.offsetTop + barRef.current.offsetHeight : 0, filterRef.current ? filterRef.current.offsetTop + filterRef.current.offsetHeight : 0), // keep the building below the name and the floor filter
     })
     scene.setPalette(isDark() ? DARK_PALETTE : LIGHT_PALETTE)
     sceneRef.current = scene
@@ -69,37 +70,7 @@ export function FloorSceneTile(props: {
 
       <div ref={barRef} className="absolute top-4 right-[72px] left-5 z-[2] flex flex-wrap items-center gap-x-3.5 gap-y-2">
         <SidebarTrigger className="md:hidden" />
-        <span className="flex items-baseline gap-2 whitespace-nowrap">
-          <span className="text-[15px] font-semibold">{site.name}</span>
-          <span className={site.verified ? 'text-[12.5px] font-medium text-success' : 'text-[12.5px] text-muted-foreground'}>{site.verified ? 'NMC² · verified' : 'Simulated site'}</span>
-        </span>
-        <div role="group" aria-label="Floor" className="inline-flex items-center gap-0.5 rounded-[10px] border bg-card p-1 shadow-[0_4px_14px_rgba(0,0,0,.06)]">
-          <span className="px-2 text-[14.5px] font-semibold text-muted-foreground">Floor</span>
-          {floors.map((list, i) => {
-            const f = i + 1, w = worstOf(list), ct = hotOn(list)
-            return (
-              <button
-                key={f}
-                type="button"
-                aria-pressed={f === floor}
-                aria-label={`Floor ${f}`}
-                title={`Floor ${f}: ${ct} server${ct === 1 ? '' : 's'} running hot`}
-                onClick={() => onFloor(f)}
-                className={cn(
-                  'flex min-w-9 items-center justify-center gap-1.5 rounded-[7px] border-2 border-transparent px-2.5 py-1.5 text-[14.5px] font-semibold tabular-nums whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground',
-                  f === floor && 'border-foreground bg-card text-foreground hover:bg-card', // selected floor: outlined, not filled
-                )}
-              >
-                {f}
-                {ct > 0 && (
-                  <span className={cn('inline-grid h-[19px] min-w-[19px] place-items-center rounded-full px-1.5 text-[11.5px]', w === 'crit' ? 'bg-destructive text-white' : 'bg-warning text-[#1a1a1a]')}>
-                    {ct}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <span className="text-[15px] font-semibold whitespace-nowrap">{site.name}</span>
       </div>
 
       <div className="absolute top-4 right-4 z-[2] flex flex-col overflow-hidden rounded-lg border bg-card">
@@ -108,6 +79,37 @@ export function FloorSceneTile(props: {
             <Icon className="size-4" aria-hidden="true" />
           </button>
         ))}
+      </div>
+
+      {/* floor filter, top right, just left of the zoom controls */}
+      <div ref={filterRef} role="group" aria-label="Floor" className="absolute top-4 right-[66px] z-[2] inline-flex items-center gap-1 rounded-xl border bg-card px-2 py-1.5 shadow-[0_4px_14px_rgba(0,0,0,.06)]">
+        <span className="px-2 text-[16px] font-semibold text-muted-foreground">Floor</span>
+        {floors.map((list, i) => {
+          const f = i + 1, w = worstOf(list), ct = hotOn(list)
+          return (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={f === floor}
+              aria-label={`Floor ${f}`}
+              title={`Floor ${f}: ${ct} server${ct === 1 ? '' : 's'} running hot`}
+              onClick={() => onFloor(f)}
+              className={cn(
+                'relative flex h-10 min-w-10 items-center justify-center rounded-lg px-3 text-[16px] font-semibold tabular-nums whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground',
+                ct > 0 && 'pr-6', // room on the right for the count, so it never covers the number
+                f === floor && 'text-foreground',
+              )}
+            >
+              <span className={cn('relative', f === floor && 'after:absolute after:-inset-x-1 after:-bottom-1.5 after:h-0.5 after:rounded-full after:bg-foreground')}>{f}</span> {/* selected floor: a line under the number */}
+              {ct > 0 && (
+                // notification badge on the number's top-right corner
+                <span className={cn('absolute top-1 right-1 inline-grid h-[17px] min-w-[17px] place-items-center rounded-full px-1 text-[10.5px] leading-none', w === 'crit' ? 'bg-destructive text-white' : 'bg-warning text-[#1a1a1a]')}>
+                  {ct}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       <div className="pointer-events-none absolute bottom-3.5 left-4 z-[2] rounded-full bg-card/90 px-2.5 py-1 text-[13px]">

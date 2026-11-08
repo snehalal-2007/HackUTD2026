@@ -27,9 +27,11 @@ export function OperatorSignInPage() {
     if (!password) errs.password = 'Enter your password.'
     setErrors(errs)
     if (Object.keys(errs).length === 0) {
-      setPassword('')
       setBusy(true)
-      void finishSignIn(username)
+      void finishSignIn(username, password).then(err => {
+        setPassword('')
+        if (err) { setErrors({ password: err }); setBusy(false) }
+      })
     }
   }
 

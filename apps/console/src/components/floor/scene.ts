@@ -48,6 +48,8 @@ export interface SceneOptions {
   onSelect: (id: string) => void
   /** Element whose bottom edge the building should stay below (the floor filter bar). */
   topInset?: () => number
+  /** Idle turn speed in radians per frame (default 0.0006, a slow drift). */
+  spin?: number
 }
 
 export class FloorScene {
@@ -337,7 +339,7 @@ export class FloorScene {
       o.distT = this.home.dist
       if (Math.abs(da) < 0.002 && Math.abs(HOME.el - o.el) < 0.002 && Math.abs(o.dist - this.home.dist) < 0.02) { this.homing = false; this.frameReq = 2 }
       this.lastInteract = now // no idle spin while gliding home
-    } else if (!this.reduceMotion && now - this.lastInteract > 4000 && !this.drag) o.az += 0.0006 // slow idle turn
+    } else if (!this.reduceMotion && now - this.lastInteract > 4000 && !this.drag) o.az += this.opts.spin ?? 0.0006 // slow idle turn
     o.dist += (o.distT - o.dist) * (this.homing ? 0.09 : 0.12)
     this.camera.position.set(o.target.x + o.dist * Math.cos(o.el) * Math.sin(o.az), o.target.y + o.dist * Math.sin(o.el), o.target.z + o.dist * Math.cos(o.el) * Math.cos(o.az))
     this.camera.lookAt(o.target)

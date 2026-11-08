@@ -120,7 +120,7 @@ export function SavingsSection({ report, costs, assumptions }: { report: ShiftRe
             Total: <b>{money(costs.avoided.total)}</b> saved, against <b>{money(costs.incurred.total)}</b> of estimated cost this shift: net <b>{money(costs.net)}</b>.
           </li>
         </ul>
-        {report.kind === 'live' && <p className="text-xs text-muted-foreground">Counts come from remediation_stats. The cluster is simulated, so moves are real rows in a simulated cluster, not real servers.</p>}
+        {report.kind === 'live' && <p className="text-xs text-muted-foreground">Counts come from remediation_stats.</p>}
         {report.kind === 'sample' && <p className="text-xs text-muted-foreground">The counts in this sample shift are made up; the arithmetic is the same as for the live report.</p>}
       </div>
 

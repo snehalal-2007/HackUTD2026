@@ -47,3 +47,12 @@ export const watchdogTimer = table(
     scheduledAt: t.scheduleAt(),
   }
 );
+
+// Shift housekeeping (module/src/reducers/queue.ts): ends overdue shifts and hands out work to idle operators.
+export const shiftTimer = table(
+  { name: 'shift_timer' },
+  {
+    scheduledId: t.u64().primaryKey().autoInc(),
+    scheduledAt: t.scheduleAt(),
+  }
+);

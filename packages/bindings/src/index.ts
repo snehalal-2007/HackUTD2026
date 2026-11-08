@@ -41,14 +41,20 @@ import ApplyPatchReducer from "./apply_patch_reducer";
 import AskAgentReducer from "./ask_agent_reducer";
 import AttachReportReducer from "./attach_report_reducer";
 import AttachShiftReportReducer from "./attach_shift_report_reducer";
+import ClaimIncidentReducer from "./claim_incident_reducer";
+import EndMyShiftReducer from "./end_my_shift_reducer";
 import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
 import IngestReadingsReducer from "./ingest_readings_reducer";
 import LiveMigrateInstanceReducer from "./live_migrate_instance_reducer";
 import OpenIncidentReducer from "./open_incident_reducer";
+import ReassignIncidentReducer from "./reassign_incident_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
+import ReleaseIncidentReducer from "./release_incident_reducer";
+import ResolveIncidentReducer from "./resolve_incident_reducer";
 import SetIncidentStatusReducer from "./set_incident_status_reducer";
 import SetPowerCapReducer from "./set_power_cap_reducer";
 import SetShiftStatusReducer from "./set_shift_status_reducer";
+import StartMyShiftReducer from "./start_my_shift_reducer";
 import StartShiftReducer from "./start_shift_reducer";
 
 // Import all procedure arg schemas
@@ -371,14 +377,20 @@ const reducersSchema = __reducers(
   __reducerSchema("ask_agent", AskAgentReducer),
   __reducerSchema("attach_report", AttachReportReducer),
   __reducerSchema("attach_shift_report", AttachShiftReportReducer),
+  __reducerSchema("claim_incident", ClaimIncidentReducer),
+  __reducerSchema("end_my_shift", EndMyShiftReducer),
   __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),
   __reducerSchema("ingest_readings", IngestReadingsReducer),
   __reducerSchema("live_migrate_instance", LiveMigrateInstanceReducer),
   __reducerSchema("open_incident", OpenIncidentReducer),
+  __reducerSchema("reassign_incident", ReassignIncidentReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
+  __reducerSchema("release_incident", ReleaseIncidentReducer),
+  __reducerSchema("resolve_incident", ResolveIncidentReducer),
   __reducerSchema("set_incident_status", SetIncidentStatusReducer),
   __reducerSchema("set_power_cap", SetPowerCapReducer),
   __reducerSchema("set_shift_status", SetShiftStatusReducer),
+  __reducerSchema("start_my_shift", StartMyShiftReducer),
   __reducerSchema("start_shift", StartShiftReducer),
 );
 

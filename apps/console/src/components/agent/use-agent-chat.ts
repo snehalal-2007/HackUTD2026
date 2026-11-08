@@ -2,8 +2,9 @@ import { useMemo } from 'react'
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { reducers, tables } from '@mesa/bindings'
 
-// Live agent conversation from SpacetimeDB: questions (agent_chat), the agent's working steps (agent_step),
-// and the incident reports the agent writes on its own (incident_report), merged into one thread.
+// Live agent conversation from SpacetimeDB, one per operator: this browser's questions (agent_chat), the agent's
+// working steps (agent_step), and the incident reports it wrote because one of those questions asked for them
+// (incident_report), merged into one thread. Note: the tables are public, so this is a per-person view, not privacy.
 
 export const ms = (ts: { microsSinceUnixEpoch: bigint }) => Number(ts.microsSinceUnixEpoch / 1000n)
 
@@ -34,9 +35,15 @@ export function useAgentChat() {
     type Item =
       | { type: 'chat'; key: string; at: number; chat: (typeof chats)[number]; steps: (typeof steps)[number][] }
       | { type: 'report'; key: string; at: number; report: (typeof reports)[number]; body: ReportJson | null; incident: (typeof incidents)[number] | undefined }
+    const me = conn.identity
+    const mine = me ? chats.filter(c => c.askedBy.isEqual(me)) : []
+    // Reports this operator asked for: the agent logs a "Write … report for incident #N" step on the question.
+    const myReportIncidents = new Set(
+      mine.flatMap(c => (stepsByChat.get(c.chatId) ?? []).map(s => /^Write \w+ report for incident #(\d+)/.exec(s.title)?.[1]).filter(Boolean) as string[]),
+    )
     const items: Item[] = [
-      ...chats.map(c => ({ type: 'chat' as const, key: `c${c.chatId}`, at: ms(c.askedAt), chat: c, steps: stepsByChat.get(c.chatId) ?? [] })),
-      ...reports.map(r => {
+      ...mine.map(c => ({ type: 'chat' as const, key: `c${c.chatId}`, at: ms(c.askedAt), chat: c, steps: stepsByChat.get(c.chatId) ?? [] })),
+      ...reports.filter(r => myReportIncidents.has(String(r.incidentId))).map(r => {
         let body: ReportJson | null = null
         try {
           body = JSON.parse(r.reportJson) as ReportJson
@@ -46,8 +53,7 @@ export function useAgentChat() {
         return { type: 'report' as const, key: `r${r.reportId}`, at: ms(r.writtenAt), report: r, body, incident: incidentById.get(r.incidentId) }
       }),
     ].sort((a, b) => a.at - b.at)
-    const me = conn.identity
-    const myPending = me ? chats.filter(c => c.askedBy.isEqual(me) && (c.status === 'pending' || c.status === 'thinking')).length : 0
+    const myPending = mine.filter(c => c.status === 'pending' || c.status === 'thinking').length
     return { items, myPending }
   }, [chats, steps, reports, incidents, conn.identity])
 

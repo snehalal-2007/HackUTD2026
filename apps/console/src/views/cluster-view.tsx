@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Badge } from '@/components/reui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Placement3D } from '@/components/cluster/placement-3d'
 import { RackGrid } from '@/components/cluster/rack-grid'
@@ -36,7 +35,6 @@ export function ClusterView() {
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="info" size="sm">Simulated cluster</Badge>
           <span>
             {totals.services} services placed on the real racks. Temperatures are recorded telemetry, so moving a service does not cool them; cooling figures are a simulated effect.
           </span>

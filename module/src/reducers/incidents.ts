@@ -30,6 +30,10 @@ export const openIncident = spacetimedb.reducer(
       source: 'manual',
       peakValue: 0,
       closedReason: '',
+      owner: '',
+      ownerName: '',
+      claimedAtMicros: 0n,
+      handedFrom: '',
     });
     appendEvent(ctx, ctx.sender.toHexString().slice(0, 16), 'opened incident', title.trim(), row.incidentId);
   }
