@@ -101,6 +101,23 @@ export const IncidentReport = __t.object("IncidentReport", {
 });
 export type IncidentReport = __Infer<typeof IncidentReport>;
 
+export const Instance = __t.object("Instance", {
+  instanceId: __t.string(),
+  serviceId: __t.string(),
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  state: __t.string(),
+  autoThrottled: __t.bool(),
+  demandKw: __t.f64(),
+  powerCapKw: __t.f64(),
+  powerKw: __t.f64(),
+  cpuPct: __t.f64(),
+  gpuPct: __t.f64(),
+  version: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type Instance = __Infer<typeof Instance>;
+
 export const Operator = __t.object("Operator", {
   identity: __t.identity(),
   name: __t.string(),
@@ -168,6 +185,52 @@ export const ReadingIn = __t.object("ReadingIn", {
 });
 export type ReadingIn = __Infer<typeof ReadingIn>;
 
+export const RemediationRun = __t.object("RemediationRun", {
+  runId: __t.u64(),
+  incidentId: __t.u64(),
+  rackId: __t.string(),
+  action: __t.string(),
+  status: __t.string(),
+  actor: __t.string(),
+  serviceId: __t.string(),
+  instanceId: __t.string(),
+  fromRack: __t.string(),
+  toRack: __t.string(),
+  version: __t.string(),
+  detail: __t.string(),
+  step: __t.u32(),
+  steps: __t.u32(),
+  simulatedEffectC: __t.f64(),
+  startedAt: __t.timestamp(),
+  decideAt: __t.option(__t.timestamp()),
+  finishedAt: __t.option(__t.timestamp()),
+});
+export type RemediationRun = __Infer<typeof RemediationRun>;
+
+export const RemediationStats = __t.object("RemediationStats", {
+  runId: __t.u64(),
+  instancesMoved: __t.u32(),
+  duplicatesAvoided: __t.u32(),
+  downtimeS: __t.f64(),
+  leadTimeS: __t.f64(),
+});
+export type RemediationStats = __Infer<typeof RemediationStats>;
+
+export const RemediationTimer = __t.object("RemediationTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  runId: __t.u64(),
+});
+export type RemediationTimer = __Infer<typeof RemediationTimer>;
+
+export const Route = __t.object("Route", {
+  instanceId: __t.string(),
+  serviceId: __t.string(),
+  target: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type Route = __Infer<typeof Route>;
+
 export const Server = __t.object("Server", {
   serverId: __t.string(),
   rackId: __t.string(),
@@ -210,6 +273,15 @@ export const ServerReading = __t.object("ServerReading", {
   cpuUtilPct: __t.f64(),
 });
 export type ServerReading = __Infer<typeof ServerReading>;
+
+export const Service = __t.object("Service", {
+  serviceId: __t.string(),
+  tier: __t.string(),
+  version: __t.string(),
+  knownPatch: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type Service = __Infer<typeof Service>;
 
 export const Shift = __t.object("Shift", {
   shiftId: __t.u64(),

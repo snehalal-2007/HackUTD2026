@@ -2,6 +2,7 @@ import type { InferSchema, ReducerCtx } from 'spacetimedb/server';
 import { ScheduleAt } from 'spacetimedb';
 import type spacetimedb from '../schema';
 import { appendEvent } from './log';
+import { remediateRack } from './remediation';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
@@ -138,6 +139,8 @@ export function evaluateRack(
   const next = { rackId: rack.rackId, failCount, okCount, level, incidentId };
   if (ctx.db.rackProbe.rackId.find(rack.rackId)) ctx.db.rackProbe.rackId.update(next);
   else ctx.db.rackProbe.insert(next);
+  // In-place remediation once the rack's incident is critical (docs/CLUSTER-CYCLING.md).
+  remediateRack(ctx, rack.rackId, incidentId);
 }
 
 /** Called on every batch: updates feed stats and closes a stale-feed incident when data returns. */

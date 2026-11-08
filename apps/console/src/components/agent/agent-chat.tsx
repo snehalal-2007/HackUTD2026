@@ -45,7 +45,7 @@ function AnswerText({ text, className }: { text: string; className?: string }) {
 
 function AgentAvatar() {
   return (
-    <MessageAvatar className="rounded-none bg-transparent text-black dark:text-white"> {/* no circle or border: just the MESA mark, black (white in dark mode so it stays visible) */}
+    <MessageAvatar className="rounded-none bg-transparent text-black group-has-data-[slot=message-footer]/message:-translate-y-6 dark:text-white"> {/* lifted a little less than the default (-8), so the mark sits lower */} {/* no circle or border: just the MESA mark, black (white in dark mode so it stays visible) */}
       <MesaGlyph className="size-7" />
     </MessageAvatar>
   )
@@ -139,7 +139,11 @@ function ReportEntry({ item, className }: { item: Extract<ThreadItem, { type: 'r
   )
 }
 
-export function AgentChat() {
+/**
+ * `compact` marks the side-panel use (Shift Handoff); the chat has no thought-process column any more, so it needs no change.
+ * `suggestions` replaces the starter questions. The agent's rules are unchanged: it reads, it never acts.
+ */
+export function AgentChat({ suggestions = SUGGESTIONS }: { compact?: boolean; suggestions?: string[] } = {}) {
   const { items, myPending, ready, ask } = useAgentChat()
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
@@ -201,8 +205,8 @@ export function AgentChat() {
                     </BubbleContent>
                   </Bubble>
                   <div className="flex flex-wrap gap-2">
-                    {SUGGESTIONS.map(s => (
-                      <Button key={s} type="button" variant="outline" size="sm" onClick={() => void send(s)}>{s}</Button>
+                    {suggestions.map(s => (
+                      <Button key={s} type="button" variant="outline" size="sm" className="h-auto max-w-full py-1 text-left whitespace-normal" onClick={() => void send(s)}>{s}</Button>
                     ))}
                   </div>
                 </MessageContent>

@@ -13,6 +13,7 @@ import {
   LogOutIcon,
   CheckIcon,
   ChevronsUpDownIcon,
+  ServerCogIcon,
 } from 'lucide-react'
 import { endSession, HOME_ROUTE, startSession } from '@/auth/components/session'
 import { demoAccounts, leaveDemoAccount, switchToDemo } from '@/auth/components/demo-accounts'
@@ -57,9 +58,10 @@ interface Item {
 const WORK: Item[] = [
   { id: 'queue', label: 'My Queue', view: 'queue', icon: <InboxIcon aria-hidden="true" /> },
   { id: 'floor', label: 'Floor', view: 'floor', icon: <LayoutGridIcon aria-hidden="true" /> },
+  { id: 'cluster', label: 'Cluster', view: 'cluster', icon: <ServerCogIcon aria-hidden="true" /> },
   { id: 'alerts', label: 'Alerts', view: 'alerts', icon: <SirenIcon aria-hidden="true" /> },
   { id: 'agent', label: 'AI Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
-  { id: 'handoff', label: 'Shift Handoff', icon: <ArrowLeftRightIcon aria-hidden="true" /> },
+  { id: 'handoff', label: 'Shift Handoff', view: 'handoff', icon: <ArrowLeftRightIcon aria-hidden="true" /> },
 ]
 
 const SYSTEM: Item[] = [

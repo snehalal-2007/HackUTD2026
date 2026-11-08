@@ -10,6 +10,7 @@
     "dev:db": "spacetime start",
     "publish:local": "bash scripts/publish.sh local",
     "publish:prod": "bash scripts/publish.sh maincloud",
+    "redeploy:replayer": "bash scripts/redeploy-replayer.sh",
     "generate": "bash scripts/generate-bindings.sh",
     "dev:console": "pnpm --filter @mesa/console dev",
     "dev:sim": "pnpm --filter @mesa/simulator dev",

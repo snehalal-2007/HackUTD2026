@@ -37,6 +37,7 @@ import {
 import AddAgentStepReducer from "./add_agent_step_reducer";
 import AdminOverrideAlarmReducer from "./admin_override_alarm_reducer";
 import AnswerAgentReducer from "./answer_agent_reducer";
+import ApplyPatchReducer from "./apply_patch_reducer";
 import AskAgentReducer from "./ask_agent_reducer";
 import AttachReportReducer from "./attach_report_reducer";
 import AttachShiftReportReducer from "./attach_shift_report_reducer";
@@ -44,12 +45,14 @@ import ClaimIncidentReducer from "./claim_incident_reducer";
 import EndMyShiftReducer from "./end_my_shift_reducer";
 import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
 import IngestReadingsReducer from "./ingest_readings_reducer";
+import LiveMigrateInstanceReducer from "./live_migrate_instance_reducer";
 import OpenIncidentReducer from "./open_incident_reducer";
 import ReassignIncidentReducer from "./reassign_incident_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
 import ReleaseIncidentReducer from "./release_incident_reducer";
 import ResolveIncidentReducer from "./resolve_incident_reducer";
 import SetIncidentStatusReducer from "./set_incident_status_reducer";
+import SetPowerCapReducer from "./set_power_cap_reducer";
 import SetShiftStatusReducer from "./set_shift_status_reducer";
 import StartMyShiftReducer from "./start_my_shift_reducer";
 import StartShiftReducer from "./start_shift_reducer";
@@ -64,12 +67,17 @@ import EventLogRow from "./event_log_table";
 import FeedHealthRow from "./feed_health_table";
 import IncidentRow from "./incident_table";
 import IncidentReportRow from "./incident_report_table";
+import InstanceRow from "./instance_table";
 import OperatorRow from "./operator_table";
 import QuarantineRow from "./quarantine_table";
 import RackRow from "./rack_table";
+import RemediationRunRow from "./remediation_run_table";
+import RemediationStatsRow from "./remediation_stats_table";
+import RouteRow from "./route_table";
 import ServerRow from "./server_table";
 import ServerLatestRow from "./server_latest_table";
 import ServerReadingRow from "./server_reading_table";
+import ServiceRow from "./service_table";
 import ShiftRow from "./shift_table";
 import ShiftReportRow from "./shift_report_table";
 import ThreatEventRow from "./threat_event_table";
@@ -163,6 +171,23 @@ const tablesSchema = __schema({
       { name: 'incident_report_report_id_key', constraint: 'unique', columns: ['reportId'] },
     ],
   }, IncidentReportRow),
+  instance: __table({
+    name: 'instance',
+    indexes: [
+      { accessor: 'instanceId', name: 'instance_instance_id_idx_btree', algorithm: 'btree', columns: [
+        'instanceId',
+      ] },
+      { accessor: 'rackId', name: 'instance_rack_id_idx_btree', algorithm: 'btree', columns: [
+        'rackId',
+      ] },
+      { accessor: 'serviceId', name: 'instance_service_id_idx_btree', algorithm: 'btree', columns: [
+        'serviceId',
+      ] },
+    ],
+    constraints: [
+      { name: 'instance_instance_id_key', constraint: 'unique', columns: ['instanceId'] },
+    ],
+  }, InstanceRow),
   operator: __table({
     name: 'operator',
     indexes: [
@@ -199,6 +224,45 @@ const tablesSchema = __schema({
       { name: 'rack_rack_id_key', constraint: 'unique', columns: ['rackId'] },
     ],
   }, RackRow),
+  remediationRun: __table({
+    name: 'remediation_run',
+    indexes: [
+      { accessor: 'incidentId', name: 'remediation_run_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+      { accessor: 'runId', name: 'remediation_run_run_id_idx_btree', algorithm: 'btree', columns: [
+        'runId',
+      ] },
+    ],
+    constraints: [
+      { name: 'remediation_run_run_id_key', constraint: 'unique', columns: ['runId'] },
+    ],
+  }, RemediationRunRow),
+  remediationStats: __table({
+    name: 'remediation_stats',
+    indexes: [
+      { accessor: 'runId', name: 'remediation_stats_run_id_idx_btree', algorithm: 'btree', columns: [
+        'runId',
+      ] },
+    ],
+    constraints: [
+      { name: 'remediation_stats_run_id_key', constraint: 'unique', columns: ['runId'] },
+    ],
+  }, RemediationStatsRow),
+  route: __table({
+    name: 'route',
+    indexes: [
+      { accessor: 'instanceId', name: 'route_instance_id_idx_btree', algorithm: 'btree', columns: [
+        'instanceId',
+      ] },
+      { accessor: 'serviceId', name: 'route_service_id_idx_btree', algorithm: 'btree', columns: [
+        'serviceId',
+      ] },
+    ],
+    constraints: [
+      { name: 'route_instance_id_key', constraint: 'unique', columns: ['instanceId'] },
+    ],
+  }, RouteRow),
   server: __table({
     name: 'server',
     indexes: [
@@ -247,6 +311,17 @@ const tablesSchema = __schema({
       { name: 'server_reading_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ServerReadingRow),
+  service: __table({
+    name: 'service',
+    indexes: [
+      { accessor: 'serviceId', name: 'service_service_id_idx_btree', algorithm: 'btree', columns: [
+        'serviceId',
+      ] },
+    ],
+    constraints: [
+      { name: 'service_service_id_key', constraint: 'unique', columns: ['serviceId'] },
+    ],
+  }, ServiceRow),
   shift: __table({
     name: 'shift',
     indexes: [
@@ -298,6 +373,7 @@ const reducersSchema = __reducers(
   __reducerSchema("add_agent_step", AddAgentStepReducer),
   __reducerSchema("admin_override_alarm", AdminOverrideAlarmReducer),
   __reducerSchema("answer_agent", AnswerAgentReducer),
+  __reducerSchema("apply_patch", ApplyPatchReducer),
   __reducerSchema("ask_agent", AskAgentReducer),
   __reducerSchema("attach_report", AttachReportReducer),
   __reducerSchema("attach_shift_report", AttachShiftReportReducer),
@@ -305,12 +381,14 @@ const reducersSchema = __reducers(
   __reducerSchema("end_my_shift", EndMyShiftReducer),
   __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),
   __reducerSchema("ingest_readings", IngestReadingsReducer),
+  __reducerSchema("live_migrate_instance", LiveMigrateInstanceReducer),
   __reducerSchema("open_incident", OpenIncidentReducer),
   __reducerSchema("reassign_incident", ReassignIncidentReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
   __reducerSchema("release_incident", ReleaseIncidentReducer),
   __reducerSchema("resolve_incident", ResolveIncidentReducer),
   __reducerSchema("set_incident_status", SetIncidentStatusReducer),
+  __reducerSchema("set_power_cap", SetPowerCapReducer),
   __reducerSchema("set_shift_status", SetShiftStatusReducer),
   __reducerSchema("start_my_shift", StartMyShiftReducer),
   __reducerSchema("start_shift", StartShiftReducer),

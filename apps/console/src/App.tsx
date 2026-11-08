@@ -13,13 +13,15 @@ import { AppShell } from '@/components/shell/app-shell'
 import type { ViewId } from '@/components/shell/nav'
 import { AlertsView } from '@/views/alerts-view'
 import { QueueView } from '@/views/queue-view'
+import { ClusterView } from '@/views/cluster-view'
 import { FloorView } from '@/views/floor-view'
+import { HandoffView } from '@/views/handoff-view'
 import { LogTableView } from '@/views/log-table-view'
 import { LogView } from '@/views/log-view'
 import { OperatorsView } from '@/views/operators-view'
 import { SecurityView } from '@/views/security-view'
 
-const VIEWS: ViewId[] = ['queue', 'floor', 'agent', 'alerts', 'log', 'operators', 'security']
+const VIEWS: ViewId[] = ['queue', 'floor', 'cluster', 'agent', 'alerts', 'handoff', 'log', 'operators', 'security']
 const KEY = 'mesa:view'
 
 /** "/console/floor" → 'floor'; anything else → null. */
@@ -103,8 +105,10 @@ export default function App() {
       <IncidentToasts /> {/* incident toasts only inside the signed-in console, never on the home or sign-in pages */}
       {view === 'queue' && <QueueView />}
       {view === 'floor' && <FloorView />}
+      {view === 'cluster' && <ClusterView />}
       {view === 'agent' && <AgentChat />}
       {view === 'alerts' && <AlertsView />}
+      {view === 'handoff' && <HandoffView />}
       {view === 'log' && <LogView onViewAll={() => go(logsPath(1))} />}
       {view === 'operators' && <OperatorsView />}
       {view === 'security' && <SecurityView />}

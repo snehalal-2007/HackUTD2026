@@ -11,6 +11,7 @@ export { attachReport, attachShiftReport } from './reducers/reports';
 export { askAgent, addAgentStep, answerAgent } from './reducers/chat';
 export { openIncident, setIncidentStatus, startShift, setShiftStatus } from './reducers/incidents';
 export { claimIncident, releaseIncident, reassignIncident, resolveIncident, startMyShift, endMyShift, shiftTick } from './reducers/queue';
+export { liveMigrateInstance, setPowerCap, applyPatch, advanceRemediation } from './reducers/cluster';
 
 export const init = spacetimedb.init(_ctx => {
   // Telemetry creates data centers, racks and servers as feeds stream them in.

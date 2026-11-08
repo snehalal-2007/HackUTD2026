@@ -54,6 +54,7 @@ Full reference: [docs/agents/spacetimedb-rules.md](docs/agents/spacetimedb-rules
 - Local by default: `pnpm dev:db` runs SpacetimeDB on `ws://localhost:3000`; database name `mesa`.
 - Production is the `hackutd2026-0nef9` database on Maincloud (`wss://maincloud.spacetimedb.com`). Only the release manager publishes there (`pnpm publish:prod`, from `main`, at a gate). Agents must never publish to Maincloud.
 - Schema changes that Maincloud cannot migrate automatically need `pnpm publish:prod -- --delete-data`, which wipes production data. Only the release manager decides that.
+- The telemetry replayer runs on Railway. A module publish disconnects it, and the service can end up stopped. The release manager restarts it with `pnpm redeploy:replayer` (needs the Railway CLI, logged in and linked; `--dry-run` shows the target without changing anything). Agents never run it unless asked.
 - Clients switch environments with `SPACETIME_URI` / `SPACETIME_DB` (and `VITE_` variants in the console). See `.env.example`.
 - Secrets never enter the repo. The repo is public. Real keys live in Vercel and Railway environment variables.
 

@@ -5,7 +5,7 @@ import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EventTimeline } from '@/components/log/event-timeline'
+import { EventTimeline, RecentSummary } from '@/components/log/event-timeline'
 import { PlacesPanel, type Focus } from '@/components/log/places-panel'
 import { PlaceDetail } from '@/components/log/place-detail'
 import { PageActions } from '@/components/shell/page-actions'
@@ -18,6 +18,7 @@ import { SITES } from '@/components/floor/data'
 import { PLACE } from '@/components/floor/names'
 
 const TIMELINE_PAGE = 12
+const RECENT = 5 // newest events summarised at the top of the event log
 
 // Layout: on desktop (lg) the view fits the window and each panel scrolls inside itself,
 // so the page never grows. On narrow screens it is one ordinary vertical scroll.
@@ -75,9 +76,11 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
   const placeEvents = data.events.filter(e => here(e.dcId) && inFocus(e))
   const incidents = filter === 'active' ? placeIncidents.filter(i => i.status !== 'closed') : placeIncidents
   const activeCount = placeIncidents.filter(i => i.status !== 'closed').length
-  const pages = Math.max(1, Math.ceil(placeEvents.length / TIMELINE_PAGE))
+  const recent = placeEvents.slice(0, RECENT)
+  const earlier = placeEvents.slice(RECENT) // the long list starts after the summary, so nothing shows twice
+  const pages = Math.max(1, Math.ceil(earlier.length / TIMELINE_PAGE))
   const current = Math.min(page, pages - 1)
-  const pageEvents = placeEvents.slice(current * TIMELINE_PAGE, (current + 1) * TIMELINE_PAGE)
+  const pageEvents = earlier.slice(current * TIMELINE_PAGE, (current + 1) * TIMELINE_PAGE)
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
@@ -157,9 +160,9 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
                 >
                   Verify chain
                 </Button>
-                <Button size="xs" variant="outline" onClick={onViewAll}>
+                <Button size="xs" variant="outline" onClick={onViewAll} title="Every event with its number and hash, as a table">
                   <TableIcon aria-hidden="true" />
-                  View all
+                  Table view
                 </Button>
               </div>
             </div>
@@ -172,10 +175,25 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
               </Badge>
             )}
             <div className="flex flex-col lg:min-h-0 lg:flex-1">
-              <div className="px-6 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-                <EventTimeline events={pageEvents} fresh={freshEvents} />
+              <div className="px-4 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+                {!placeEvents.length ? (
+                  <p className="px-2 text-sm text-muted-foreground">No events here yet. Every rule decision, claim and report is recorded in this log.</p>
+                ) : (
+                  <>
+                    <div className="rounded-md bg-muted/60 px-3.5 py-3">
+                      <h3 className="mb-2 text-[12px] font-semibold tracking-[.06em] text-muted-foreground uppercase">Latest</h3>
+                      <RecentSummary events={recent} now={now} />
+                    </div>
+                    {earlier.length > 0 && (
+                      <>
+                        <h3 className="mt-5 mb-3 px-2 text-[12px] font-semibold tracking-[.06em] text-muted-foreground uppercase">Earlier</h3>
+                        <div className="px-2"><EventTimeline events={pageEvents} fresh={freshEvents} /></div>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
-              {placeEvents.length > TIMELINE_PAGE && (
+              {earlier.length > TIMELINE_PAGE && (
                 <nav className="flex shrink-0 items-center gap-2 border-t px-3 py-2" aria-label="Event log pages">
                   <Button size="xs" variant="ghost" disabled={current === 0} onClick={() => setPage(current - 1)}>
                     <ChevronLeftIcon aria-hidden="true" />
