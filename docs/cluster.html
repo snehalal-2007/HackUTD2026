@@ -41,7 +41,7 @@ h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .row-head span { font-size: 13px; color: var(--muted-ink); }
 
 /* 3D stage */
-.stage { position: relative; height: 620px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
+.stage { position: relative; height: 470px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(#f7f5f1, #efece6); }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .stage canvas.grabbing { cursor: grabbing; }
 .labels { position: absolute; inset: 0; pointer-events: none; }
@@ -49,7 +49,7 @@ h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 .tag.s-warn i { background: var(--warn); } .tag.s-crit i { background: var(--crit); }
 .tag.target { border-color: var(--accent); color: var(--accent); }
-.site-tag { position: absolute; left: 0; top: 0; transform: translate(-50%, 0); padding: 6px 12px; border-radius: 9px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.site-tag { position: absolute; left: 0; top: 0; transform: translate(-50%, 0); padding: 3px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--border); white-space: nowrap; }
 .site-tag small { font-weight: 400; opacity: .7; margin-left: 4px; }
 .overlay { position: absolute; z-index: 2; }
 .floors { display: inline-flex; padding: 2px; gap: 2px; border-radius: 999px; background: var(--muted); vertical-align: middle; }
@@ -57,10 +57,8 @@ h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .floors button:hover { color: var(--ink); }
 .floors button.on { background: var(--ink); color: #fff; }
 .site-tag { pointer-events: auto; display: flex; align-items: center; gap: 8px; }
-.site-tag .floors { background: rgba(255,255,255,.12); }
-.site-tag .floors button { color: rgba(255,255,255,.65); }
-.site-tag .floors button:hover { color: #fff; }
-.site-tag .floors button.on { background: #fff; color: var(--ink); }
+.site-tag .floors { background: transparent; padding: 0; }
+.site-tag .floors::before { content: 'Floor'; align-self: center; padding: 0 4px 0 8px; font-size: 12px; color: var(--muted-ink); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--border); font-size: 12.5px; }
 .legend { top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.92); border: 1px solid var(--border); font-size: 12.5px; }
 .legend div { display: flex; align-items: center; gap: 7px; }
@@ -148,7 +146,6 @@ tr.source td { background: var(--muted); }
   <main class="main">
     <div class="top">Cluster</div>
     <div class="page">
-      <p class="caption" id="caption"></p>
 
       <section aria-labelledby="h3d">
         <div class="row-head"><h2 id="h3d">Live placement</h2><span>Drag to turn · scroll to zoom · drag a coloured bar onto a block to move that service</span></div>
@@ -275,6 +272,16 @@ function cyl(r, h, m, x, y, z, parent) {
   parent.add(mesh); return mesh
 }
 
+function groundText(text, x, z) { // a word painted flat on the plinth, readable from the default view
+  const c = document.createElement('canvas'), k = c.getContext('2d')
+  c.width = 1024; c.height = 128
+  k.font = '600 84px Inter, system-ui, sans-serif'; k.fillStyle = '#3a3833'; k.textAlign = 'center'; k.textBaseline = 'middle'
+  k.fillText(text.toUpperCase().split('').join(String.fromCharCode(8202)), 512, 68)
+  const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.25), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }))
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.02, z)
+  return m
+}
 const HALL_POS = Array.from({ length: 6 }, (_, i) => [-5 + 5 * (i % 3), i < 3 ? -3.6 : 3.6]) // Floor page layout for 6 blocks
 const W = 7.15 // half-width of the block area (layout(6) on the Floor page)
 const SITE_POS = [[0, -11], [-19, 11], [19, 11]] // triangle: one floor at the back in the middle, two in front
@@ -295,10 +302,11 @@ SITES.forEach((s, si) => {
   }
   for (const z of [-3.4, 3.4]) { cyl(1.2, 1.8, unitM, W + 4.75, 0.9, z, site); cyl(0.9, 0.15, lam(P.rack), W + 4.75, 1.85, z, site) } // cooling towers
   box(2.2, 1.3, 2.6, unitM, W + 4.75, 0.65, 0, site) // substation
+  site.add(groundText(s.name, 0, 7.7)) // the name, painted on the slab in front of the blocks
   s.group = site
   const lab = document.createElement('div')
   lab.className = 'site-tag'
-  lab.innerHTML = `${s.name}${floorButtons(si)}`
+  lab.innerHTML = floorButtons(si)
   labelsEl.append(lab); s.labelEl = lab
   lab.addEventListener('click', pickFloor)
 })
@@ -339,7 +347,7 @@ const barWorld = (tag, slot, y = BAR_Y) => H[tag].bars[slot].localToWorld(new TH
 
 // ── camera: orbit like the Floor page ──
 const HOME = { az: -0.42, el: 0.82, dist: 96 }
-const orbit = { az: HOME.az, el: HOME.el, dist: HOME.dist + 10, distT: HOME.dist, target: new THREE.Vector3(0, 0.6, 0) }
+const orbit = { az: HOME.az, el: HOME.el, dist: HOME.dist + 10, distT: HOME.dist, target: new THREE.Vector3(0, 0.6, 4) } // aimed a little in front of the middle, so the locations sit higher in the frame
 let homing = false
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight
@@ -551,7 +559,6 @@ requestAnimationFrame(tick)
 
 // ── page: caption, legend, hint, tiles, tables, runs, toasts ──
 const nInst = Object.keys(instances).length
-document.getElementById('caption').textContent = `${nInst} services running on ${blocks.length * SLOTS} servers (${blocks.length} blocks on 3 floors) across ${SITES.length} sites. Sample data for this prototype.`
 document.getElementById('count').textContent = `${nInst} instances on ${blocks.length} blocks`
 document.getElementById('legend').innerHTML = SERVICES.map(s => `<div><span class="sw" style="background:${s.color}"></span>${s.name}</div>`).join('')
   + `<div><span class="sw" style="background:${P.free}"></span>free server</div>`
@@ -632,7 +639,7 @@ function pickFloor(e) {
   const si = Number(btn.dataset.site), s = SITES[si]
   s.view = Number(btn.dataset.f)
   blocks.forEach(b => { if (b.site === si) H[b.tag].g.visible = b.floor === s.view })
-  s.labelEl.innerHTML = `${s.name}${floorButtons(si)}`
+  s.labelEl.innerHTML = floorButtons(si)
   paint(); renderTables(); hint()
 }
 
