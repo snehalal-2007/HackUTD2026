@@ -9,12 +9,10 @@ import { GPU_CRIT_C, GPU_WARN_C, SITES, type Hall } from '@/components/floor/dat
 import { PLACE } from '@/components/floor/names'
 import { AddressBlock } from '@/components/floor/address-block'
 import { typeOf } from '@/components/floor/alert-types'
-import { StatusGlyph } from '@/components/floor/status-glyph'
 import { BlockTable, OpenedTimeline } from '@/components/floor/alert-charts'
 import { useIncidentPlace } from '@/components/floor/incident-place'
 import { useLiveSites } from '@/components/floor/use-live-floors'
 import { requestView } from '@/components/notify/navigate'
-import { PageActions } from '@/components/shell/page-actions'
 import { setFloorTarget } from '@/components/floor/floor-link'
 import { ago, useNow } from '@/lib/snapshot'
 import { cn } from '@/lib/utils'
@@ -39,12 +37,6 @@ interface IncidentRow {
 }
 
 const SEV: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 }
-const SEVERITIES = [
-  { id: 'critical', label: 'Critical', glyph: 'diamond', tone: 'text-destructive' },
-  { id: 'high', label: 'High', glyph: 'triangle', tone: 'text-warning' },
-  { id: 'medium', label: 'Medium', glyph: 'triangle', tone: 'text-warning/70' },
-  { id: 'low', label: 'Low', glyph: 'dot', tone: 'text-muted-foreground' },
-] as const
 const ms = (ts: { microsSinceUnixEpoch: bigint }) => Number(ts.microsSinceUnixEpoch / 1000n)
 
 /**
@@ -77,7 +69,6 @@ export function AlertsView() {
   const [busy, setBusy] = useState<bigint | null>(null)
   const [site, setSite] = useState<string>(SITES[0].id) // the one data center the whole page shows, so no two panels disagree
   const [floorsSel, setFloorsSel] = useState<number[]>([]) // floors picked; none = every floor
-  const [sevSel, setSevSel] = useState<string[]>([]) // severities picked; none = every severity
   const placeOf = useIncidentPlace()
 
   const myId = conn.identity?.toHexString() ?? ''
@@ -93,7 +84,7 @@ export function AlertsView() {
   const allHalls = useMemo(() => Object.values(sites).flat(2), [sites]).filter(h => here(h.datacenter))
   // The live reading behind each alert: the hottest block on its rack right now (feed alerts: none).
   const rowNow = (i: IncidentRow) => (i.rackId ? hottestOf(allHalls.filter(h => h.id.startsWith(`${i.rackId}#`)))?.temp : undefined)
-  const active: IncidentRow[] = incidents.filter(i => i.status !== 'closed' && here(i.datacenterId) && (!sevSel.length || sevSel.includes(i.severity))).sort((a, b) => urgency(b, rowNow(b)) - urgency(a, rowNow(a)))
+  const active: IncidentRow[] = incidents.filter(i => i.status !== 'closed' && here(i.datacenterId)).sort((a, b) => urgency(b, rowNow(b)) - urgency(a, rowNow(a)))
   const pick = (on: boolean) =>
     cn('flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[14px] font-medium whitespace-nowrap transition-colors', on ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:bg-card/60 hover:text-foreground')
 
@@ -107,7 +98,7 @@ export function AlertsView() {
   // Chart data, all live and under the same filters as the list.
   const chartRow = (i: IncidentRow) => ({ severity: i.severity, status: i.status, datacenterId: i.datacenterId, openedMs: ms(i.openedAt) })
   const chartAll = incidents
-    .filter(i => here(i.datacenterId) && (!sevSel.length || sevSel.includes(i.severity)))
+    .filter(i => here(i.datacenterId))
     .map(chartRow)
 
 
@@ -137,34 +128,22 @@ export function AlertsView() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
       <div className="grid gap-3.5 p-3.5 lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
-        <PageActions>
-          <div className="flex items-center gap-1" role="group" aria-label="Filter by location">
-            <span className="mr-1.5 text-[13px] font-semibold">Location</span>
+        {/* filter: location, then floor */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:col-span-2">
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter by location">
+            <span className="mr-1.5 text-[13.5px] font-semibold">Location</span>
             {SITES.map(x => (
-              <button key={x.id} type="button" aria-pressed={site === x.id} onClick={() => { setSite(x.id); setFloorsSel([]); setPicked(null) }} className={cn(pick(site === x.id), 'h-8')}>
+              <button key={x.id} type="button" aria-pressed={site === x.id} onClick={() => { setSite(x.id); setFloorsSel([]); setPicked(null) }} className={pick(site === x.id)}>
                 {x.name}
               </button>
             ))}
           </div>
-        </PageActions>
-        {/* filter */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:col-span-2">
           <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter by floor">
             <span className="mr-1.5 text-[13.5px] font-semibold">Floor</span>
             {floorNums.map(n => (
               <button key={n} type="button" aria-pressed={floorsSel.includes(n)} onClick={() => { setFloorsSel(l => toggle(l, n)); setPicked(null) }} className={cn(pick(floorsSel.includes(n)), 'min-w-9 justify-center')}>{n}</button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter by severity">
-            <span className="mr-1.5 text-[13.5px] font-semibold">Severity</span>
-            {SEVERITIES.map(x => (
-              <button key={x.id} type="button" aria-pressed={sevSel.includes(x.id)} onClick={() => { setSevSel(l => toggle(l, x.id)); setPicked(null) }} className={pick(sevSel.includes(x.id))}>
-                <StatusGlyph shape={x.glyph} className={x.tone} />
-                {x.label}
-              </button>
-            ))}
-          </div>
-          {!floorsSel.length && !sevSel.length && <span className="text-[12.5px] text-muted-foreground">All floors and severities · pick to narrow</span>}
         </div>
 
         {/* totals */}

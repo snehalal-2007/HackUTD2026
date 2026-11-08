@@ -7,7 +7,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { RecentSummary, useActorName } from '@/components/log/event-timeline'
 import { EventTable } from '@/components/log/event-table'
-import { PageActions } from '@/components/shell/page-actions'
 import { useLogData, type EventVM } from '@/components/log/use-log-data'
 import { verifyChain, type ChainResult } from '@/lib/event-chain'
 import { ago, useNow } from '@/lib/snapshot'
@@ -16,8 +15,8 @@ import { SITES } from '@/components/floor/data'
 import { PLACE } from '@/components/floor/names'
 
 // The Log page, top to bottom: a summary of the selected place (one sentence, four numbers, the latest events and the
-// active alerts), then the event log itself as a plain list, or as a table (the optional view). Location sits in the
-// header bar; a floor picker narrows it further. Events with no place (shifts, questions) always show.
+// active alerts), then the event log itself as a plain list, or as a table (the optional view). A location and floor
+// filter sits on top. Events with no place (shifts, questions) always show.
 
 const LIST_PAGE = 15
 const TABLE_PAGE = 25
@@ -96,25 +95,22 @@ export function LogView({ onViewAll }: { onViewAll: () => void }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <PageActions>
-        <div className="flex items-center gap-1" role="group" aria-label="Filter by location">
-          <span className="mr-1.5 text-[13px] font-semibold">Location</span>
-          {SITES.map(s => {
-            const silentHere = data.feeds.filter(f => siteOf(f.id) === s.id && f.stale).length
-            return (
-              <button key={s.id} type="button" aria-pressed={sitesSel.includes(s.id)} className={pill(sitesSel.includes(s.id))}
-                onClick={() => { setSitesSel(l => (l.length === 1 && l[0] === s.id ? l : l.includes(s.id) ? l.filter(x => x !== s.id) : [...l, s.id])); setFloor(null); changed() }}>
-                {s.name}
-                {silentHere > 0 && <Badge variant="destructive-light" size="sm">{silentHere} silent</Badge>}
-              </button>
-            )
-          })}
-        </div>
-      </PageActions>
-
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3.5 p-3.5">
-        {/* floor picker + cached note */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* filter: location, then floor; plus the cached note */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter by location">
+            <span className="mr-1.5 text-[13.5px] font-semibold">Location</span>
+            {SITES.map(s => {
+              const silentHere = data.feeds.filter(f => siteOf(f.id) === s.id && f.stale).length
+              return (
+                <button key={s.id} type="button" aria-pressed={sitesSel.includes(s.id)} className={pill(sitesSel.includes(s.id))}
+                  onClick={() => { setSitesSel(l => (l.length === 1 && l[0] === s.id ? l : l.includes(s.id) ? l.filter(x => x !== s.id) : [...l, s.id])); setFloor(null); changed() }}>
+                  {s.name}
+                  {silentHere > 0 && <Badge variant="destructive-light" size="sm">{silentHere} silent</Badge>}
+                </button>
+              )
+            })}
+          </div>
           <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5" role="group" aria-label="Filter by floor">
             {[null, ...Array.from({ length: floors }, (_, i) => i + 1)].map(f => (
               <button key={f ?? 'all'} type="button" aria-pressed={floor === f} onClick={() => { setFloor(f); changed() }} className={cn(pill(floor === f), 'h-7')}>
