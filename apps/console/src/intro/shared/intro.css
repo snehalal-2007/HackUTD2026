@@ -34,6 +34,84 @@
   .rise > span, .marquee, .pulse, .scroll-hint { animation: none; }
 }
 
+
+/* Light home page, "what it does" (FloorCards): the map's tiles flow in from scattered spots and form the floor, the
+   card grows down from it, then the captions and the points settle. data-mode picks what the map shows.
+   Colours are variables: light by default, .fc-dark for the dark home page. */
+.fc { --fc-cool: #e7e4dd; --fc-cool-ink: #6b6862; --fc-warm: #f6dfb0; --fc-warm-ink: #8a5a0b; --fc-warn: #e59a1a; --fc-crit: #e5484d; --fc-card: #fff; --fc-card-line: transparent; --fc-ink: #18181b; --fc-ring: #18181b; --fc-gap: #fff; }
+.fc-dark { --fc-cool: #25262c; --fc-cool-ink: rgb(255 255 255 / 0.55); --fc-warm: #5a4318; --fc-warm-ink: #fcd58a; --fc-warn: #f59e0b; --fc-crit: #ef4444; --fc-card: rgb(255 255 255 / 0.04); --fc-card-line: rgb(255 255 255 / 0.1); --fc-ink: #f4f4f5; --fc-ring: #f4f4f5; --fc-gap: #0b0c0f; }
+.fc-tile {
+  opacity: 0;
+  transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(0.35);
+  transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1) var(--d), opacity 0.6s ease var(--d), background-color 0.8s ease, box-shadow 0.4s ease;
+}
+.fc[data-formed] .fc-tile { opacity: 1; transform: none; }
+.fc-cool { background: var(--fc-cool); color: var(--fc-cool-ink); }
+.fc-warm { background: var(--fc-warm); color: var(--fc-warm-ink); }
+.fc-warn { background: var(--fc-warn); color: #1a1a1a; }
+.fc-crit { background: var(--fc-crit); color: #fff; }
+/* the white card grows down behind the map once the tiles have landed */
+.fc-card { isolation: isolate; }
+.fc-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 1.75rem;
+  background: var(--fc-card);
+  box-shadow: inset 0 0 0 1px var(--fc-card-line);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.95s;
+}
+.fc[data-formed] .fc-card::before { transform: none; }
+.fc-cap, .fc-point { opacity: 0; transform: translateY(12px); filter: blur(6px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), filter 0.8s ease; transition-delay: var(--k, 1.3s); }
+.fc-point { transform: translateX(-28px); }
+.fc[data-formed] .fc-cap, .fc[data-formed] .fc-point { opacity: 1; transform: none; filter: none; }
+.fc-progress { width: 100%; transform: scaleX(0); transform-origin: left; animation: fc-progress linear forwards; }
+@keyframes fc-progress { to { transform: none; } }
+
+/* mode: owned. The hot blocks get their owner's initial. */
+.fc-owner { opacity: 0; scale: 0.4; transition: opacity 0.35s ease, scale 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.fc[data-mode='owned'] .fc-owner { opacity: 1; scale: 1; }
+.fc[data-mode='owned'] .fc-tile:has(.fc-owner) { box-shadow: 0 0 0 2px var(--fc-ring); }
+
+/* mode: move. A service hops from the hot block to a cool one; the hot block cools behind it, the cool one rings. */
+.fc-map { container-type: inline-size; }
+.fc-svc {
+  --w: calc((100cqw - 30px) / 6); /* one tile: 6 columns, 6px gaps */
+  --from-x: calc(5 * (var(--w) + 6px) + var(--w) * 0.3);
+  --from-y: calc(var(--w) * 0.3);
+  --to-x: calc(var(--w) * 0.3);
+  --to-y: calc(2 * (var(--w) + 6px) + var(--w) * 0.3);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--w) * 0.4);
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: var(--fc-ink);
+  box-shadow: 0 0 0 3px var(--fc-gap), 0 8px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  translate: var(--from-x) var(--from-y);
+  pointer-events: none;
+}
+.fc[data-mode='move'] .fc-svc { animation: fc-hop 2.6s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards; }
+@keyframes fc-hop {
+  0% { opacity: 0; translate: var(--from-x) var(--from-y); scale: 0.4; }
+  15%, 25% { opacity: 1; translate: var(--from-x) var(--from-y); scale: 1; }
+  55% { scale: 1.25; }
+  85%, 100% { opacity: 1; translate: var(--to-x) var(--to-y); scale: 1; }
+}
+.fc[data-mode='move'] .fc-from { background: var(--fc-warm); color: var(--fc-warm-ink); transition-delay: 1.4s; }
+.fc[data-mode='move'] .fc-to { box-shadow: 0 0 0 2px var(--fc-ring); transition-delay: 2.2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-tile, .fc-card::before, .fc-cap, .fc-point { transition: none; opacity: 1; transform: none; filter: none; }
+  .fc-progress, .fc-svc { animation: none !important; }
+  .fc[data-mode='move'] .fc-svc { opacity: 1; translate: var(--to-x) var(--to-y); }
+}
+
 /* What-if palettes (see WhatIf in pages/grid.tsx). */
 .tone-blueprint {
   --wi-panel: #081426;
