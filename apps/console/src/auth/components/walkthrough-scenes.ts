@@ -104,37 +104,46 @@ interface Shot {
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d)
 
-function addLights(scene: THREE.Scene, fog: string, hemi = 1.1) {
+function addLights(scene: THREE.Scene, fog: string, hemi = 1.1, sky = '#c9d6ff', ground = '#1a1a1a') {
   scene.background = new THREE.Color(fog)
   scene.fog = new THREE.Fog(fog, 6, 26)
-  scene.add(new THREE.HemisphereLight('#c9d6ff', '#1a1a1a', hemi))
+  scene.add(new THREE.HemisphereLight(sky, ground, hemi))
+}
+
+export type WalkTheme = 'dark' | 'light'
+
+// The data hall's colours: the original dark hall, or a bright one (white racks, pale floor) for the light home page.
+const HALL = {
+  dark: { fog: '#07090c', hemi: 0.9, sky: '#c9d6ff', ground: '#1a1a1a', tile: '#a9adb3', tileLine: '#7d8288', ceil: '#1a1d22', rack: '#16181c', door: '#23272d', slat: '#3a4048', frame: '#4b525c', strip: '#dfe8ff', tray: '#3a3f47', lamp: 6, ledOff: '#10301f' },
+  light: { fog: '#ebe8e2', hemi: 2.4, sky: '#ffffff', ground: '#cfcac0', tile: '#f6f4f0', tileLine: '#d8d4cc', ceil: '#f8f7f4', rack: '#e4e1db', door: '#d9d6cf', slat: '#aaa69d', frame: '#8f8b82', strip: '#ffffff', tray: '#cbc7bf', lamp: 3, ledOff: '#cfe3d6' },
 }
 
 /** A cold aisle between two rows of racks, with blinking status lights and ceiling light strips. */
-function dataHall(): Shot {
+function dataHall(theme: WalkTheme = 'dark'): Shot {
+  const H = HALL[theme]
   const scene = new THREE.Scene()
-  addLights(scene, '#07090c', 0.9)
+  addLights(scene, H.fog, H.hemi, H.sky, H.ground)
   const r = rng(7)
   const N = 22
   const SP = 0.64
   const z0 = -((N - 1) * SP) / 2
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 30), new THREE.MeshLambertMaterial({ map: floorTexture('#a9adb3', '#7d8288', 15) }))
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 30), new THREE.MeshLambertMaterial({ map: floorTexture(H.tile, H.tileLine, 15) }))
   floor.rotation.x = -Math.PI / 2
   scene.add(floor)
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(8, 30), new THREE.MeshLambertMaterial({ color: '#1a1d22' }))
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(8, 30), new THREE.MeshLambertMaterial({ color: H.ceil }))
   ceil.rotation.x = Math.PI / 2
   ceil.position.y = 3.2
   scene.add(ceil)
 
-  const rackMat = new THREE.MeshLambertMaterial({ color: '#16181c' })
+  const rackMat = new THREE.MeshLambertMaterial({ color: H.rack })
   // Perforated door: a dark mesh with vertical slats, like a real rack front.
   const doorTex = canvasTexture(64, 256, g => {
-    g.fillStyle = '#23272d'
+    g.fillStyle = H.door
     g.fillRect(0, 0, 64, 256)
-    g.fillStyle = '#3a4048'
+    g.fillStyle = H.slat
     for (let x = 4; x < 64; x += 8) g.fillRect(x, 6, 3, 244)
-    g.fillStyle = '#4b525c'
+    g.fillStyle = H.frame
     g.fillRect(0, 0, 64, 4)
     g.fillRect(0, 252, 64, 4)
   })
@@ -145,7 +154,7 @@ function dataHall(): Shot {
   const LED_PER = 14
   const leds = new THREE.InstancedMesh(box(0.07, 0.03, 0.012), new THREE.MeshBasicMaterial({ toneMapped: false }), N * 2 * LED_PER)
   const ledColors = [new THREE.Color('#38e08c'), new THREE.Color('#4aa8ff'), new THREE.Color('#ffb43a')]
-  const off = new THREE.Color('#10301f')
+  const off = new THREE.Color(H.ledOff)
   let li = 0
   for (const side of [-1, 1]) {
     for (let i = 0; i < N; i++) {
@@ -164,20 +173,20 @@ function dataHall(): Shot {
   }
   scene.add(racks, doors, leds)
 
-  const strip = new THREE.MeshBasicMaterial({ color: '#dfe8ff', toneMapped: false })
+  const strip = new THREE.MeshBasicMaterial({ color: H.strip, toneMapped: false })
   for (const x of [-1.15, 0, 1.15]) {
     const s = new THREE.Mesh(box(0.08, 0.02, 28), strip)
     s.position.set(x, 3.15, 0)
     scene.add(s)
   }
-  const tray = new THREE.MeshLambertMaterial({ color: '#3a3f47' })
+  const tray = new THREE.MeshLambertMaterial({ color: H.tray })
   for (const x of [-1.15, 1.15]) {
     const t = new THREE.Mesh(box(0.5, 0.08, 28), tray)
     t.position.set(x, 2.55, 0)
     scene.add(t)
   }
   for (let z = -12; z <= 12; z += 4) {
-    const p = new THREE.PointLight('#dfe8ff', 6, 7, 1.6)
+    const p = new THREE.PointLight(theme === 'light' ? '#ffffff' : '#dfe8ff', H.lamp, 7, 1.6)
     p.position.set(0, 3, z)
     scene.add(p)
   }
@@ -330,7 +339,7 @@ function boardroom(): Shot {
   return { scene, pose }
 }
 
-/** Drives the three shots in a loop and fades between them through black. */
+/** Drives the shots in a loop and fades between them through the backdrop colour. Light theme: only the data hall, looping. */
 export class Walkthrough {
   private renderer: THREE.WebGLRenderer
   private camera = new THREE.PerspectiveCamera(52, 1, 0.05, 60)
@@ -347,7 +356,7 @@ export class Walkthrough {
   private fade: HTMLElement
   private still: boolean
 
-  constructor(host: HTMLElement, fade: HTMLElement, still: boolean) {
+  constructor(host: HTMLElement, fade: HTMLElement, still: boolean, theme: WalkTheme = 'dark') {
     this.host = host
     this.fade = fade
     this.still = still
@@ -355,7 +364,7 @@ export class Walkthrough {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     this.renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'
     host.prepend(this.renderer.domElement)
-    this.shots = [dataHall(), opsRoom(), boardroom()]
+    this.shots = theme === 'light' ? [dataHall('light')] : [dataHall(), opsRoom(), boardroom()]
     this.ro = new ResizeObserver(() => this.resize())
     this.ro.observe(host)
     this.resize()

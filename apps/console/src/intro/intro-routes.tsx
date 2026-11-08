@@ -5,8 +5,10 @@ import { CinematicIntro } from './pages/cinematic'
 import { CountdownIntro } from './pages/countdown'
 import { GridIntro } from './pages/grid'
 import { HandoffIntro } from './pages/handoff'
+import { LightHomePage } from './pages/home-light'
 
 const SAMPLES = [
+  { href: INTRO_ROUTES.light, title: 'Home, light', body: 'The home page in the console’s light theme: racks that warm under your cursor and the three-floor cluster story.', swatch: 'from-[#ebe8e2] to-white' },
   { href: INTRO_ROUTES.cinematic, title: 'Cinematic', body: 'Dark, full-bleed data-hall walkthrough. Interactive: a live alert simulator with escalation.', swatch: 'from-neutral-900 to-neutral-700' },
   { href: INTRO_ROUTES.countdown, title: 'Countdown', body: 'Light editorial. Interactive: a scroll-scrubbed story that draws the alert from first reading to resolved.', swatch: 'from-orange-300 to-rose-200' },
   { href: INTRO_ROUTES.handoff, title: 'Handoff', body: 'Dusk gradient. Interactive: drag issues to the day shift to unlock “End shift”, plus a sideways-scrolling morning.', swatch: 'from-indigo-900 to-orange-400' },
@@ -47,6 +49,7 @@ export function IntroRoutes({ route }: { route: IntroRoute }) {
     case INTRO_ROUTES.countdown: return <CountdownIntro />
     case INTRO_ROUTES.handoff: return <HandoffIntro />
     case INTRO_ROUTES.grid: return <GridIntro />
+    case INTRO_ROUTES.light: return <LightHomePage />
     default: return <IntroIndex />
   }
 }

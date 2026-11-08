@@ -7,6 +7,7 @@ export const INTRO_ROUTES = {
   countdown: '/intro/countdown',
   handoff: '/intro/handoff',
   grid: '/intro/grid',
+  light: '/intro/light',
 } as const
 
 export type IntroRoute = (typeof INTRO_ROUTES)[keyof typeof INTRO_ROUTES]

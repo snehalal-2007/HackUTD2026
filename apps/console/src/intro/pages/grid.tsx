@@ -9,7 +9,7 @@ import { SiteFooter, SiteHeader } from '../shared/site-chrome'
 
 // ---- Hero: a field of racks that warm up under the cursor ----------------------------------
 
-export type Tone = 'blueprint' | 'neutral'
+export type Tone = 'blueprint' | 'neutral' | 'light'
 
 /** A field of racks that warm up under the cursor. Neutral = gray racks turning amber/red (home page). */
 export function RackField({ tone = 'blueprint' }: { tone?: Tone }) {
@@ -49,10 +49,11 @@ export function RackField({ tone = 'blueprint' }: { tone?: Tone }) {
           const flicker = still ? 0 : (Math.sin(t / 900 + i * 1.7 + j * 2.3) + 1) * 0.05
           const h = Math.min(1, heat[k] + flicker)
           // blueprint: cool blue → amber → red; neutral: gray → amber → red
-          const r = tone === 'neutral' ? Math.round(190 + h * 65) : Math.round(40 + h * 215)
-          const gg = tone === 'neutral' ? Math.round(190 - h * 40 - h * h * 110) : Math.round(90 + h * 60 - h * h * 110)
-          const b = tone === 'neutral' ? Math.round(196 - h * 176) : Math.round(160 - h * 140)
-          g.fillStyle = `rgba(${r},${gg},${b},${(tone === 'neutral' ? 0.07 : 0.12) + h * 0.75})`
+          // light: warm-gray racks on the light page → amber → red
+          const r = tone === 'neutral' ? Math.round(190 + h * 65) : tone === 'light' ? Math.round(120 + h * 109) : Math.round(40 + h * 215)
+          const gg = tone === 'neutral' ? Math.round(190 - h * 40 - h * h * 110) : tone === 'light' ? Math.round(116 + h * 40 - h * h * 110) : Math.round(90 + h * 60 - h * h * 110)
+          const b = tone === 'neutral' ? Math.round(196 - h * 176) : tone === 'light' ? Math.round(108 - h * 90) : Math.round(160 - h * 140)
+          g.fillStyle = `rgba(${r},${gg},${b},${(tone === 'neutral' ? 0.07 : tone === 'light' ? 0.1 : 0.12) + h * 0.75})`
           g.beginPath()
           g.roundRect(cx - 8, cy - 10, 16, 20, 3)
           g.fill()
