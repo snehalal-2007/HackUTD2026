@@ -64,7 +64,7 @@ function ThoughtLink({ selected, onSelect }: { selected: boolean; onSelect: () =
   )
 }
 
-function ChatEntry({ item, selected, onSelect, className }: { item: Extract<ThreadItem, { type: 'chat' }>; selected: boolean; onSelect: () => void; className?: string }) {
+function ChatEntry({ item, selected, onSelect, className, hideThought }: { item: Extract<ThreadItem, { type: 'chat' }>; selected: boolean; onSelect: () => void; className?: string; hideThought?: boolean }) {
   const { chat, steps } = item
   const live = chat.status === 'pending' || chat.status === 'thinking'
   return (
@@ -104,7 +104,7 @@ function ChatEntry({ item, selected, onSelect, className }: { item: Extract<Thre
           <MessageFooter className="gap-2">
             {!live && <span className="tabular-nums">{clock(ms(chat.answeredAt))}</span>}
             {chat.status === 'answered' && <span>AI drafted · {secs(chat.durationMs)}</span>}
-            <ThoughtLink selected={selected} onSelect={onSelect} />
+            {!hideThought && <ThoughtLink selected={selected} onSelect={onSelect} />}
           </MessageFooter>
         </MessageContent>
       </Message>
@@ -147,7 +147,11 @@ function ReportEntry({ item, selected, onSelect, className }: { item: Extract<Th
   )
 }
 
-export function AgentChat() {
+/**
+ * `compact` drops the thought-process column so the chat fits a side panel (Shift Handoff uses it that way);
+ * `suggestions` replaces the starter questions. The agent's rules are unchanged: it reads, it never acts.
+ */
+export function AgentChat({ compact = false, suggestions = SUGGESTIONS }: { compact?: boolean; suggestions?: string[] } = {}) {
   const { items, myPending, ready, ask } = useAgentChat()
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
@@ -195,9 +199,9 @@ export function AgentChat() {
 
   const busy = myPending >= MAX_PENDING
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
+    <div className={cn('grid min-h-0 flex-1', !compact && 'lg:grid-cols-[minmax(0,1fr)_420px]')}>
       {/* left: the conversation, floating on the page background */}
-      <div className="flex min-h-[520px] min-w-0 flex-col lg:min-h-0">
+      <div className={cn('flex min-w-0 flex-col', compact ? 'min-h-0' : 'min-h-[520px] lg:min-h-0')}>
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
           <div ref={listRef} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
             {!ready ? (
@@ -212,8 +216,8 @@ export function AgentChat() {
                     </BubbleContent>
                   </Bubble>
                   <div className="flex flex-wrap gap-2">
-                    {SUGGESTIONS.map(s => (
-                      <Button key={s} type="button" variant="outline" size="sm" onClick={() => void send(s)}>{s}</Button>
+                    {suggestions.map(s => (
+                      <Button key={s} type="button" variant="outline" size="sm" className="h-auto max-w-full py-1 text-left whitespace-normal" onClick={() => void send(s)}>{s}</Button>
                     ))}
                   </div>
                 </MessageContent>
@@ -221,7 +225,7 @@ export function AgentChat() {
             ) : (
               items.map(item =>
                 item.type === 'chat' ? (
-                  <ChatEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ChatEntry key={item.key} item={item} hideThought={compact} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
                 ) : (
                   <ReportEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
                 ),
@@ -260,9 +264,11 @@ export function AgentChat() {
       </div>
 
       {/* right: how the agent worked out the selected answer */}
-      <div className="min-h-[420px] p-3.5 lg:min-h-0 lg:pl-0">
-        <ThoughtPanel item={selected} />
-      </div>
+      {!compact && (
+        <div className="min-h-[420px] p-3.5 lg:min-h-0 lg:pl-0">
+          <ThoughtPanel item={selected} />
+        </div>
+      )}
     </div>
   )
 }

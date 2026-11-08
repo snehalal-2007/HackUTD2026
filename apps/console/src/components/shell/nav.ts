@@ -1,4 +1,4 @@
-export type ViewId = 'floor' | 'cluster' | 'agent' | 'alerts' | 'log' | 'operators' | 'security'
+export type ViewId = 'floor' | 'cluster' | 'agent' | 'alerts' | 'log' | 'operators' | 'security' | 'handoff'
 
 export const VIEW_TITLES: Record<ViewId, string> = {
   floor: 'Floor',
@@ -8,4 +8,5 @@ export const VIEW_TITLES: Record<ViewId, string> = {
   log: 'Log',
   operators: 'Operators',
   security: 'Security',
+  handoff: 'Shift Handoff',
 }
