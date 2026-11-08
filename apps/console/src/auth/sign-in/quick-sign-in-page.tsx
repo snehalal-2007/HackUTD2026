@@ -42,8 +42,8 @@ export function QuickSignInPage() {
           <h2 className="max-w-md text-4xl leading-tight font-semibold tracking-tight">No alert left unowned.</h2>
           <ul className="flex flex-col gap-4 [@media(max-height:820px)]:hidden">
             {POINTS.map(({ Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-sm text-white/90">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm"><Icon className="size-4" aria-hidden="true" /></span>
+              <li key={text} className="flex items-center gap-3 text-sm text-white/90 in-data-[tone=light]:text-neutral-800">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm in-data-[tone=light]:bg-white/70 in-data-[tone=light]:ring-1 in-data-[tone=light]:ring-neutral-950/10"><Icon className="size-4" aria-hidden="true" /></span>
                 {text}
               </li>
             ))}

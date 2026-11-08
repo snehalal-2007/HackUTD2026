@@ -170,10 +170,10 @@ export function Placement3D({ racks, runs, services, ready }: { racks: RackVM[];
       <ul className="pointer-events-none absolute top-3 right-3 z-[2] flex flex-col gap-1 rounded-lg border bg-card/90 px-3 py-2 text-[11px]" aria-label="Legend">
         {[
           ...Object.entries(TIER_COLOR).map(([tier, c]) => [c, tier === 'ml' ? 'ML' : tier[0].toUpperCase() + tier.slice(1)]),
-          ['#2b2b2e', 'Free server'],
+          ['', 'Free server'], // drawn by class below: it follows the theme like the free bars do
         ].map(([c, l]) => (
           <li key={l} className="flex items-center gap-1.5">
-            <span className="inline-block size-2.5 rounded-sm" style={{ background: c }} aria-hidden="true" />
+            <span className={c ? 'inline-block size-2.5 rounded-sm' : 'inline-block size-2.5 rounded-sm bg-[#2b2b2e] dark:bg-[#6b6b73]'} style={c ? { background: c } : undefined} aria-hidden="true" />
             {l}
           </li>
         ))}
