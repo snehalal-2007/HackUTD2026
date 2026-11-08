@@ -34,12 +34,16 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AdminOverrideAlarmReducer from "./admin_override_alarm_reducer";
+import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
 import OperatorRow from "./operator_table";
+import QuarantineRow from "./quarantine_table";
+import ThreatEventRow from "./threat_event_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -56,10 +60,34 @@ const tablesSchema = __schema({
       { name: 'operator_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, OperatorRow),
+  quarantine: __table({
+    name: 'quarantine',
+    indexes: [
+      { accessor: 'identity', name: 'quarantine_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'quarantine_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, QuarantineRow),
+  threatEvent: __table({
+    name: 'threat_event',
+    indexes: [
+      { accessor: 'id', name: 'threat_event_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'threat_event_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ThreatEventRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("admin_override_alarm", AdminOverrideAlarmReducer),
+  __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
 );
 

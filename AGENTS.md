@@ -2,7 +2,7 @@
 
 Guidance for AI coding agents (Claude Code, Codex, Cursor and others) working in this repository.
 
-MESA is a real-time shared operations console for data-center teams, built on SpacetimeDB. Read [docs/PLAN.md](docs/PLAN.md) first: it holds the locked stack, the table and reducer contract, roles, phases and gates.
+MESA is a real-time shared operations console for data-center teams, built on SpacetimeDB. Read [docs/SCOPE-v2.md](docs/SCOPE-v2.md) first (current scope), then [docs/PLAN.md](docs/PLAN.md): the locked stack, the table and reducer contract, roles, phases and gates. Where they disagree, SCOPE-v2.md wins.
 
 ## Commits and pull requests
 
