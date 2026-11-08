@@ -1,0 +1,16 @@
+/* Testimonial entrance: a slow fade in from the left. */
+@keyframes mesa-enter-left {
+  from { opacity: 0; transform: translateX(-2.5rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.mesa-enter-left {
+  animation: mesa-enter-left 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.mesa-leave {
+  transition: opacity 0.7s ease;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesa-enter-left { animation: none; }
+  .mesa-leave { transition: none; }
+}

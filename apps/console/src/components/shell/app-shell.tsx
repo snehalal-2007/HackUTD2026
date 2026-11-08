@@ -8,8 +8,10 @@ import {
   SirenIcon,
   UsersIcon,
   ArrowLeftRightIcon,
+  LogOutIcon,
   ServerCogIcon,
 } from 'lucide-react'
+import { endSession, HOME_ROUTE } from '@/auth/components/session'
 import { useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { tables } from '@mesa/bindings'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -97,6 +99,26 @@ function NavGroup({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
+  )
+}
+
+/** Ends the demo sign-in session and returns to the home page. */
+function SignOutButton() {
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          tooltip="Sign out"
+          onClick={() => {
+            endSession()
+            window.location.hash = HOME_ROUTE
+          }}
+        >
+          <LogOutIcon aria-hidden="true" />
+          <span>Sign out</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
   )
 }
 
@@ -212,6 +234,7 @@ function ShellBody({
         <SidebarFooter>
           <StatusRow />
           <AccountButton onNavigate={onNavigate} />
+          <SignOutButton />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
