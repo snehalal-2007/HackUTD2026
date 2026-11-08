@@ -8,6 +8,7 @@ import {
   SirenIcon,
   UsersIcon,
   ArrowLeftRightIcon,
+  ServerCogIcon,
 } from 'lucide-react'
 import { useSpacetimeDB, useTable } from 'spacetimedb/react'
 import { tables } from '@mesa/bindings'
@@ -48,6 +49,7 @@ interface Item {
 const WORK: Item[] = [
   { id: 'queue', label: 'My Queue', icon: <InboxIcon aria-hidden="true" /> },
   { id: 'floor', label: 'Floor', view: 'floor', icon: <LayoutGridIcon aria-hidden="true" /> },
+  { id: 'cluster', label: 'Cluster', view: 'cluster', icon: <ServerCogIcon aria-hidden="true" /> },
   { id: 'agent', label: 'AI Agent', view: 'agent', icon: <BotIcon aria-hidden="true" /> },
   { id: 'alerts', label: 'Alerts', view: 'alerts', icon: <SirenIcon aria-hidden="true" /> },
   { id: 'handoff', label: 'Shift Handoff', icon: <ArrowLeftRightIcon aria-hidden="true" /> },
