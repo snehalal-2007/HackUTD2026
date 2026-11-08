@@ -34,17 +34,34 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import IngestReadingsReducer from "./ingest_readings_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import DatacenterRow from "./datacenter_table";
 import OperatorRow from "./operator_table";
+import RackRow from "./rack_table";
+import ServerRow from "./server_table";
+import ServerLatestRow from "./server_latest_table";
+import ServerReadingRow from "./server_reading_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  datacenter: __table({
+    name: 'datacenter',
+    indexes: [
+      { accessor: 'datacenterId', name: 'datacenter_datacenter_id_idx_btree', algorithm: 'btree', columns: [
+        'datacenterId',
+      ] },
+    ],
+    constraints: [
+      { name: 'datacenter_datacenter_id_key', constraint: 'unique', columns: ['datacenterId'] },
+    ],
+  }, DatacenterRow),
   operator: __table({
     name: 'operator',
     indexes: [
@@ -56,10 +73,73 @@ const tablesSchema = __schema({
       { name: 'operator_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, OperatorRow),
+  rack: __table({
+    name: 'rack',
+    indexes: [
+      { accessor: 'datacenterId', name: 'rack_datacenter_id_idx_btree', algorithm: 'btree', columns: [
+        'datacenterId',
+      ] },
+      { accessor: 'rackId', name: 'rack_rack_id_idx_btree', algorithm: 'btree', columns: [
+        'rackId',
+      ] },
+    ],
+    constraints: [
+      { name: 'rack_rack_id_key', constraint: 'unique', columns: ['rackId'] },
+    ],
+  }, RackRow),
+  server: __table({
+    name: 'server',
+    indexes: [
+      { accessor: 'datacenterId', name: 'server_datacenter_id_idx_btree', algorithm: 'btree', columns: [
+        'datacenterId',
+      ] },
+      { accessor: 'rackId', name: 'server_rack_id_idx_btree', algorithm: 'btree', columns: [
+        'rackId',
+      ] },
+      { accessor: 'serverId', name: 'server_server_id_idx_btree', algorithm: 'btree', columns: [
+        'serverId',
+      ] },
+    ],
+    constraints: [
+      { name: 'server_server_id_key', constraint: 'unique', columns: ['serverId'] },
+    ],
+  }, ServerRow),
+  serverLatest: __table({
+    name: 'server_latest',
+    indexes: [
+      { accessor: 'datacenterId', name: 'server_latest_datacenter_id_idx_btree', algorithm: 'btree', columns: [
+        'datacenterId',
+      ] },
+      { accessor: 'rackId', name: 'server_latest_rack_id_idx_btree', algorithm: 'btree', columns: [
+        'rackId',
+      ] },
+      { accessor: 'serverId', name: 'server_latest_server_id_idx_btree', algorithm: 'btree', columns: [
+        'serverId',
+      ] },
+    ],
+    constraints: [
+      { name: 'server_latest_server_id_key', constraint: 'unique', columns: ['serverId'] },
+    ],
+  }, ServerLatestRow),
+  serverReading: __table({
+    name: 'server_reading',
+    indexes: [
+      { accessor: 'id', name: 'server_reading_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'serverId', name: 'server_reading_server_id_idx_btree', algorithm: 'btree', columns: [
+        'serverId',
+      ] },
+    ],
+    constraints: [
+      { name: 'server_reading_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ServerReadingRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("ingest_readings", IngestReadingsReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),
 );
 

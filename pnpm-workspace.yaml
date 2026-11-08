@@ -4,6 +4,7 @@ packages:
   - apps/*
   - services/simulator
   - services/agent
+  - services/replayer
 
 # Packages allowed to run install scripts (pnpm 10 blocks them by default).
 onlyBuiltDependencies:

@@ -16,3 +16,6 @@ __pycache__/
 .ruff_cache/
 # Local agent state
 .claude/settings.local.json
+# Replayer feed identities (tokens) and full dataset downloads
+.replayer-tokens.json
+services/replayer/data/*.parquet

@@ -15,7 +15,8 @@
     "dev:sim": "pnpm --filter @mesa/simulator dev",
     "dev:agent": "pnpm --filter @mesa/agent dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "replay": "pnpm --filter @mesa/replayer start"
   },
   "devDependencies": {
     "@vercel/config": "^0.14.1",

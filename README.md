@@ -29,7 +29,7 @@ cp .env.example .env
 pnpm dev:db            # terminal 1: local SpacetimeDB on :3000
 pnpm publish:local     # publish the module and regenerate bindings
 pnpm dev:console       # terminal 2: http://localhost:5173
-pnpm dev:sim           # terminal 3: telemetry simulator
+pnpm replay            # terminal 3: stream real Summit telemetry from 8 data centers
 ```
 
 Open the console in two windows to see both update together.
@@ -49,11 +49,16 @@ cd services/predictor && uv sync && uv run uvicorn app.main:app --reload
 | `module/` | SpacetimeDB TypeScript module: tables, reducers, scheduled reducers |
 | `packages/bindings/` | Generated client bindings. Never edit by hand; run `pnpm generate` |
 | `apps/console/` | Operator console: React, Vite, Tailwind, shadcn/ui, ReUI |
-| `services/simulator/` | Telemetry simulator and failure scenarios |
+| `services/replayer/` | Streams real data-center telemetry (OLCF Summit) from 8 sites; see [docs/TELEMETRY.md](docs/TELEMETRY.md) |
+| `services/simulator/` | Scripted failure scenarios (planned) |
 | `services/agent/` | AI agent: predictor and Claude calls, writes insights through reducers |
 | `services/predictor/` | Time-to-breach prediction (FastAPI) |
 | `security/` | Honeypot components, clearly labeled |
 | `docs/` | Charter, build plan, agent reference, brand |
+
+## Data credit
+
+Telemetry is replayed from [ClusterWise](https://huggingface.co/datasets/MachaParfait/ClusterWise), OLCF Summit operational data, licensed CC BY 4.0.
 
 ## Status
 
