@@ -21,19 +21,43 @@ function unit(kind: string) {
   return kind === 'feed_stale' ? 's silent' : kind.startsWith('gpu') ? ' °C peak' : ''
 }
 
-export function IncidentList({ incidents, now }: { incidents: IncidentVM[]; now: number }) {
+/**
+ * `newRows` (incident ids) and `changed` (`id:status:severity`) come from the parent, which tracks
+ * arrivals across ALL incidents, so switching the Active/All filter never animates old rows.
+ */
+export function IncidentList({
+  incidents,
+  now,
+  newRows = new Set(),
+  changed = new Set(),
+}: {
+  incidents: IncidentVM[]
+  now: number
+  newRows?: Set<string>
+  changed?: Set<string>
+}) {
   if (incidents.length === 0) {
     return <p className="text-sm text-muted-foreground">No incidents. Rules open one when a rack passes its limit or a feed goes silent.</p>
   }
   return (
     <ul className="flex flex-col divide-y rounded-lg border bg-card" aria-label="Incidents">
       {incidents.map(i => (
-        <li key={i.id} className="flex flex-col gap-1.5 px-3 py-2.5">
+        <li key={i.id} className={`flex flex-col gap-1.5 px-3 py-2.5${newRows.has(i.id) ? ' enter-rise' : ''}`}>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge size="sm" variant={SEVERITY[i.severity as keyof typeof SEVERITY] ?? 'secondary'} className="capitalize">
+            <Badge
+              key={`${i.status}:${i.severity}`}
+              size="sm"
+              variant={SEVERITY[i.severity as keyof typeof SEVERITY] ?? 'secondary'}
+              className={`state-shift capitalize${!newRows.has(i.id) && changed.has(`${i.id}:${i.status}:${i.severity}`) ? ' enter-pop' : ''}`}
+            >
               {i.severity}
             </Badge>
-            <Badge size="sm" variant={STATUS[i.status as keyof typeof STATUS] ?? 'secondary'} className="capitalize">
+            <Badge
+              key={i.status}
+              size="sm"
+              variant={STATUS[i.status as keyof typeof STATUS] ?? 'secondary'}
+              className={`state-shift capitalize${!newRows.has(i.id) && changed.has(`${i.id}:${i.status}:${i.severity}`) ? ' enter-pop' : ''}`}
+            >
               {i.status}
             </Badge>
             <span className="text-xs text-muted-foreground tabular-nums">#{i.id}</span>

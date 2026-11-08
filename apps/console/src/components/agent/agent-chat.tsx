@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker'
 import { Message, MessageAvatar, MessageContent, MessageFooter } from '@/components/ui/message'
 import { Spinner } from '@/components/ui/spinner'
+import { useArrivals } from '@/lib/use-arrivals'
 import { cn } from '@/lib/utils'
 import { ThoughtPanel } from './thought-panel'
 import { ms, useAgentChat, type ThreadItem } from './use-agent-chat'
@@ -63,12 +64,12 @@ function ThoughtLink({ selected, onSelect }: { selected: boolean; onSelect: () =
   )
 }
 
-function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { type: 'chat' }>; selected: boolean; onSelect: () => void }) {
+function ChatEntry({ item, selected, onSelect, className }: { item: Extract<ThreadItem, { type: 'chat' }>; selected: boolean; onSelect: () => void; className?: string }) {
   const { chat, steps } = item
   const live = chat.status === 'pending' || chat.status === 'thinking'
   return (
     <>
-      <Message align="end">
+      <Message align="end" className={className}>
         <MessageContent>
           <Bubble variant="muted">
             <BubbleContent className="whitespace-pre-wrap">{chat.question}</BubbleContent>
@@ -78,7 +79,7 @@ function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { t
           </MessageFooter>
         </MessageContent>
       </Message>
-      <Message>
+      <Message className={className}>
         <AgentAvatar />
         <MessageContent>
           <span role="status" className="sr-only">{live ? 'Agent is working' : 'Reply ready'}</span>
@@ -111,11 +112,11 @@ function ChatEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { t
   )
 }
 
-function ReportEntry({ item, selected, onSelect }: { item: Extract<ThreadItem, { type: 'report' }>; selected: boolean; onSelect: () => void }) {
+function ReportEntry({ item, selected, onSelect, className }: { item: Extract<ThreadItem, { type: 'report' }>; selected: boolean; onSelect: () => void; className?: string }) {
   const { report, body, incident } = item
   const name = `${report.kind === 'final' ? 'Final' : 'Interim'} report · incident #${String(report.incidentId)}`
   return (
-    <Message>
+    <Message className={className}>
       <AgentAvatar />
       <MessageContent>
         <Bubble variant="ghost">
@@ -189,6 +190,9 @@ export function AgentChat() {
     }
   }
 
+  // New questions and reports rise in; the thread already on screen when it loads does not.
+  const fresh = useArrivals(items.map(i => i.key), ready)
+
   const busy = myPending >= MAX_PENDING
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -217,9 +221,9 @@ export function AgentChat() {
             ) : (
               items.map(item =>
                 item.type === 'chat' ? (
-                  <ChatEntry key={item.key} item={item} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ChatEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
                 ) : (
-                  <ReportEntry key={item.key} item={item} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
+                  <ReportEntry key={item.key} item={item} className={fresh.has(item.key) ? 'enter-rise' : undefined} selected={item.key === selected?.key} onSelect={() => setPicked(item.key)} />
                 ),
               )
             )}
