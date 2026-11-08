@@ -10,6 +10,15 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const Datacenter = __t.object("Datacenter", {
+  datacenterId: __t.string(),
+  name: __t.string(),
+  region: __t.string(),
+  feed: __t.identity(),
+  lastIngestAt: __t.timestamp(),
+});
+export type Datacenter = __Infer<typeof Datacenter>;
+
 export const Operator = __t.object("Operator", {
   identity: __t.identity(),
   name: __t.string(),
@@ -18,4 +27,86 @@ export const Operator = __t.object("Operator", {
   online: __t.bool(),
 });
 export type Operator = __Infer<typeof Operator>;
+
+export const PruneTimer = __t.object("PruneTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type PruneTimer = __Infer<typeof PruneTimer>;
+
+export const Rack = __t.object("Rack", {
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  servers: __t.u32(),
+  gpuTempMaxC: __t.f64(),
+  cpuTempMaxC: __t.f64(),
+  powerKw: __t.f64(),
+  updatedAt: __t.timestamp(),
+});
+export type Rack = __Infer<typeof Rack>;
+
+export const ReadingIn = __t.object("ReadingIn", {
+  region: __t.string(),
+  datacenterName: __t.string(),
+  rackId: __t.string(),
+  serverId: __t.string(),
+  sourceHostname: __t.string(),
+  seq: __t.u64(),
+  measuredAt: __t.timestamp(),
+  nodeState: __t.string(),
+  jobActive: __t.bool(),
+  gpuFailure: __t.bool(),
+  gpuTempC: __t.f64(),
+  cpuTempC: __t.f64(),
+  gpuPowerW: __t.f64(),
+  cpuPowerW: __t.f64(),
+  nodePowerW: __t.f64(),
+  gpuUtilPct: __t.f64(),
+  cpuUtilPct: __t.f64(),
+  source: __t.string(),
+});
+export type ReadingIn = __Infer<typeof ReadingIn>;
+
+export const Server = __t.object("Server", {
+  serverId: __t.string(),
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  region: __t.string(),
+  sourceHostname: __t.string(),
+});
+export type Server = __Infer<typeof Server>;
+
+export const ServerLatest = __t.object("ServerLatest", {
+  serverId: __t.string(),
+  rackId: __t.string(),
+  datacenterId: __t.string(),
+  seq: __t.u64(),
+  measuredAt: __t.timestamp(),
+  receivedAt: __t.timestamp(),
+  nodeState: __t.string(),
+  jobActive: __t.bool(),
+  gpuFailure: __t.bool(),
+  gpuTempC: __t.f64(),
+  cpuTempC: __t.f64(),
+  gpuPowerW: __t.f64(),
+  cpuPowerW: __t.f64(),
+  nodePowerW: __t.f64(),
+  gpuUtilPct: __t.f64(),
+  cpuUtilPct: __t.f64(),
+  source: __t.string(),
+});
+export type ServerLatest = __Infer<typeof ServerLatest>;
+
+export const ServerReading = __t.object("ServerReading", {
+  id: __t.u64(),
+  serverId: __t.string(),
+  measuredAt: __t.timestamp(),
+  receivedAt: __t.timestamp(),
+  gpuTempC: __t.f64(),
+  cpuTempC: __t.f64(),
+  nodePowerW: __t.f64(),
+  gpuUtilPct: __t.f64(),
+  cpuUtilPct: __t.f64(),
+});
+export type ServerReading = __Infer<typeof ServerReading>;
 

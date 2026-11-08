@@ -6,7 +6,9 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import IngestReadingsReducer from "../ingest_readings_reducer";
 import RegisterOperatorReducer from "../register_operator_reducer";
 
+export type IngestReadingsParams = __Infer<typeof IngestReadingsReducer>;
 export type RegisterOperatorParams = __Infer<typeof RegisterOperatorReducer>;
 

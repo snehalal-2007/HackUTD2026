@@ -3,8 +3,10 @@ import spacetimedb from './schema';
 
 export default spacetimedb;
 
+export { ingestReadings, pruneReadings } from './reducers/telemetry';
+
 export const init = spacetimedb.init(_ctx => {
-  // Phase 1: seed the hall (assets) here.
+  // Telemetry creates data centers, racks and servers as feeds stream them in.
 });
 
 export const onConnect = spacetimedb.clientConnected(ctx => {

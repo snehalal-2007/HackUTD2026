@@ -120,6 +120,25 @@ importers:
         specifier: ~7.0.2
         version: 7.0.2
 
+  services/replayer:
+    dependencies:
+      '@mesa/bindings':
+        specifier: workspace:*
+        version: link:../../packages/bindings
+      spacetimedb:
+        specifier: 2.14.*
+        version: 2.14.1(react@19.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: ^4.21.0
+        version: 4.23.15
+      typescript:
+        specifier: ~7.0.2
+        version: 7.0.2
+
   services/simulator:
     dependencies:
       '@mesa/bindings':
