@@ -87,6 +87,14 @@ export const PruneTimer = __t.object("PruneTimer", {
 });
 export type PruneTimer = __Infer<typeof PruneTimer>;
 
+export const Quarantine = __t.object("Quarantine", {
+  identity: __t.identity(),
+  reason: __t.string(),
+  at: __t.timestamp(),
+  hits: __t.u32(),
+});
+export type Quarantine = __Infer<typeof Quarantine>;
+
 export const Rack = __t.object("Rack", {
   rackId: __t.string(),
   datacenterId: __t.string(),
@@ -186,6 +194,20 @@ export const ShiftReport = __t.object("ShiftReport", {
   writtenAt: __t.timestamp(),
 });
 export type ShiftReport = __Infer<typeof ShiftReport>;
+
+export const ThreatEvent = __t.object("ThreatEvent", {
+  id: __t.u64(),
+  identity: __t.identity(),
+  connectionId: __t.string(),
+  decoy: __t.string(),
+  hitNumber: __t.u32(),
+  kind: __t.string(),
+  severity: __t.string(),
+  summary: __t.string(),
+  suggestedFix: __t.string(),
+  at: __t.timestamp(),
+});
+export type ThreatEvent = __Infer<typeof ThreatEvent>;
 
 export const Threshold = __t.object("Threshold", {
   metric: __t.string(),

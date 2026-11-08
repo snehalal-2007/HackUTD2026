@@ -1,13 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/lexend"; /* body font, matches docs/prototype.html */
+@import "@fontsource/jaro/latin.css"; /* wordmark only; latin subset keeps the bundle small */
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Lexend Variable', sans-serif;
+    --font-brand: 'Jaro', sans-serif; /* enables the font-brand utility for the MESA wordmark */
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -81,7 +83,7 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
+    --radius: 0.5rem; /* 8px corners, as in the prototype */
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -155,21 +157,130 @@
     @apply font-sans;
     }
 }
-/* MESA brand. Dark "quiet mode" is the default (class="dark" on <html>):
-   low-contrast surfaces, cream accent from the mark, status colors reserved for alerts. */
+/* MESA theme, taken from docs/prototype.html: warm grey page, white cards, near-black ink, Lexend.
+   Light is the default to match the prototype; dark keeps the same neutrals and status colours. */
+:root:not(.dark) { /* light only; plain :root would also override the base .dark tokens above */
+    --background: #ebe8e2;
+    --foreground: #18181b;
+    --card: #ffffff;
+    --card-foreground: #18181b;
+    --popover: #ffffff;
+    --popover-foreground: #18181b;
+    --primary: #18181b;
+    --primary-foreground: #ffffff;
+    --secondary: #f5f3ef;
+    --secondary-foreground: #18181b;
+    --muted: #f5f3ef;
+    --muted-foreground: #5b5b63; /* darker than shadcn's default grey so secondary text stays readable */
+    --accent: #f5f3ef;
+    --accent-foreground: #18181b;
+    --border: #e2dfd8;
+    --input: #dcd8d0;
+    --ring: #18181b;
+    --destructive: #e5484d;
+    --destructive-foreground: #b4232a;
+    --success: #2f9e6b;
+    --success-foreground: #1d6b47;
+    --warning: #d48806;
+    --warning-foreground: #8a5a00;
+    --chart-1: #ff6a3d; /* the prototype's orange temperature line */
+    --chart-2: #5b5b63;
+    --sidebar: #ebe8e2; /* the sidebar sits on the page background; cards float above it */
+    --sidebar-foreground: #18181b;
+    --sidebar-primary: #18181b;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #ffffff; /* active nav item is a white card, like the selected tab */
+    --sidebar-accent-foreground: #18181b;
+    --sidebar-border: #e2dfd8;
+    --sidebar-ring: #18181b;
+}
 .dark {
-    --background: #141414;
-    --card: #1c1c1c;
-    --popover: #1c1c1c;
-    --primary: #f0e6c0;
-    --primary-foreground: #1c1c1c;
-    --ring: #f0e6c0;
-    --sidebar: #181818;
-    --sidebar-primary: #f0e6c0;
-    --sidebar-primary-foreground: #1c1c1c;
-    --sidebar-ring: #f0e6c0;
+    --background: #121214;
+    --foreground: #f4f4f5;
+    --card: #1c1c1f;
+    --card-foreground: #f4f4f5;
+    --popover: #1c1c1f;
+    --popover-foreground: #f4f4f5;
+    --primary: #f4f4f5;
+    --primary-foreground: #18181b;
+    --secondary: #26262a;
+    --secondary-foreground: #f4f4f5;
+    --muted: #26262a;
+    --muted-foreground: #a1a1aa;
+    --accent: #26262a;
+    --accent-foreground: #f4f4f5;
+    --border: #2a2a2e;
+    --input: #33333a;
+    --ring: #f4f4f5;
+    --destructive: #f2555a;
+    --success: #3fb67f;
+    --warning: #e59a1a;
+    --chart-1: #ff7a50;
+    --sidebar: #121214;
+    --sidebar-foreground: #f4f4f5;
+    --sidebar-primary: #f4f4f5;
+    --sidebar-primary-foreground: #18181b;
+    --sidebar-accent: #1c1c1f;
+    --sidebar-accent-foreground: #f4f4f5;
+    --sidebar-border: #2a2a2e;
+    --sidebar-ring: #f4f4f5;
 }
-:root {
-    --primary: #2b2a26;
-    --primary-foreground: #f0e6c0;
+
+/* ── Floor view (ported from docs/prototype.html) ── */
+
+/* Folder tabs: the selected tab is part of the details card; the others sit on the page background. */
+.folder-tab {
+    position: relative;
+    display: flex;
+    flex: none; /* each tab is as wide as its label */
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 12px 15px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    font-size: 15px;
+    font-weight: 550;
+    white-space: nowrap;
+    color: var(--muted-foreground);
 }
+.folder-tab:hover { color: var(--foreground); }
+.folder-tab[aria-selected="true"] { background: var(--card); color: var(--foreground); font-weight: 700; }
+.folder-tab[aria-selected="true"]::before,
+.folder-tab[aria-selected="true"]::after { /* concave curves where the tab meets the card */
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: var(--radius);
+    height: var(--radius);
+    pointer-events: none;
+}
+.folder-tab[aria-selected="true"]::before { left: calc(var(--radius) * -1); background: radial-gradient(circle at 0 0, transparent calc(var(--radius) - .5px), var(--card) var(--radius)); }
+.folder-tab[aria-selected="true"]::after { right: calc(var(--radius) * -1); background: radial-gradient(circle at 100% 0, transparent calc(var(--radius) - .5px), var(--card) var(--radius)); }
+.folder-tab:first-child[aria-selected="true"]::before { display: none; } /* the first tab lines up with the card's left edge */
+
+/* Hall labels floating over the 3D floor; positioned every frame by FloorScene. */
+.floor-label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 14.5px;
+    font-weight: 650;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgb(0 0 0 / .12);
+    pointer-events: auto;
+    cursor: pointer;
+    will-change: transform;
+}
+.floor-label i { width: 9px; height: 9px; border-radius: 50%; background: var(--success); }
+.floor-label.s-warn i { background: var(--warning); }
+.floor-label.s-crit i { background: var(--destructive); }
+.floor-label.is-on { background: var(--foreground); color: var(--background); border-color: var(--foreground); }

@@ -34,8 +34,10 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AdminOverrideAlarmReducer from "./admin_override_alarm_reducer";
 import AttachReportReducer from "./attach_report_reducer";
 import AttachShiftReportReducer from "./attach_shift_report_reducer";
+import ExportOperatorTokensReducer from "./export_operator_tokens_reducer";
 import IngestReadingsReducer from "./ingest_readings_reducer";
 import OpenIncidentReducer from "./open_incident_reducer";
 import RegisterOperatorReducer from "./register_operator_reducer";
@@ -52,12 +54,14 @@ import FeedHealthRow from "./feed_health_table";
 import IncidentRow from "./incident_table";
 import IncidentReportRow from "./incident_report_table";
 import OperatorRow from "./operator_table";
+import QuarantineRow from "./quarantine_table";
 import RackRow from "./rack_table";
 import ServerRow from "./server_table";
 import ServerLatestRow from "./server_latest_table";
 import ServerReadingRow from "./server_reading_table";
 import ShiftRow from "./shift_table";
 import ShiftReportRow from "./shift_report_table";
+import ThreatEventRow from "./threat_event_table";
 import ThresholdRow from "./threshold_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -134,6 +138,17 @@ const tablesSchema = __schema({
       { name: 'operator_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, OperatorRow),
+  quarantine: __table({
+    name: 'quarantine',
+    indexes: [
+      { accessor: 'identity', name: 'quarantine_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'quarantine_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, QuarantineRow),
   rack: __table({
     name: 'rack',
     indexes: [
@@ -218,6 +233,17 @@ const tablesSchema = __schema({
       { name: 'shift_report_shift_id_key', constraint: 'unique', columns: ['shiftId'] },
     ],
   }, ShiftReportRow),
+  threatEvent: __table({
+    name: 'threat_event',
+    indexes: [
+      { accessor: 'id', name: 'threat_event_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'threat_event_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ThreatEventRow),
   threshold: __table({
     name: 'threshold',
     indexes: [
@@ -233,8 +259,10 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("admin_override_alarm", AdminOverrideAlarmReducer),
   __reducerSchema("attach_report", AttachReportReducer),
   __reducerSchema("attach_shift_report", AttachShiftReportReducer),
+  __reducerSchema("export_operator_tokens", ExportOperatorTokensReducer),
   __reducerSchema("ingest_readings", IngestReadingsReducer),
   __reducerSchema("open_incident", OpenIncidentReducer),
   __reducerSchema("register_operator", RegisterOperatorReducer),

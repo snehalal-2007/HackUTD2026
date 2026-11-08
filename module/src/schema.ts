@@ -1,3 +1,4 @@
+import { quarantine, threatEvent } from './honeypot/tables';
 import { schema, table, t } from 'spacetimedb/server';
 import { agentIdentity, eventLog, incident, incidentReport, shift, shiftReport } from './tables/reporting';
 import { feedHealth, rackProbe, threshold, watchdogTimer } from './tables/rules';
@@ -143,6 +144,8 @@ const spacetimedb = schema({
   incidentReport,
   shiftReport,
   agentIdentity,
+  quarantine, // honeypot: identities caught calling a decoy
+  threatEvent, // honeypot: one row per decoy call
   threshold,
   rackProbe,
   feedHealth,

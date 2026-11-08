@@ -1,3 +1,5 @@
+import { assertAllowed } from './honeypot/guard';
+export * from './honeypot/decoys';
 import { t, SenderError } from 'spacetimedb/server';
 import spacetimedb from './schema';
 import { rejectAgent } from './lib/agent';
@@ -24,6 +26,7 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
 
 export const registerOperator = spacetimedb.reducer({ name: t.string() }, (ctx, { name }) => {
   rejectAgent(ctx);
+  assertAllowed(ctx); // honeypot: quarantined identities are rejected
   const trimmed = name.trim();
   if (!trimmed) throw new SenderError('name is required');
   const existing = ctx.db.operator.identity.find(ctx.sender);

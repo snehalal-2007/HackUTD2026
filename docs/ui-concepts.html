@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MESA UI Concepts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=VT323&family=Inter+Tight:wght@400;500;600;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Caveat:wght@500;700&family=Jaro&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ───────────── base ───────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#111}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#stage{position:fixed;inset:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;overflow:hidden;-webkit-font-smoothing:antialiased}
+#stage ::-webkit-scrollbar{width:6px} #stage ::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.scene-slot{position:absolute;inset:0;overflow:hidden;z-index:0}
+.scene-slot canvas{position:absolute;inset:0;display:block;cursor:grab;touch-action:none}
+.scene-slot canvas:active{cursor:grabbing}
+.labels{position:absolute;inset:0;pointer-events:none}
+.blk-label{position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;font-weight:650;font-size:14.5px;line-height:1;padding:7px 12px;border-radius:99px;background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.12);transition:background .2s,color .2s;will-change:transform}
+.blk-label i{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.blk-label.s-warn i{background:var(--warn)} .blk-label.s-crit i{background:var(--crit)}
+.blk-label.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.blk-label.hov{transform-origin:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow,none)}
+.abs{position:absolute}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px;flex:none}
+.brand b{font-family:'Jaro',sans-serif;font-weight:400;font-size:24px;letter-spacing:.02em}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border:1px solid var(--accent);color:var(--ink);border-radius:99px}
+.live::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.eyebrow{font-size:13px;color:var(--muted);letter-spacing:.02em}
+.tabs{display:flex;gap:4px}
+.tab{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 7px;border-radius:calc(var(--radius)*.55);color:var(--muted);font-size:14px;font-weight:550;flex:1 1 auto;white-space:nowrap;position:relative}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{background:var(--sel,var(--card));color:var(--sel-ink,var(--ink))}
+.tab .ic{width:16px;height:16px;flex:none}
+.tab .ct{font-size:11.5px;min-width:19px;height:19px;padding:0 4px;border-radius:9px;display:inline-grid;place-items:center;background:var(--crit);color:#fff;font-weight:600}
+.tab .ct.w{background:var(--warn);color:#1a1a1a}
+.ic{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.head h2{font-size:24px;font-weight:600;letter-spacing:-.01em;line-height:1.15;margin:4px 0 8px}
+.head p{color:var(--ink);line-height:1.45;font-size:15.5px;margin-top:10px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;border:1px solid currentColor;line-height:1.2}
+.pill.s-ok{color:var(--ok)} .pill.s-warn{color:var(--warn)} .pill.s-crit{color:var(--crit)} .pill.s-info{color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px}
+.stat .k{font-size:13px;color:var(--muted);margin-bottom:3px}
+.stat .v{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.1}
+.u{font-size:13px;color:var(--muted);font-weight:400;margin-left:3px;letter-spacing:0}
+h4{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 6px}
+.rows{list-style:none}
+.rows li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rows li:last-child{border-bottom:0}
+.rows .nm{font-weight:600;font-size:15px}
+.rows small{display:block;color:var(--muted);font-size:13.5px;margin-top:2px;font-weight:400}
+.risks{list-style:none}
+.risks li{position:relative;padding-left:20px;margin:10px 0;font-size:15px;line-height:1.5}
+.risks li::before{content:'▲';position:absolute;left:0;top:2px;color:var(--warn);font-size:10px}
+.risks li.c::before{color:var(--crit)}
+.sum{padding:4px 0 6px}
+.loadbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.loadbar i{display:block;height:100%;background:var(--ink);border-radius:3px}
+.breach{display:flex;align-items:center;gap:10px;margin-top:16px;padding:10px 12px;border-radius:calc(var(--radius)*.5);background:var(--hl);font-size:14.5px}
+.breach b{font-variant-numeric:tabular-nums}
+.rank{list-style:none}
+.rank li{display:grid;grid-template-columns:20px 1fr auto 30px;align-items:center;gap:10px;padding:10px 12px;border-radius:calc(var(--radius)*.55);cursor:pointer}
+.rank li:hover{background:var(--hl)}
+.rank li.on{background:var(--hl)}
+.rank .n{color:var(--muted);font-size:13px}
+.rank .nm{font-weight:600;font-size:15px}
+.rank small{display:block;color:var(--muted);font-size:13.5px;font-weight:400;margin-top:1px}
+.rank .sc{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.bars{display:inline-flex;gap:2px;align-items:flex-end;height:15px}
+.bars i{width:5px;background:var(--line);border-radius:1px}
+.bars i:nth-child(1){height:6px}.bars i:nth-child(2){height:9px}.bars i:nth-child(3){height:12px}.bars i:nth-child(4){height:15px}
+.bars.lv-ok i.f{background:var(--ok)} .bars.lv-warn i.f{background:var(--warn)} .bars.lv-crit i.f{background:var(--crit)}
+.tchart{display:block;overflow:visible}
+.cbox{width:100%;min-width:0}.cbox.fill{height:100%}
+.tchart .ln{fill:none;stroke:var(--chart,var(--accent));stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.tchart .fc{stroke-dasharray:5 5}
+.tchart .area{fill:var(--chart,var(--accent));opacity:.08}
+.tchart .lim{stroke:var(--crit);stroke-width:1;stroke-dasharray:2 4}
+.tchart .now{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.tchart .gl{stroke:var(--line);stroke-width:1}
+.tchart text{fill:var(--muted);font-size:12.5px;font-family:var(--font)}
+.tchart .limt{fill:var(--crit)}
+.tchart .hov{opacity:0;pointer-events:none}
+.tchart .hov line{stroke:var(--ink);stroke-width:1;opacity:.35}
+.tchart .hov circle{fill:var(--chart,var(--accent));stroke:var(--card);stroke-width:2}
+.tchart .hov rect{fill:var(--ink)}
+.tchart .hov text{fill:var(--bg);font-size:12px;font-weight:600}
+.chart-h{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.chart-h b{font-weight:600;font-size:15.5px}
+.key{display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.key span::before{content:'';width:16px;border-top:2px solid var(--chart,var(--accent))}
+.key span.d::before{border-top-style:dashed}
+.key span.l::before{border-top:1px dashed var(--crit)}
+.ctrls{position:absolute;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:calc(var(--radius)*.55);overflow:hidden;box-shadow:var(--shadow,none);z-index:2}
+.ctrls button{width:38px;height:38px;display:grid;place-items:center;font-size:18px;color:var(--ink)}
+.ctrls button+button{border-top:1px solid var(--line)}
+.ctrls button:hover{background:var(--hl)}
+.hint{position:absolute;font-size:13px;color:var(--muted);pointer-events:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:600}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.chip.s-warn i{background:var(--warn)} .chip.s-crit i{background:var(--crit)}
+.chip em{font-style:normal;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)} .chip.on em{color:inherit;opacity:.7}
+.kpi .k{font-size:13px;color:var(--muted)} .kpi .v{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{text-align:left;font-weight:500;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+table.tbl td{padding:7px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+table.tbl tr[data-block]{cursor:pointer} table.tbl tr.on td{background:var(--hl)}
+table.tbl td.r,table.tbl th.r{text-align:right}
+.scroll{overflow:auto}
+
+/* ───────────── switcher ───────────── */
+#sw{opacity:.55;position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:6px;padding:6px;background:rgba(16,16,16,.88);color:#f3efe4;border-radius:14px;font:13px/1.2 'Geist',system-ui,sans-serif;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);transition:opacity .2s,transform .2s}
+#sw:hover{opacity:1}
+#sw.hide{opacity:0;transform:translate(-50%,20px);pointer-events:none}
+#sw button{color:inherit;padding:7px 10px;border-radius:9px}
+#sw button:hover{background:rgba(255,255,255,.1)}
+#sw .nm{min-width:120px;padding:0 6px}
+#sw .nm b{font-family:'Geist Mono',monospace;color:#F0E6C0;margin-right:6px}
+#sw .nm small{display:none;color:rgba(243,239,228,.55);font-size:11.5px;margin-top:2px}
+#sw .dots{display:flex;gap:2px}
+#sw .dots button{width:28px;padding:6px 0;font:11px 'Geist Mono',monospace;color:rgba(243,239,228,.55)}
+#sw .dots button.on{background:#F0E6C0;color:#1c1c1c}
+#sw kbd{font:11px 'Geist Mono',monospace;color:rgba(243,239,228,.45);padding:0 8px}
+
+/* ═════════ 01 ATRIUM — cream floating cards (closest to the reference) ═════════ */
+.d1{--bg:#efe9dc;--ink:#1c1c1c;--muted:#635b4c;--line:#e5ddcb;--card:#fffdf8;--accent:#c2672b;--chart:#c2672b;--ok:#3a8a58;--warn:#c27a12;--crit:#c8432b;--sel:#fff;--sel-ink:#1c1c1c;--hl:#f7ecdd;--radius:22px;--font:'Geist',sans-serif;--shadow:0 12px 34px rgba(80,60,20,.09)}
+.d1#stage{background:radial-gradient(1200px 700px at 60% 40%,#f7f3ea,#e8e0cd)}
+.d1 .left{left:24px;top:24px;bottom:24px;width:376px;padding:24px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.d1 .left .top{display:flex;justify-content:space-between;align-items:center}
+.d1 .tabs{background:#f2ecdf;padding:4px;border-radius:14px}
+.d1 .tab[aria-selected=true]{box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.d1 .head{border-bottom:1px solid var(--line);padding-bottom:16px}
+.d1 .right{right:24px;top:24px;width:340px;max-height:calc(100% - 290px);padding:20px 14px;overflow:auto}
+.d1 .right .rh{padding:0 12px 10px;display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+.d1 .bottom{left:424px;right:24px;bottom:24px;height:232px;padding:20px 24px;display:grid;grid-template-columns:260px 1fr;gap:28px}
+.d1 .bottom .stats{align-content:center}
+.d1 .ctrls{right:388px;top:24px}
+.d1 .hint{left:424px;top:30px}
+
+/* ═════════ 05 SWISS — editorial grid, giant type ═════════ */
+.d5{--bg:#ffffff;--ink:#111;--muted:#555555;--line:#dcdcdc;--card:#fff;--accent:#e3221b;--chart:#111;--ok:#1a7f4b;--warn:#c98600;--crit:#e3221b;--sel:#111;--sel-ink:#fff;--hl:#f3f3f3;--radius:0px;--font:'Inter Tight',sans-serif}
+.d5#stage{display:grid;grid-template-columns:440px 1fr;grid-template-rows:56px 1fr 280px}
+.d5 .mast{grid-column:1/3;display:flex;align-items:center;justify-content:space-between;padding:0 36px;border-bottom:3px solid #111;font-weight:600}
+.d5 .mast .meta{display:flex;gap:28px;font-weight:500;color:var(--muted);font-size:13px}
+.d5 .mast .meta b{color:#111;font-weight:600}
+.d5 .left{grid-row:2/4;padding:28px 36px 80px;border-right:1px solid #111;overflow:auto}
+.d5 .giant{font-size:180px;font-weight:900;letter-spacing:-.06em;line-height:.8;margin:6px 0 14px}
+.d5 .giant sup{font-size:16px;letter-spacing:0;font-weight:600;vertical-align:top;color:var(--accent);margin-left:8px}
+.d5 .head h2,.d5 .head .eyebrow,.d5 .head .pill{display:none}
+.d5 .head p{font-size:19px;line-height:1.3;font-weight:500;margin:12px 0 20px}
+.d5 .tabs{flex-direction:column;gap:0;border-top:1px solid #111;counter-reset:t;margin-bottom:22px}
+.d5 .tab{justify-content:flex-start;border-bottom:1px solid var(--line);border-radius:0;padding:11px 0;font-size:16px;color:#111;font-weight:500}
+.d5 .tab .ic{display:none}
+.d5 .tab::before{counter-increment:t;content:'0' counter(t);font-size:12px;color:var(--muted);width:34px;text-align:left}
+.d5 .tab[aria-selected=true]{background:none;color:var(--accent)}
+.d5 .tab[aria-selected=true]::after{content:'→';margin-left:auto}
+.d5 .tab .ct{background:#111}
+.d5 .pill{border-radius:0}
+.d5 .stat .v{font-size:34px;font-weight:800;letter-spacing:-.03em}
+.d5 .sbox{position:relative;background:#f2f2f0;margin:24px 32px 0;border:1px solid #111}
+.d5 .low{display:grid;grid-template-columns:1.3fr 1fr;gap:36px;padding:22px 32px 70px}
+.d5 .low .t{font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:600;border-bottom:1px solid #111;padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between}
+.d5 .rank li{border-radius:0;padding:6px 4px;border-bottom:1px solid var(--line)}
+.d5 .rank li.on{background:none;color:var(--accent)}
+.d5 .blk-label{border-radius:0;background:#fff;border:1px solid #111;box-shadow:none;font-weight:800;font-size:14px}
+.d5 .blk-label.on{background:#e3221b;border-color:#e3221b;color:#fff}
+.d5 .ctrls{right:12px;top:12px;border-radius:0;border-color:#111;box-shadow:none}
+.d5 .hint{left:14px;bottom:10px}
+
+/* ═════════ 12 BENTO — tiles ═════════ */
+.d12{--bg:#ebe8e2;--ink:#18181b;--muted:#5b5b63;--line:#e7e5e0;--card:#fff;--accent:#ff6a3d;--chart:#ff6a3d;--ok:#2f9e6b;--warn:#d48806;--crit:#e5484d;--sel:#18181b;--sel-ink:#fff;--hl:#f5f3ef;--radius:24px;--font:'Geist',sans-serif}
+.d12#stage{display:grid;grid-template-columns:370px 1fr 1fr 310px;grid-template-rows:1fr 1fr 236px;gap:14px;padding:14px 14px 70px}
+.d12 .t{background:var(--card);border-radius:var(--radius);position:relative;min-height:0;overflow:hidden}
+.d12 .t-det{grid-row:1/4;padding:22px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.d12 .tabs{background:var(--hl);padding:4px;border-radius:14px}
+.d12 .t-scene{grid-column:2/4;grid-row:1/3;background:linear-gradient(#f7f5f1,#efece6)}
+.d12 .t-scene .over{position:absolute;left:20px;top:18px;z-index:2;display:flex;flex-direction:column;gap:4px}
+.d12 .t-scene .over b{font-size:20px;font-weight:600}
+.d12 .t-rank{grid-column:4;grid-row:1/3;padding:16px 8px;overflow:auto}
+.d12 .t-rank .rh{padding:0 12px 8px;font-weight:600}
+.d12 .t-chart{grid-column:2/4;grid-row:3;padding:18px 22px}
+.d12 .t-kpis{grid-column:4;grid-row:3;background:none;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.d12 .t-kpis .kpi{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between}
+.d12 .t-kpis .kpi.hot{background:#18181b;color:#fff} .d12 .t-kpis .kpi.hot .k{color:#a1a1aa}
+.d12 .ctrls{right:16px;top:16px;border-radius:14px}
+.d12 .hint{left:20px;bottom:14px}
+/* ═════════ N1 ATRIUM NIGHT — the Atrium layout in a high-contrast dark theme ═════════ */
+.n1{--bg:#141311;--ink:#f5f0e4;--muted:#bdb5a5;--line:#36332e;--card:#1e1d1a;--accent:#e8955a;--chart:#eaa06a;--ok:#74d395;--warn:#f2b552;--crit:#ff7d62;--sel:#3a3732;--sel-ink:#fff;--hl:#2b2925;--shadow:0 14px 40px rgba(0,0,0,.45)}
+.n1#stage{background:radial-gradient(1200px 700px at 60% 40%,#25231f,#121110)}
+.n1 .tabs{background:#141311}
+.n1 .blk-label{background:#1e1d1a;border-color:#4a463f;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.n1 .blk-label.on{background:#F0E6C0;color:#141311;border-color:#F0E6C0}
+
+/* ═════════ N2 GALLERY — model on top, a row of hall cards with sparklines ═════════ */
+.n2{--bg:#f4f3ef;--ink:#17171a;--muted:#5d5d66;--line:#e6e4de;--card:#fff;--accent:#ff6a3d;--chart:#e2562a;--ok:#1f8a5b;--warn:#b86e00;--crit:#d43c3c;--sel:#17171a;--sel-ink:#fff;--hl:#f4f2ed;--radius:20px;--font:'Geist',sans-serif}
+.n2#stage{display:grid;grid-template-columns:400px 1fr;grid-template-rows:1fr 188px;gap:16px;padding:16px 16px 64px}
+.n2 .left{grid-row:1/3;background:var(--card);border-radius:var(--radius);padding:24px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+.n2 .tabs{background:var(--hl);padding:4px;border-radius:14px}
+.n2 .scene{position:relative;border-radius:var(--radius);background:linear-gradient(#fbfaf7,#ecebe5);overflow:hidden}
+.n2 .over{position:absolute;left:22px;top:18px;right:80px;z-index:2;display:flex;align-items:center;gap:24px}
+.n2 .over b{font-size:22px;font-weight:600}
+.n2 .over .kpi .v{font-size:18px}
+.n2 .halls{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
+.n2 .hc{background:var(--card);border-radius:16px;padding:14px;border:2px solid transparent;display:flex;flex-direction:column;justify-content:space-between;gap:6px;text-align:left;min-width:0}
+.n2 .hc:hover{border-color:var(--line)}
+.n2 .hc.on{border-color:var(--ink)}
+.n2 .hc .top{display:flex;justify-content:space-between;align-items:center}
+.n2 .hc .id{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.n2 .hc .g{font-size:16px} .n2 .hc .g.s-ok{color:var(--ok)} .n2 .hc .g.s-warn{color:var(--warn)} .n2 .hc .g.s-crit{color:var(--crit)}
+.n2 .hc .tt{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.n2 .hc .tt span{font-size:13px;color:var(--muted);font-weight:400}
+.n2 .hc small{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n2 .spark{width:100%;height:30px;display:block}
+.n2 .spark path{fill:none;stroke:var(--chart);stroke-width:2}
+.n2 .spark .f{stroke-dasharray:3 3}
+.n2 .spark line{stroke:var(--crit);stroke-width:1;stroke-dasharray:2 3;opacity:.7}
+.n2 .ctrls{right:16px;top:16px}
+.n2 .hint{left:22px;bottom:14px}
+
+/* ═════════ N3 FRONT PAGE — editorial newspaper ═════════ */
+.n3{--bg:#f7f3ea;--ink:#1a1916;--muted:#5b574e;--line:#d9d2c3;--card:#f7f3ea;--accent:#b5361c;--chart:#1a1916;--ok:#2d6e45;--warn:#9a6200;--crit:#b5361c;--sel:none;--sel-ink:#b5361c;--hl:#efe8d9;--radius:0px;--font:'Inter Tight',sans-serif}
+.n3#stage{display:grid;grid-template-columns:400px 1fr 320px;grid-template-rows:auto 1fr;padding:0 32px 64px;column-gap:0;font-size:15.5px}
+.n3 .mast{grid-column:1/4;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;padding:20px 0 12px;border-bottom:4px double var(--ink)}
+.n3 .mast .t{font-family:'Fraunces',serif;font-size:40px;font-weight:800;letter-spacing:-.02em;text-align:center;line-height:1}
+.n3 .mast .m{font-size:13px;color:var(--muted)} .n3 .mast .m.r{text-align:right}
+.n3 .col{padding:20px 24px 0;overflow:auto;min-height:0}
+.n3 .col:first-of-type{padding-left:0}
+.n3 .c1{padding-left:0}
+.n3 .c2{border-left:1px solid var(--line);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.n3 .c3{padding-right:0}
+.n3 .kicker{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+.n3 .head .eyebrow,.n3 .head h2{display:none}
+.n3 .head p{font-family:'Fraunces',serif;font-size:34px;font-weight:600;line-height:1.1;letter-spacing:-.015em;opacity:1;margin:8px 0 12px}
+.n3 .tabs{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin:18px 0;gap:0}
+.n3 .tab{border-radius:0;font-weight:600;color:var(--muted);padding:10px 4px}
+.n3 .tab[aria-selected=true]{color:var(--accent);background:none;box-shadow:inset 0 -3px 0 var(--accent)}
+.n3 .pill{border-radius:2px}
+.n3 .stat .v{font-family:'Fraunces',serif;font-weight:600;font-size:30px}
+.n3 h4{font-family:'Fraunces',serif;text-transform:none;letter-spacing:0;color:var(--ink);font-size:18px;border-top:1px solid var(--line);padding-top:12px}
+.n3 .photo{position:relative;flex:1;min-height:300px;border:1px solid var(--ink);background:#efe9dc}
+.n3 .cap{font-size:13px;color:var(--muted);font-style:italic}
+.n3 .sec{font-family:'Fraunces',serif;font-size:20px;font-weight:600;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:6px}
+.n3 .rank li{border-radius:0;padding:10px 2px;border-bottom:1px solid var(--line)}
+.n3 .rank li.on{background:none} .n3 .rank li.on .nm{color:var(--accent)}
+.n3 .rank .nm{font-family:'Fraunces',serif;font-size:17px}
+.n3 .briefs{list-style:none;margin-top:6px}
+.n3 .briefs li{padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px;line-height:1.4;cursor:pointer}
+.n3 .briefs time{display:block;font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.n3 .blk-label{border-radius:2px;background:#f7f3ea;border-color:#1a1916;box-shadow:none;font-family:'Fraunces',serif;font-size:15px}
+.n3 .blk-label.on{background:#b5361c;border-color:#b5361c;color:#fff}
+.n3 .ctrls{right:10px;top:10px;border-radius:2px;box-shadow:none;border-color:var(--ink)}
+
+/* ═════════ N4 STUDIO — ink sidebar with full tab labels, detail column, model, ranking ═════════ */
+.n4{--bg:#f3f3f1;--ink:#141414;--muted:#5a5a57;--line:#e4e4e0;--card:#fff;--accent:#2f6df6;--chart:#2f6df6;--ok:#16834f;--warn:#b26b00;--crit:#d23b3b;--sel:#141414;--sel-ink:#fff;--hl:#f2f2ef;--radius:16px;--font:'Geist',sans-serif}
+.n4#stage{display:grid;grid-template-columns:232px 380px 1fr 300px;grid-template-rows:1fr 220px;gap:14px;padding:0 14px 64px 0}
+.n4 .side{grid-row:1/3;background:#141414;color:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:26px;--ink:#fff;--muted:#b4b4ae;--sel:#2c2c2c;--sel-ink:#fff;--line:#2c2c2c;padding-bottom:70px}
+.n4 .side .tabs{flex-direction:column;gap:4px}
+.n4 .side .tab{justify-content:flex-start;padding:12px 14px;font-size:15px;border-radius:10px;color:#c9c9c4}
+.n4 .side .tab .ic{width:18px;height:18px}
+.n4 .side .tab .ct{margin-left:auto}
+.n4 .side .tab[aria-selected=true]{color:#fff}
+.n4 .side .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#9a9a94;margin-bottom:8px;padding-left:14px}
+.n4 .side .kpi{padding:8px 14px} .n4 .side .kpi .v{font-size:20px}
+.n4 .det{grid-row:1/3;background:var(--card);border-radius:var(--radius);padding:24px;overflow:auto;margin-top:14px}
+.n4 .det .stats{margin-top:16px}
+.n4 .scene{position:relative;background:var(--card);border-radius:var(--radius);overflow:hidden;margin-top:14px}
+.n4 .scene .over{position:absolute;left:20px;top:16px;z-index:2}
+.n4 .scene .over b{font-size:20px;font-weight:600;display:block}
+.n4 .chartc{background:var(--card);border-radius:var(--radius);padding:18px 22px}
+.n4 .rk{grid-row:1/3;background:var(--card);border-radius:var(--radius);padding:18px 8px;overflow:auto;margin-top:14px}
+.n4 .rk .rh{padding:0 12px 8px;font-weight:600;font-size:15px}
+.n4 .ctrls{right:14px;top:14px}
+.n4 .hint{left:20px;bottom:12px}
+
+/* ═════════ N5 FOCUS — accessibility-first: one sentence up top, large type, hall grid ═════════ */
+.n5{--bg:#eef1f4;--ink:#0f172a;--muted:#475569;--line:#dbe1e8;--card:#fff;--accent:#2563eb;--chart:#2563eb;--ok:#15803d;--warn:#b45309;--crit:#b91c1c;--sel:#0f172a;--sel-ink:#fff;--hl:#f1f5f9;--radius:18px;--font:'Geist',sans-serif;--shadow:0 8px 28px rgba(15,23,42,.08)}
+.n5#stage{font-size:16px;background:linear-gradient(#f5f7fa,#e6ebf1)}
+.n5 .banner{left:460px;right:24px;top:24px;padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.n5 .banner .say{font-size:20px;font-weight:600}
+.n5 .banner .say span{color:var(--crit)}
+.n5 .banner .chips{margin-left:auto}
+.n5 .chip{font-size:15px;padding:8px 14px}
+.n5 .left{left:24px;top:24px;bottom:24px;width:412px;padding:26px;overflow:auto;display:flex;flex-direction:column;gap:20px}
+.n5 .tabs{background:var(--hl);padding:5px;border-radius:14px}
+.n5 .tab{font-size:15.5px;padding:11px 8px}
+.n5 .head h2{font-size:32px}
+.n5 .head p{font-size:17px}
+.n5 .stat .k{font-size:14px} .n5 .stat .v{font-size:34px}
+.n5 .rows .nm{font-size:16px} .n5 .rows small{font-size:14px}
+.n5 .risks li{font-size:16px}
+.n5 .grid8{left:460px;bottom:72px;width:340px;padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.n5 .grid8 .h{grid-column:1/-1;font-weight:600;font-size:15px;padding:0 2px 4px}
+.n5 .gc{border:2px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center;line-height:1.2}
+.n5 .gc b{display:block;font-size:19px}
+.n5 .gc span{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.n5 .gc.s-warn{border-color:var(--warn)} .n5 .gc.s-crit{border-color:var(--crit);background:#fef2f2}
+.n5 .gc.on{background:var(--ink);color:#fff;border-color:var(--ink)} .n5 .gc.on span{color:#cbd5e1}
+.n5 .chartc{right:24px;bottom:72px;width:min(620px,calc(100% - 860px));padding:18px 22px}
+.n5 .ctrls{right:24px;top:112px}
+.n5 .blk-label{font-size:16px;padding:8px 13px}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<nav id="sw" aria-label="Design switcher">
+  <button data-step="-1" aria-label="Previous design">‹</button>
+  <div class="nm"></div>
+  <button data-step="1" aria-label="Next design">›</button>
+  <div class="dots"></div>
+  <kbd>← → · H hides</kbd>
+</nav>
+
+<script>
+/* ═══════════════════ DATA (sample — swap for latest_reading / alert subscriptions) ═══════════════════ */
+const LIMIT = 27; // °C, ASHRAE recommended inlet max
+function mkBlock(id, o = {}) {
+  const b = { id, status: 'ok', temp: 22.2, hum: 45, load: 610, cap: 900, pue: 1.28, racks: 48, risk: 10, slope: .02, fslope: .01,
+    headline: `All systems are nominal in ${id}.`, short: 'Nominal', risks: [], ...o };
+  b.power = [
+    { n: 'Utility feed A', d: '13.8 kV · 100% voltage', s: 'ok' },
+    { n: 'Utility feed B', d: '13.8 kV · 100% voltage', s: 'ok' },
+    { n: `UPS-${id}-1`, d: 'Online · 100% charge', s: 'ok' },
+    { n: 'PDU rows 1–6', d: `${Math.round(b.load / b.cap * 100)}% average draw`, s: 'ok' },
+    { n: `Generator G-${id}`, d: 'Standby · fuel 96%', s: 'info' },
+  ];
+  b.infra = [
+    { n: `CRAH-${id}-1`, d: 'Supply 18.2 °C · fans 64%', s: 'ok' },
+    { n: `CRAH-${id}-2`, d: 'Supply 18.4 °C · fans 61%', s: 'ok' },
+    { n: 'Chilled-water loop', d: '7.1 °C supply · 410 L/min', s: 'ok' },
+    { n: 'Leak detection', d: 'All 12 zones dry', s: 'ok' },
+    { n: 'Fire suppression', d: 'Armed · Novec 1230', s: 'ok' },
+    { n: 'Network spine', d: '2 × 400G · 31% utilised', s: 'ok' },
+  ];
+  b.apps = [
+    { n: 'auth-api', d: 'p95 38 ms · 99.99% up', s: 'ok' },
+    { n: 'payments-core', d: 'p95 61 ms · 99.99% up', s: 'ok' },
+    { n: 'search-index', d: '6 of 6 nodes · p95 24 ms', s: 'ok' },
+    { n: 'telemetry-ingest', d: '41k events/s', s: 'ok' },
+    { n: 'object-store', d: '2.1 PB · 99.999% up', s: 'ok' },
+  ];
+  (o.patch || []).forEach(([cat, i, v]) => Object.assign(b[cat][i], v));
+  // temperature series: 24 h past (hourly) + 12 h forecast, deterministic
+  const seed = id.charCodeAt(1);
+  b.past = Array.from({ length: 25 }, (_, i) => i === 24 ? b.temp : +(b.temp - b.slope * (24 - i) + .32 * Math.sin(i * .9 + seed) + .14 * Math.cos(i * 2.3 + seed)).toFixed(1));
+  b.fore = Array.from({ length: 13 }, (_, j) => j === 0 ? b.temp : +(b.temp + b.fslope * j + .12 * Math.sin(j * 1.1 + seed)).toFixed(1));
+  const k = b.fore.findIndex(v => v >= LIMIT);
+  b.breachH = b.temp >= LIMIT ? 0 : k > 0 ? (k - 1) + (LIMIT - b.fore[k - 1]) / (b.fore[k] - b.fore[k - 1]) : null;
+  return b;
+}
+const BLOCKS = [
+  mkBlock('3A', { temp: 22.1, risk: 12, hum: 44, load: 588 }),
+  mkBlock('3B', { status: 'warn', temp: 26.6, hum: 39, load: 655, risk: 58, slope: .12, fslope: .3, short: 'Cooling degraded',
+    headline: 'Cooling is degraded in 3B and inlet air is warming.',
+    risks: ['Inlet air is rising about 0.3 °C per hour and reaches the 27 °C limit in about 1 h 20 m.', 'CRAH-3B-2 lost 1 of 4 fans; the other three are running at 92%.'],
+    patch: [['infra', 1, { d: 'Fan 3 failed · others at 92%', s: 'warn' }], ['infra', 0, { d: 'Supply 19.6 °C · fans 88%' }]] }),
+  mkBlock('3C', { status: 'crit', temp: 24.9, hum: 41, load: 702, pue: 1.41, risk: 86, slope: .04, fslope: .22, short: 'UPS on battery',
+    headline: 'Utility feed A is down and 3C is running on UPS battery.',
+    risks: ['UPS-3C-1 is on battery with about 14 minutes of runtime left at the current load.', 'Generator G-3C failed its first start; a second attempt is in progress.', 'payments-core failed over to 3D and is running at reduced capacity.'],
+    patch: [['power', 0, { d: 'No voltage for 18 min', s: 'crit' }], ['power', 2, { d: 'On battery · 14 min left', s: 'crit' }], ['power', 4, { d: 'Start failed · retrying', s: 'warn' }], ['apps', 1, { d: 'Failed over to 3D · p95 180 ms', s: 'warn' }]] }),
+  mkBlock('3D', { temp: 23.4, hum: 46, load: 784, risk: 31, slope: .03, fslope: .05, short: 'Carrying failover',
+    headline: '3D is healthy and is carrying payments-core traffic from 3C.',
+    risks: ['Load is at 87% of capacity while it carries the payments-core failover from 3C.'] }),
+  mkBlock('3E', { status: 'warn', temp: 23.1, hum: 47, load: 540, risk: 41, short: 'search-index down',
+    headline: 'search-index is partly down in 3E.',
+    risks: ['search-index lost 2 of 6 nodes after a kernel panic, so queries are slower.', 'auth-api latency is 8× normal because it shares hosts with search-index.'],
+    patch: [['apps', 2, { d: '2 of 6 nodes down', s: 'crit' }], ['apps', 0, { d: 'p95 310 ms · 99.2% up', s: 'warn' }]] }),
+  mkBlock('3F', { temp: 21.6, hum: 43, load: 497, risk: 9, short: 'Nominal' }),
+  mkBlock('3G', { temp: 22.7, hum: 45, load: 621, risk: 22, short: 'Maintenance 02:00',
+    headline: 'Maintenance is scheduled in 3G tonight at 02:00.',
+    risks: ['Rows 1–3 run on a single PDU feed during the 02:00 firmware update.'],
+    patch: [['power', 3, { d: 'PDU-B firmware update at 02:00', s: 'info' }]] }),
+  mkBlock('3H', { status: 'warn', temp: 22.8, hum: 52, load: 600, risk: 49, short: 'Leak detected',
+    headline: 'A leak sensor tripped under row 4 in 3H.',
+    risks: ['Moisture under row 4 near the chilled-water manifold; a technician is on the way.', 'If the leak grows, rows 3–5 (14 racks) need a controlled shutdown.'],
+    patch: [['infra', 3, { d: 'Zone 4 wet · technician dispatched', s: 'warn' }]] }),
+];
+const BY = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
+const EVENTS = [
+  { h: -19.5, b: '3E', s: 'warn', c: 'apps', t: 'search-index node 4 kernel panic', lane: 0 },
+  { h: -14, b: '3G', s: 'info', c: 'power', t: 'PDU-B firmware update scheduled', lane: 1 },
+  { h: -9, b: '3B', s: 'warn', c: 'infra', t: 'CRAH-3B-2 fan 3 failed', lane: 0 },
+  { h: -6.5, b: '3E', s: 'crit', c: 'apps', t: 'search-index node 5 down', lane: 1 },
+  { h: -3.2, b: '3H', s: 'warn', c: 'infra', t: 'Leak sensor zone 4 wet', lane: 0 },
+  { h: -.3, b: '3C', s: 'crit', c: 'power', t: 'Utility feed A lost; UPS on battery', lane: 0 },
+  { h: -.25, b: '3C', s: 'warn', c: 'power', t: 'Generator G-3C start failed', lane: 1 },
+  { h: -.2, b: '3C', s: 'warn', c: 'apps', t: 'payments-core failed over to 3D', lane: 2 },
+];
+const TABS = [{ k: 'overview', l: 'Overview', f: 'Overview' }, { k: 'power', l: 'Power', f: 'Power' }, { k: 'infra', l: 'Infra', f: 'Infrastructure' }, { k: 'apps', l: 'Apps', f: 'App services' }];
+const ST = { ok: { l: 'Nominal', g: '●' }, warn: { l: 'Watch', g: '▲' }, crit: { l: 'Critical', g: '◆' }, info: { l: 'Scheduled', g: '○' } };
+const ITEM = { ok: 'OK', warn: 'Degraded', crit: 'Down', info: 'Standby' };
+const ranked = () => [...BLOCKS].sort((a, b) => b.risk - a.risk);
+const issues = b => ['power', 'infra', 'apps'].reduce((n, c) => n + b[c].filter(x => x.s === 'warn' || x.s === 'crit').length, 0);
+const TOTAL = { load: BLOCKS.reduce((s, b) => s + b.load, 0), issues: BLOCKS.reduce((s, b) => s + issues(b), 0), avgT: BLOCKS.reduce((s, b) => s + b.temp, 0) / BLOCKS.length };
+const NEXT = BLOCKS.filter(b => b.breachH != null).sort((a, b) => a.breachH - b.breachH)[0];
+const fmtAgo = h => { const m = Math.round(-h * 60); return m < 60 ? `${m} min ago` : `${Math.round(-h)} h ago`; };
+const fmtH = h => { const m = Math.round(h * 60); return m < 60 ? `${m} m` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} m`; };
+const HEAT = ['#1d1747', '#5b2a86', '#b33a6c', '#f08a4b', '#fbd56e'];
+function heat(t) { const x = Math.max(0, Math.min(1, (t - 20) / 8)) * (HEAT.length - 1); const i = Math.min(HEAT.length - 2, Math.floor(x)); const a = new THREE.Color(HEAT[i]), b = new THREE.Color(HEAT[i + 1]); return a.lerp(b, x - i); }
+
+/* ═══════════════════ STATE ═══════════════════ */
+const state = { d: Math.max(0, Math.min(7, (parseInt(location.hash.slice(1)) || 1) - 1)), sel: '3C', tab: 'overview' };
+const sel = () => BY[state.sel];
+
+/* ═══════════════════ COMPONENTS (HTML strings, styled per design) ═══════════════════ */
+const ICON = {
+  overview: '<path d="M4 14a8 8 0 0 1 16 0"/><path d="M12 14l4-4"/><path d="M4 18h16"/>',
+  power: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  infra: '<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/><path d="M8 7.5h.01M8 16.5h.01"/>',
+  apps: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+};
+const ic = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const MARK = `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="mm"><rect x="35.6" y="0" width="28.8" height="100"/></clipPath></defs><rect width="100" height="100" rx="18" fill="#1C1C1C"/><g fill="#F0E6C0" transform="translate(50 50) scale(0.8) translate(-50 -50)"><path d="M36 4 Q30 46 4 50 Q30 54 36 96Z"/><path d="M64 4 Q70 46 96 50 Q70 54 64 96Z"/><path clip-path="url(#mm)" d="M50 4 Q53 46 78 50 Q53 54 50 96 Q47 54 22 50 Q47 46 50 4Z"/></g></svg>`;
+const C = {
+  brand: () => `<div class="brand">${MARK}<b>MESA</b></div>`,
+  live: (t = 'Live') => `<span class="live">${t}</span>`,
+  pill: (s, l) => `<span class="pill s-${s}">${ST[s].g} ${l || ST[s].l}</span>`,
+  tabs(o = {}) {
+    const b = sel();
+    return `<div class="tabs" role="tablist">${TABS.map(t => {
+      const items = t.k === 'overview' ? [] : b[t.k];
+      const crit = items.filter(x => x.s === 'crit').length, warn = items.filter(x => x.s === 'warn').length;
+      const ct = crit ? `<span class="ct">${crit + warn}</span>` : warn ? `<span class="ct w">${warn}</span>` : '';
+      return `<button class="tab" role="tab" data-tab="${t.k}" aria-selected="${state.tab === t.k}" title="${t.f}">${o.icons ? ic(t.k) : ''}<span>${o.full ? t.f : t.l}</span>${ct}</button>`;
+    }).join('')}</div>`;
+  },
+  head: (b, o = {}) => `<div class="head"><div class="eyebrow">${o.eyebrow || 'Floor 3 · Data hall'}</div><h2>Hall ${b.id}</h2>${C.pill(b.status)}<p>${b.headline}</p></div>`,
+  stat: (k, v, u) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`,
+  stats: b => `<div class="stats">${C.stat('Inlet temperature', b.temp.toFixed(1), '°C')}${C.stat('Humidity', b.hum, '%')}${C.stat('IT load', b.load, `/ ${b.cap} kW`)}${C.stat('PUE', b.pue.toFixed(2), '')}</div>`,
+  rows: items => `<ul class="rows">${items.map(x => `<li><div><div class="nm">${x.n}</div><small>${x.d}</small></div>${C.pill(x.s, ITEM[x.s])}</li>`).join('')}</ul>`,
+  breach: b => b.breachH != null ? `<div class="breach">⏱ Inlet reaches ${LIMIT} °C in <b>${fmtH(b.breachH)}</b></div>` : '',
+  body(b, o = {}) {
+    const t = state.tab;
+    if (t === 'overview') return `${o.noStats ? '' : C.stats(b)}${C.breach(b)}<h4>Risks</h4>${b.risks.length ? `<ul class="risks">${b.risks.map(r => `<li class="${b.status === 'crit' ? 'c' : ''}">${r}</li>`).join('')}</ul>` : `<p style="color:var(--muted);font-size:13.5px">No open risks. Every system in ${b.id} is reporting normally.</p>`}`;
+    if (t === 'power') return `<div class="sum">${C.stat('IT load', b.load, `/ ${b.cap} kW`)}<div class="loadbar"><i style="width:${Math.round(b.load / b.cap * 100)}%"></i></div></div><h4>Power chain</h4>${C.rows(b.power)}`;
+    if (t === 'infra') return `<div class="stats">${C.stat('Inlet temperature', b.temp.toFixed(1), '°C')}${C.stat('Humidity', b.hum, '%')}</div><h4>Facility systems</h4>${C.rows(b.infra)}`;
+    const bad = b.apps.filter(x => x.s !== 'ok').length;
+    return `<div class="stats">${C.stat('Services', b.apps.length, 'hosted')}${C.stat('Degraded', bad, bad === 1 ? 'service' : 'services')}</div><h4>App services</h4>${C.rows(b.apps)}`;
+  },
+  bars(r) { const n = Math.ceil(r / 25), lv = r >= 70 ? 'crit' : r >= 35 ? 'warn' : 'ok'; return `<span class="bars lv-${lv}" aria-label="risk ${r} of 100">${[1, 2, 3, 4].map(i => `<i class="${i <= n ? 'f' : ''}"></i>`).join('')}</span>`; },
+  rank: () => `<ol class="rank">${ranked().map((b, i) => `<li data-block="${b.id}" class="${b.id === state.sel ? 'on' : ''}"><span class="n">${i + 1}</span><span class="nm">Hall ${b.id}<small>${b.short}</small></span>${C.bars(b.risk)}<span class="sc">${b.risk}</span></li>`).join('')}</ol>`,
+  chips: () => `<div class="chips">${ranked().map(b => `<button class="chip s-${b.status} ${b.id === state.sel ? 'on' : ''}" data-block="${b.id}"><i></i>${b.id}<em>${b.risk}</em></button>`).join('')}</div>`,
+  table: () => `<table class="tbl"><thead><tr><th>Hall</th><th>Status</th><th class="r">°C</th><th class="r">kW</th><th class="r">Risk</th></tr></thead><tbody>${ranked().map(b => `<tr data-block="${b.id}" class="${b.id === state.sel ? 'on' : ''}"><td>${b.id}</td><td>${C.pill(b.status)}</td><td class="r">${b.temp.toFixed(1)}</td><td class="r">${b.load}</td><td class="r">${b.risk}</td></tr>`).join('')}</tbody></table>`,
+  chartHead: (b, t) => `<div class="chart-h"><b>${t || `Inlet temperature · Hall ${b.id}`}</b><div class="key"><span>Past 24 h</span><span class="d">Forecast</span><span class="l">${LIMIT} °C limit</span></div></div>`,
+  chart: (b, o = {}) => `<div class="cbox ${o.h === 'fill' ? 'fill' : ''}" data-h="${o.h || 140}" style="${o.h === 'fill' ? '' : `height:${o.h || 140}px`}"></div>`,
+  svg(b, W, H) {
+    const all = [...b.past, ...b.fore, LIMIT];
+    const pl = 34, pr = 10, pt = 10, pb = 22;
+    const lo = Math.floor(Math.min(...all) - .5), hi = Math.ceil(Math.max(...all) + .5);
+    const X = h => pl + (h + 24) / 36 * (W - pl - pr), Y = v => pt + (hi - v) / (hi - lo) * (H - pt - pb);
+    const P = (arr, off) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(i + off).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+    const pts = [...b.past.map((v, i) => [i - 24, v]), ...b.fore.slice(1).map((v, j) => [j + 1, v])];
+    return `<svg class="tchart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" data-chart='${JSON.stringify({ W, H, pl, pr, pt, pb, lo, hi, pts })}' role="img" aria-label="Inlet temperature for hall ${b.id}, past 24 hours and 12 hour forecast">
+      <line class="gl" x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}"/>
+      <text x="${pl - 6}" y="${Y(hi) + 4}" text-anchor="end">${hi}°</text><text x="${pl - 6}" y="${Y(lo) + 4}" text-anchor="end">${lo}°</text>
+      <line class="lim" x1="${pl}" x2="${W - pr}" y1="${Y(LIMIT)}" y2="${Y(LIMIT)}"/>
+      <path class="area" d="${P(b.past, -24)}L${X(0)},${H - pb}L${X(-24)},${H - pb}Z"/>
+      <path class="ln" d="${P(b.past, -24)}"/><path class="ln fc" d="${P(b.fore, 0)}"/>
+      <line class="now" x1="${X(0)}" x2="${X(0)}" y1="${pt}" y2="${H - pb}"/>
+      <text x="${X(-24)}" y="${H - 5}">−24 h</text><text x="${X(0)}" y="${H - 5}" text-anchor="middle">Now</text><text x="${X(12)}" y="${H - 5}" text-anchor="end">+12 h</text>
+      <g class="hov"><line y1="${pt}" y2="${H - pb}"/><circle r="4.5"/><rect rx="4" height="22" width="108"/><text></text></g>
+      <rect class="hit" x="${pl}" y="0" width="${W - pl - pr}" height="${H}" fill="transparent"/></svg>`;
+  },
+  kpis: () => `<div class="kpis" style="display:flex;gap:22px;flex-wrap:wrap">${[['IT load', (TOTAL.load / 1000).toFixed(2), 'MW'], ['Open issues', TOTAL.issues, ''], ['Avg inlet', TOTAL.avgT.toFixed(1), '°C'], ['Next breach', NEXT.id, fmtH(NEXT.breachH)]].map(([k, v, u]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`).join('')}</div>`,
+  spark(b, W = 120, H = 30) {
+    const all = [...b.past, ...b.fore, LIMIT], lo = Math.min(...all) - .3, hi = Math.max(...all) + .3;
+    const X = h => (h + 24) / 36 * W, Y = v => 2 + (hi - v) / (hi - lo) * (H - 4);
+    const P = (arr, off) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(i + off).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${Y(LIMIT)}" y2="${Y(LIMIT)}" vector-effect="non-scaling-stroke"/><path d="${P(b.past, -24)}" vector-effect="non-scaling-stroke"/><path class="f" d="${P(b.fore, 0)}" vector-effect="non-scaling-stroke"/></svg>`;
+  },
+  ctrls: () => `<div class="ctrls"><button data-zoom="in" aria-label="Zoom in">+</button><button data-zoom="out" aria-label="Zoom out">−</button><button data-zoom="reset" aria-label="Reset view">⤢</button></div>`,
+  slot: (inner = '') => `<div class="scene-slot"><div class="labels"></div>${inner}</div>`,
+  hint: () => `<div class="hint">Drag to orbit · scroll to zoom · click a hall</div>`,
+};
+
+/* ═══════════════════ DESIGNS ═══════════════════ */
+const S = (o) => Object.assign({ plinth: '#e6dcc4', block: '#fbf7ec', roof: '#efe6d0', rack: '#2a2a2a', unit: '#ddd3ba', edge: '#1c1c1c', edgeOp: .18, face: 1, ok: '#3a8a58', warn: '#d4881c', crit: '#cf4a2f', sky: '#ffffff', gnd: '#b8ad94', amb: .75, sun: .75, shadow: true, grid: null, gridOp: .1, heat: false, fill: false, spin: 1, shift: [0, 0], dist: 47, el: .72 }, o);
+
+const DESIGNS = [
+  { cls: 'd1', name: 'Atrium', blurb: 'Cream floating cards around the 3D floor, closest to the reference', scene: S({ shift: [.04, .12] }),
+    html: b => `${C.slot()}${C.hint()}
+      <aside class="card abs left"><div class="top">${C.brand()}${C.live()}</div>${C.tabs()}${C.head(b)}<div>${C.body(b, { noStats: state.tab === 'overview' })}</div></aside>
+      <aside class="card abs right"><div class="rh"><span>Halls on floor 3, highest risk first</span></div>${C.rank()}</aside>
+      <section class="card abs bottom">${C.stats(b)}<div>${C.chartHead(b)}${C.chart(b, { h: 120 })}</div></section>${C.ctrls()}` },
+
+  { cls: 'd5', name: 'Swiss', blurb: 'Editorial grid: giant hall ID, numbered tab list, framed model', scene: S({ plinth: '#d9d9d6', block: '#ffffff', roof: '#f1f1ef', rack: '#111', unit: '#e4e4e1', edge: '#111', edgeOp: .55, ok: '#1a7f4b', warn: '#e0a100', crit: '#e3221b', gnd: '#bdbdbd', dist: 43 }),
+    html: b => `<header class="mast"><span>MESA — Floor 3 Operations</span><div class="meta"><span>IT load <b>${(TOTAL.load / 1000).toFixed(2)} MW</b></span><span>Open issues <b>${TOTAL.issues}</b></span><span>Avg inlet <b>${TOTAL.avgT.toFixed(1)} °C</b></span><span>${C.live()}</span></div></header>
+      <aside class="left"><div class="eyebrow">Data hall</div><div class="giant">${b.id}<sup>${b.risk}/100</sup></div>${C.pill(b.status)}${C.head(b)}${C.tabs({ full: true })}${C.body(b)}</aside>
+      <section class="sbox">${C.slot()}${C.ctrls()}${C.hint()}</section>
+      <section class="low"><div><div class="t"><span>Inlet temperature, hall ${b.id}</span><span>−24 h → +12 h</span></div>${C.chart(b, { h: 150 })}</div><div><div class="t"><span>Halls by risk</span><span>Score</span></div>${C.rank()}</div></section>` },
+
+  { cls: 'd12', name: 'Bento', blurb: 'Tile grid: model, detail, ranking, chart and KPI tiles', scene: S({ plinth: '#dedbd4', block: '#ffffff', roof: '#f3f1ec', rack: '#222', unit: '#e7e4dd', edge: '#222', edgeOp: .18, ok: '#2f9e6b', warn: '#e59a1a', crit: '#e5484d', gnd: '#c8c3b8', dist: 43, shift: [0, .02] }),
+    html: b => `<section class="t t-det"><div style="display:flex;justify-content:space-between;align-items:center">${C.brand()}${C.live()}</div>${C.tabs()}${C.head(b)}<div>${C.body(b)}</div></section>
+      <section class="t t-scene">${C.slot()}<div class="over"><span class="eyebrow">Dallas DC-2</span><b>Floor 3</b></div>${C.ctrls()}${C.hint()}</section>
+      <section class="t t-rank"><div class="rh">Halls by risk</div>${C.rank()}</section>
+      <section class="t t-chart">${C.chartHead(b)}${C.chart(b, { h: 150 })}</section>
+      <section class="t t-kpis"><div class="kpi"><span class="k">IT load</span><span class="v">${(TOTAL.load / 1000).toFixed(2)}<span class="u">MW</span></span></div><div class="kpi"><span class="k">Open issues</span><span class="v">${TOTAL.issues}</span></div><div class="kpi"><span class="k">Avg inlet</span><span class="v">${TOTAL.avgT.toFixed(1)}<span class="u">°C</span></span></div><div class="kpi hot"><span class="k">Next breach</span><span class="v">${NEXT.id}<span class="u" style="color:#a1a1aa">${fmtH(NEXT.breachH)}</span></span></div></section>` },
+
+  { cls: 'd1 n1', name: 'Atrium Night', blurb: 'The Atrium layout in a high-contrast dark theme (MESA defaults to dark)', scene: S({ plinth: '#252421', block: '#3b3934', roof: '#46433d', rack: '#F0E6C0', unit: '#4c4942', edge: '#F0E6C0', edgeOp: .22, ok: '#74d395', warn: '#f2b552', crit: '#ff7d62', sky: '#fff4e0', gnd: '#111', amb: .7, sun: .8, shift: [.04, .12] }),
+    html: b => DESIGNS[0].html(b) },
+
+  { cls: 'n2', name: 'Gallery', blurb: 'Model on top, a row of hall cards with sparklines underneath', scene: S({ plinth: '#e2e0d9', block: '#ffffff', roof: '#f4f2ed', rack: '#222', unit: '#e8e5de', edge: '#222', edgeOp: .16, ok: '#1f8a5b', warn: '#e09a1a', crit: '#d43c3c', gnd: '#c8c3b8', dist: 42, shift: [0, .02] }),
+    html: b => `<section class="left"><div style="display:flex;justify-content:space-between;align-items:center">${C.brand()}${C.live()}</div>${C.tabs()}${C.head(b)}<div>${C.body(b)}</div><div>${C.chartHead(b, `Inlet temperature · ${b.id}`)}${C.chart(b, { h: 130 })}</div></section>
+      <section class="scene">${C.slot()}<div class="over"><b>Floor 3</b>${C.kpis()}</div>${C.ctrls()}${C.hint()}</section>
+      <section class="halls">${BLOCKS.map(x => `<button class="hc ${x.id === state.sel ? 'on' : ''}" data-block="${x.id}"><div class="top"><span class="id">${x.id}</span><span class="g s-${x.status}" aria-label="${ST[x.status].l}">${ST[x.status].g}</span></div><div class="tt">${x.temp.toFixed(1)}<span> °C</span></div>${C.spark(x)}<small>${x.short}</small></button>`).join('')}</section>` },
+
+  { cls: 'n3', name: 'Front Page', blurb: 'Newspaper layout: the headline is the hall’s situation, the model is the photo', scene: S({ plinth: '#e4dccb', block: '#fbf8f1', roof: '#efe8d9', rack: '#1a1916', unit: '#e6dfcf', edge: '#1a1916', edgeOp: .45, ok: '#2d6e45', warn: '#c98a1a', crit: '#b5361c', gnd: '#b8ae98', dist: 42 }),
+    html: b => `<header class="mast"><span class="m">Floor 3 · Dallas DC-2<br>${TOTAL.issues} open issues · avg inlet ${TOTAL.avgT.toFixed(1)} °C</span><span class="t">The Floor 3 Report</span><span class="m r">Saturday, 7 November 2026<br>${C.live()}</span></header>
+      <section class="col c1"><div class="kicker">Hall ${b.id} · ${ST[b.status].l}</div>${C.head(b)}${C.tabs()}${C.body(b)}</section>
+      <section class="col c2"><div class="photo">${C.slot()}${C.ctrls()}</div><div class="cap">Fig. 1 — Floor 3, live. Drag to turn the model, scroll to zoom, click a hall to read about it.</div><div>${C.chartHead(b, `Inlet temperature in ${b.id}`)}${C.chart(b, { h: 130 })}</div></section>
+      <section class="col c3"><div class="sec">Other halls</div>${C.rank()}<div class="sec" style="margin-top:22px">Latest</div><ul class="briefs">${[...EVENTS].reverse().map(e => `<li data-block="${e.b}"><time>${fmtAgo(e.h)} · ${e.b}</time>${e.t}</li>`).join('')}</ul></section>` },
+
+  { cls: 'n4', name: 'Studio', blurb: 'Ink sidebar with full tab names, a detail column, the model and a ranking', scene: S({ plinth: '#e3e3df', block: '#ffffff', roof: '#f3f3f0', rack: '#141414', unit: '#e8e8e4', edge: '#141414', edgeOp: .18, ok: '#16834f', warn: '#e09a1a', crit: '#d23b3b', gnd: '#c4c4bd', dist: 42 }),
+    html: b => `<nav class="side">${C.brand()}<div><div class="lbl">Hall ${b.id}</div>${C.tabs({ full: true, icons: true })}</div><div><div class="lbl">Floor 3</div>${C.kpis()}</div></nav>
+      <section class="det">${C.head(b)}<div style="margin-top:16px">${C.body(b)}</div></section>
+      <section class="scene">${C.slot()}<div class="over"><span class="eyebrow">Dallas DC-2</span><b>Floor 3</b></div>${C.ctrls()}${C.hint()}</section>
+      <section class="chartc">${C.chartHead(b)}${C.chart(b, { h: 140 })}</section>
+      <aside class="rk"><div class="rh">Halls by risk</div>${C.rank()}</aside>` },
+
+  { cls: 'n5', name: 'Focus', blurb: 'Accessibility first: a plain sentence up top, 16px+ text, a simple hall grid', scene: S({ plinth: '#dde3ea', block: '#ffffff', roof: '#f1f4f8', rack: '#0f172a', unit: '#e5eaf0', edge: '#0f172a', edgeOp: .18, ok: '#15803d', warn: '#d97706', crit: '#dc2626', sky: '#ffffff', gnd: '#b6c0cc', shift: [.14, .02], dist: 44 }),
+    html: b => { const bad = BLOCKS.filter(x => x.status !== 'ok'), crit = bad.filter(x => x.status === 'crit').length;
+      return `${C.slot()}
+      <section class="card abs banner"><span class="say">${bad.length} of ${BLOCKS.length} halls need attention${crit ? ` · <span>${crit} critical</span>` : ''}</span><div class="chips">${bad.sort((p, q) => q.risk - p.risk).map(x => `<button class="chip s-${x.status} ${x.id === state.sel ? 'on' : ''}" data-block="${x.id}"><i></i>${x.id} · ${x.short}</button>`).join('')}</div></section>
+      <aside class="card abs left"><div style="display:flex;justify-content:space-between;align-items:center">${C.brand()}${C.live()}</div>${C.tabs()}${C.head(b)}<div>${C.body(b)}</div></aside>
+      <section class="card abs grid8"><div class="h">All halls</div>${BLOCKS.map(x => `<button class="gc s-${x.status} ${x.id === state.sel ? 'on' : ''}" data-block="${x.id}"><b>${x.id}</b><span>${ST[x.status].g} ${x.temp.toFixed(1)}°</span></button>`).join('')}</section>
+      <section class="card abs chartc">${C.chartHead(b)}${C.chart(b, { h: 140 })}</section>${C.ctrls()}`; } },
+
+];
+
+/* ═══════════════════ 3D SCENE ═══════════════════ */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, .1, 300);
+let world = null, lights = [], halls = [], picks = [], T = null, labelEls = {}, slotEl = null;
+const orbit = { az: -.62, el: .72, dist: 40, distT: 40, target: new THREE.Vector3(), targetT: new THREE.Vector3() };
+let lastInteract = 0, hovered = null;
+const POS = BLOCKS.map((b, i) => [-7.5 + 5 * (i % 4), i < 4 ? -3.6 : 3.6]);
+const HH = 2.2;
+
+function disposeTree(o) { o.traverse(n => { n.geometry && n.geometry.dispose(); if (n.material) [].concat(n.material).forEach(m => m.dispose()); }); }
+function buildWorld(t) {
+  T = t;
+  if (world) { scene.remove(world); disposeTree(world); }
+  lights.forEach(l => scene.remove(l));
+  world = new THREE.Group(); scene.add(world); halls = []; picks = [];
+  const hemi = new THREE.HemisphereLight(t.sky, t.gnd, t.amb);
+  const sun = new THREE.DirectionalLight('#ffffff', t.sun);
+  sun.position.set(-14, 26, 12); sun.castShadow = t.shadow;
+  Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 80 });
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0008; sun.shadow.radius = 4;
+  scene.add(hemi, sun); lights = [hemi, sun];
+  const wire = t.face < 1;
+  const edgeMat = new THREE.LineBasicMaterial({ color: t.edge, transparent: true, opacity: t.edgeOp });
+  const mat = (c, op = t.face) => new THREE.MeshLambertMaterial({ color: c, transparent: op < 1, opacity: op, depthWrite: op >= .5 });
+  function box(w, h, d, m, x, y, z, parent, edges = true, em = edgeMat) {
+    const g = new THREE.BoxGeometry(w, h, d), mesh = new THREE.Mesh(g, m);
+    mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = t.shadow; parent.add(mesh);
+    if (edges && t.edgeOp > 0) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), em));
+    return mesh;
+  }
+  function cyl(r, h, m, x, y, z, parent, edges = wire) {
+    const g = new THREE.CylinderGeometry(r, r, h, wire ? 12 : 24), mesh = new THREE.Mesh(g, m);
+    mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = t.shadow; parent.add(mesh);
+    if (edges && t.edgeOp > 0) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), edgeMat));
+    return mesh;
+  }
+  if (t.grid) { const g = new THREE.GridHelper(90, 45, t.grid, t.grid); g.material.transparent = true; g.material.opacity = t.gridOp; g.position.y = -.52; world.add(g); }
+  // plinth, central spine corridor
+  box(38, .5, 18, mat(t.plinth, wire ? .02 : 1), 0, -.25, 0, world);
+  box(19.8, 1.1, 1.5, mat(t.roof), 0, .55, 0, world);
+  // generator yard (west) and cooling towers (east) — unlabeled context
+  const unitM = mat(t.unit);
+  for (let k = 0; k < 4; k++) { const z = -5.1 + k * 3.4; box(1.3, 1, 2.4, unitM, -14.6, .5, z, world); cyl(.14, 1.2, unitM, -14.2, 1.5, z - .7, world); }
+  for (let k = 0; k < 2; k++) { const z = k ? 3.4 : -3.4; cyl(1.2, 1.8, unitM, 14.4, .9, z, world); cyl(.9, .15, mat(t.rack, wire ? t.face * 2 : 1), 14.4, 1.85, z, world); }
+  box(2.2, 1.3, 2.6, unitM, 14.4, .65, 0, world); // substation
+  // halls
+  BLOCKS.forEach((b, i) => {
+    const [x, z] = POS[i], g = new THREE.Group(); g.position.set(x, 0, z); world.add(g);
+    const shellColor = t.heat ? heat(b.temp) : (t.fill && b.status !== 'ok') ? new THREE.Color(t[b.status]) : new THREE.Color(t.block);
+    const shellMat = new THREE.MeshLambertMaterial({ color: shellColor, transparent: true, opacity: t.face, depthWrite: t.face >= .5 });
+    const shell = box(4.3, HH, 5, shellMat, 0, HH / 2, 0, g); shell.userData.id = b.id; picks.push(shell);
+    const rackM = mat(t.rack, wire ? Math.min(1, t.face * 3) : 1);
+    for (let r = 0; r < 6; r++) box(.34, 1.3, 3.7, rackM, -1.55 + r * .62, .66, 0, g, wire);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(4.42, .14, 5.12), new THREE.MeshBasicMaterial({ color: t[b.status] })); band.position.y = .14; g.add(band);
+    // lid: roof + rooftop units, lifts away when the hall is selected
+    const lid = new THREE.Group(); g.add(lid);
+    const lidMat = new THREE.MeshLambertMaterial({ color: t.heat ? shellColor.clone().multiplyScalar(.8) : t.roof, transparent: true, opacity: t.face, depthWrite: t.face >= .5 });
+    const lidUnit = new THREE.MeshLambertMaterial({ color: t.unit, transparent: true, opacity: t.face, depthWrite: t.face >= .5 });
+    const lidEdge = new THREE.LineBasicMaterial({ color: t.edge, transparent: true, opacity: t.edgeOp });
+    box(4.55, .16, 5.25, lidMat, 0, HH + .08, 0, lid, true, lidEdge);
+    for (let k = 0; k < 3; k++) {
+      box(.95, .42, .95, lidUnit, -1.3 + 1.3 * k, HH + .37, -1.3, lid, true, lidEdge);
+      const fan = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .05, 18), lidMat); fan.position.set(-1.3 + 1.3 * k, HH + .6, -1.3); lid.add(fan);
+    }
+    box(2.4, .3, .7, lidUnit, -.6, HH + .3, 1.6, lid, true, lidEdge);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 12), new THREE.MeshBasicMaterial({ color: t[b.status] }));
+    beacon.position.set(1.75, HH + .55, 1.95); g.add(beacon);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .4, 6), new THREE.MeshBasicMaterial({ color: t.edge })); mast.position.set(1.75, HH + .3, 1.95); g.add(mast);
+    halls.push({ b, g, shellMat, lid, lidMats: [lidMat, lidUnit], lidEdge, beacon, mast });
+  });
+  orbit.distT = t.dist; orbit.el = t.el;
+}
+
+function resize() {
+  if (!slotEl) return;
+  const w = slotEl.clientWidth, h = slotEl.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  const [sx, sy] = T.shift; camera.setViewOffset(w, h, -sx * w, sy * h, w, h);
+  camera.updateProjectionMatrix();
+}
+const ro = new ResizeObserver(resize);
+
+const v3 = new THREE.Vector3();
+function tick(now) {
+  requestAnimationFrame(tick);
+  if (!T || !slotEl) return;
+  if (now - lastInteract > 4000 && !drag) orbit.az += .0006 * T.spin;
+  orbit.dist += (orbit.distT - orbit.dist) * .12;
+  orbit.target.lerp(orbit.targetT, .06);
+  const { az, el, dist, target } = orbit;
+  camera.position.set(target.x + dist * Math.cos(el) * Math.sin(az), target.y + dist * Math.sin(el), target.z + dist * Math.cos(el) * Math.cos(az));
+  camera.lookAt(target);
+  const k = .12, t = now / 1000;
+  halls.forEach(H => {
+    const on = H.b.id === state.sel;
+    H.g.position.y += ((on ? .3 : 0) - H.g.position.y) * k;
+    H.lid.position.y += ((on ? 1.8 : 0) - H.lid.position.y) * k;
+    const lo = on ? 0 : T.face; H.lidMats.forEach(m => { m.opacity += (lo - m.opacity) * k; });
+    H.lidEdge.opacity += ((on ? 0 : T.edgeOp) - H.lidEdge.opacity) * k;
+    H.lid.visible = H.lidMats[0].opacity > .02 || H.lidEdge.opacity > .02;
+    const so = on ? Math.min(T.face, .13) : (hovered === H.b.id && T.face === 1 ? .92 : T.face);
+    H.shellMat.opacity += (so - H.shellMat.opacity) * k; H.shellMat.depthWrite = H.shellMat.opacity > .6;
+    const p = H.b.status === 'crit' ? 1 + .35 * Math.sin(t * 5) : H.b.status === 'warn' ? 1 + .15 * Math.sin(t * 2.5) : 1;
+    H.beacon.scale.setScalar(p);
+  });
+  renderer.render(scene, camera);
+  // project labels
+  const w = slotEl.clientWidth, h = slotEl.clientHeight;
+  halls.forEach(H => {
+    const el = labelEls[H.b.id]; if (!el) return;
+    v3.set(H.g.position.x, H.g.position.y + HH + (H.b.id === state.sel ? 2.9 : 1.3), H.g.position.z).project(camera);
+    if (v3.z > 1) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px,${((1 - v3.y) / 2 * h).toFixed(1)}px) translate(-50%,-100%)`;
+    el.style.zIndex = Math.round((1 - v3.z) * 1e4);
+  });
+}
+
+// pointer orbit + pick
+let drag = null;
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(picks, false)[0];
+  return hit ? hit.object.userData.id : null;
+}
+const cv = renderer.domElement;
+cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: 0 }; cv.setPointerCapture(e.pointerId); lastInteract = performance.now(); });
+cv.addEventListener('pointermove', e => {
+  if (drag) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx) + Math.abs(dy);
+    orbit.az -= dx * .006; orbit.el = Math.max(.12, Math.min(1.45, orbit.el + dy * .005)); lastInteract = performance.now();
+  } else {
+    const id = pick(e); if (id !== hovered) { hovered = id; cv.style.cursor = id ? 'pointer' : ''; Object.entries(labelEls).forEach(([k, el]) => el.classList.toggle('hov', k === id)); }
+  }
+});
+cv.addEventListener('pointerup', e => { if (drag && drag.moved < 6) { const id = pick(e); if (id) select(id); } drag = null; });
+cv.addEventListener('wheel', e => { e.preventDefault(); orbit.distT = Math.max(16, Math.min(70, orbit.distT * (1 + e.deltaY * .0012))); lastInteract = performance.now(); }, { passive: false });
+
+/* ═══════════════════ RENDER + EVENTS ═══════════════════ */
+function render() {
+  const D = DESIGNS[state.d];
+  stage.className = DESIGNS[state.d].cls;
+  stage.innerHTML = D.html(sel());
+  slotEl = stage.querySelector('.scene-slot');
+  slotEl.prepend(renderer.domElement);
+  const lab = slotEl.querySelector('.labels');
+  lab.innerHTML = BLOCKS.map(b => `<div class="blk-label s-${b.status} ${b.id === state.sel ? 'on' : ''}" data-block="${b.id}"><i></i>${b.id}</div>`).join('');
+  labelEls = {}; lab.querySelectorAll('.blk-label').forEach(el => labelEls[el.dataset.block] = el);
+  ro.disconnect(); ro.observe(slotEl); resize();
+  bindCharts();
+  const sw = document.querySelector('#sw');
+  sw.querySelector('.nm').innerHTML = `<b>${String(state.d + 1).padStart(2, '0')}</b>${D.name}<small>${D.blurb}</small>`;
+  sw.querySelectorAll('.dots button').forEach((x, i) => x.classList.toggle('on', i === state.d));
+}
+function select(id) {
+  state.sel = id;
+  const i = BLOCKS.findIndex(b => b.id === id);
+  orbit.targetT.set(POS[i][0] * .35, 0, POS[i][1] * .35);
+  lastInteract = performance.now();
+  render();
+}
+function setDesign(i) {
+  state.d = (i + DESIGNS.length) % DESIGNS.length;
+  history.replaceState(null, '', '#' + (state.d + 1));
+  buildWorld(DESIGNS[state.d].scene);
+  render();
+}
+function bindCharts() {
+  stage.querySelectorAll('.cbox').forEach(el => { el.innerHTML = C.svg(sel(), Math.max(200, el.clientWidth), el.dataset.h === 'fill' ? Math.max(100, el.clientHeight) : +el.dataset.h); });
+  stage.querySelectorAll('svg.tchart').forEach(svg => {
+    const c = JSON.parse(svg.dataset.chart), g = svg.querySelector('.hov'), hit = svg.querySelector('.hit');
+    const X = h => c.pl + (h + 24) / 36 * (c.W - c.pl - c.pr), Y = v => c.pt + (c.hi - v) / (c.hi - c.lo) * (c.H - c.pt - c.pb);
+    hit.addEventListener('mousemove', e => {
+      const r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * c.W;
+      const h = Math.max(-24, Math.min(12, Math.round((vx - c.pl) / (c.W - c.pl - c.pr) * 36 - 24)));
+      const [hh, v] = c.pts.find(p => p[0] === h), x = X(hh), y = Y(v);
+      g.style.opacity = 1;
+      g.querySelector('line').setAttribute('x1', x); g.querySelector('line').setAttribute('x2', x);
+      g.querySelector('circle').setAttribute('cx', x); g.querySelector('circle').setAttribute('cy', y);
+      const label = `${hh === 0 ? 'Now' : (hh > 0 ? '+' : '') + hh + ' h'} · ${v.toFixed(1)} °C`, bx = Math.min(Math.max(x - 54, c.pl), c.W - c.pr - 108);
+      const rect = g.querySelector('rect'), tx = g.querySelector('text'), by = y - 30 < 0 ? y + 10 : y - 30;
+      rect.setAttribute('x', bx); rect.setAttribute('y', by);
+      tx.setAttribute('x', bx + 54); tx.setAttribute('y', by + 15); tx.setAttribute('text-anchor', 'middle'); tx.textContent = label;
+    });
+    hit.addEventListener('mouseleave', () => g.style.opacity = 0);
+  });
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab],[data-block],[data-zoom],[data-step],[data-go]');
+  if (!t || e.target === cv) return;
+  if (t.dataset.tab) { state.tab = t.dataset.tab; render(); }
+  else if (t.dataset.block) select(t.dataset.block);
+  else if (t.dataset.zoom) {
+    const z = t.dataset.zoom; lastInteract = performance.now();
+    if (z === 'in') orbit.distT = Math.max(16, orbit.distT * .82);
+    else if (z === 'out') orbit.distT = Math.min(70, orbit.distT * 1.2);
+    else { orbit.distT = T.dist; orbit.el = T.el; orbit.az = -.62; orbit.targetT.set(0, 0, 0); }
+  }
+  else if (t.dataset.step) setDesign(state.d + +t.dataset.step);
+  else if (t.dataset.go) setDesign(+t.dataset.go);
+});
+window.addEventListener('resize', () => bindCharts());
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') setDesign(state.d + 1);
+  else if (e.key === 'ArrowLeft') setDesign(state.d - 1);
+  else if (e.key.toLowerCase() === 'h') document.getElementById('sw').classList.toggle('hide');
+});
+document.querySelector('#sw .dots').innerHTML = DESIGNS.map((_, i) => `<button data-go="${i}" title="${DESIGNS[i].name}">${String(i + 1).padStart(2, '0')}</button>`).join('');
+
+setDesign(state.d);
+select(state.sel);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
